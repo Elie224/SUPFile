@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+venv/
+
+# Environment variables (SECRETS)
+.env
+.env.local
+.env.*.local
+
+# Build files
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker-compose.override.yml
+
+# Uploads (gros fichiers)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

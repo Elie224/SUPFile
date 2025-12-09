@@ -1,0 +1,101 @@
+version: '3.9'
+
+services:
+  # Base de données PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: supfile-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-supfile_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_secure_password_here}
+      POSTGRES_DB: ${POSTGRES_DB:-supfile}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-supfile_user} -d ${POSTGRES_DB:-supfile}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - supfile-network
+
+  # Serveur API Node.js/Express
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supfile-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      SERVER_PORT: 5000
+      SERVER_HOST: 0.0.0.0
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-supfile_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_secure_password_here}
+      POSTGRES_DB: ${POSTGRES_DB:-supfile}
+      DB_URI=[REDACTED]
+      JWT_SECRET=[REDACTED]
+      JWT_REFRESH_SECRET=[REDACTED]
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5368709120}
+      UPLOAD_DIR: /usr/src/app/uploads
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:8081}
+    ports:
+      - "5000:5000"
+    volumes:
+      - backend_data:/usr/src/app/uploads
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+  # Client Web React
+  frontend:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+    container_name: supfile-frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-web/src:/app/src
+      - /app/node_modules
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+  # Client Mobile (Expo)
+  mobile:
+    build:
+      context: ./mobile-app
+      dockerfile: Dockerfile
+    container_name: supfile-mobile
+    environment:
+      EXPO_PUBLIC_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    ports:
+      - "19000:19000"
+      - "19001:19001"
+    volumes:
+      - ./mobile-app/src:/app/src
+      - /app/node_modules
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+volumes:
+  db_data:
+    driver: local
+  backend_data:
+    driver: local
+
+networks:
+  supfile-network:
+    driver: bridge
