@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -9,6 +9,13 @@ export default function Layout({ children }) {
   const location = useLocation();
   const { t, language } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Fermer les menus quand on change de page
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -36,94 +43,166 @@ export default function Layout({ children }) {
         position: 'sticky',
         top: 0,
         zIndex: 1000,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
       }}>
-        {/* Header principal */}
+        {/* Header principal - Mobile */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          padding: '12px 16px',
+          padding: '0 16px',
+          height: '56px',
           minHeight: '56px'
-        }}>
-          {/* Menu hamburger + Logo/Titre */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        }}
+        className="nav-header"
+        >
+          {/* Gauche: Menu + Logo */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            flex: '0 0 auto'
+          }}>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
                 display: 'none',
-                padding: '10px',
+                padding: '8px',
                 backgroundColor: 'transparent',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '24px',
-                minWidth: '44px',
-                minHeight: '44px',
+                fontSize: '20px',
+                width: '40px',
+                height: '40px',
                 color: '#333',
-                transition: 'background-color 0.2s'
+                transition: 'background-color 0.2s',
+                flexShrink: 0
               }}
               className="mobile-menu-toggle"
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              aria-label="Menu"
             >
               {mobileMenuOpen ? '✕' : '☰'}
             </button>
-            <span style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              color: '#2196F3',
-              display: 'none'
-            }}
-            className="mobile-logo"
-            >
-              SUPFile
-            </span>
+            <div style={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ 
+                fontSize: '20px', 
+                fontWeight: '700', 
+                color: '#2196F3',
+                display: 'none',
+                letterSpacing: '-0.5px'
+              }}
+              className="mobile-logo"
+              >
+                SUPFile
+              </span>
+            </div>
           </div>
 
-          {/* User info et logout - Mobile */}
+          {/* Droite: User menu - Mobile */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '8px'
+            gap: '8px',
+            position: 'relative'
           }}
           className="mobile-user-info"
           >
-            <span style={{ 
-              fontSize: '13px',
-              color: '#666',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: '120px'
-            }}>
-              {user.email.split('@')[0]}
-            </span>
-            <button 
-              onClick={handleLogout} 
-              style={{ 
-                padding: '8px 12px', 
-                backgroundColor: '#f44336', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              style={{
+                display: 'none',
+                padding: '6px 10px',
+                backgroundColor: '#f5f5f5',
+                border: 'none',
+                borderRadius: '20px',
                 cursor: 'pointer',
                 fontSize: '13px',
-                minHeight: '36px',
+                color: '#333',
                 fontWeight: '500',
-                transition: 'background-color 0.2s, transform 0.1s'
+                minHeight: '32px',
+                transition: 'background-color 0.2s'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#d32f2f';
-                e.target.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#f44336';
-                e.target.style.transform = 'scale(1)';
-              }}
+              className="mobile-user-button"
             >
-              {t('logout')}
+              <span style={{ 
+                display: 'inline-block',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                lineHeight: '24px',
+                textAlign: 'center',
+                fontSize: '12px',
+                fontWeight: '600',
+                marginRight: '6px'
+              }}>
+                {user.email.charAt(0).toUpperCase()}
+              </span>
+              <span style={{ 
+                maxWidth: '80px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {user.email.split('@')[0]}
+              </span>
             </button>
+            
+            {/* Menu utilisateur déroulant */}
+            {userMenuOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                minWidth: '200px',
+                zIndex: 1001,
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '4px' }}>
+                    {user.email}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    handleLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#f44336',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#fff5f5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  {t('logout')}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Navigation desktop */}
@@ -185,45 +264,104 @@ export default function Layout({ children }) {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '16px'
+            gap: '12px',
+            position: 'relative'
           }}
           className="desktop-user-info"
           >
-            <span style={{ 
-              fontSize: '14px',
-              color: '#666',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: '200px'
-            }}>
-              {user.email}
-            </span>
-            <button 
-              onClick={handleLogout} 
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: '#f44336', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                backgroundColor: '#f5f5f5',
+                border: 'none',
+                borderRadius: '20px',
                 cursor: 'pointer',
                 fontSize: '14px',
-                minHeight: '36px',
+                color: '#333',
                 fontWeight: '500',
-                transition: 'background-color 0.2s, transform 0.1s'
+                transition: 'background-color 0.2s'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#d32f2f';
-                e.target.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#f44336';
-                e.target.style.transform = 'scale(1)';
-              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#eeeeee'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f5f5f5'}
             >
-              {t('logout')}
+              <span style={{ 
+                display: 'inline-block',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                lineHeight: '28px',
+                textAlign: 'center',
+                fontSize: '13px',
+                fontWeight: '600',
+                flexShrink: 0
+              }}>
+                {user.email.charAt(0).toUpperCase()}
+              </span>
+              <span style={{ 
+                maxWidth: '180px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {user.email}
+              </span>
             </button>
+            
+            {/* Menu utilisateur desktop */}
+            {userMenuOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                minWidth: '220px',
+                zIndex: 1001,
+                overflow: 'hidden'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #f0f0f0'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#333', marginBottom: '4px' }}>
+                    {user.email}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    handleLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#f44336',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#fff5f5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  {t('logout')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -287,6 +425,10 @@ export default function Layout({ children }) {
           .mobile-user-info {
             display: flex !important;
           }
+          .mobile-user-button {
+            display: flex !important;
+            align-items: center;
+          }
           .nav-links-desktop {
             display: none !important;
           }
@@ -304,11 +446,33 @@ export default function Layout({ children }) {
           .mobile-user-info {
             display: none !important;
           }
+          .mobile-user-button {
+            display: none !important;
+          }
           .nav-links-mobile {
             display: none !important;
           }
         }
+        /* Fermer le menu utilisateur quand on clique ailleurs */
+        body {
+          position: relative;
+        }
       `}</style>
+      {/* Overlay pour fermer le menu utilisateur */}
+      {userMenuOpen && (
+        <div
+          onClick={() => setUserMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1000,
+            backgroundColor: 'transparent'
+          }}
+        />
+      )}
     </div>
   );
 }
