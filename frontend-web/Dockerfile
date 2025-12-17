@@ -9,9 +9,9 @@ RUN npm ci
 COPY . .
 
 # Build de l'application avec VITE_API_URL
-# Render passe les variables d'environnement au build
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
+# Render passe automatiquement les variables d'environnement au build
+# Utiliser la variable d'environnement directement (Render les injecte)
+ENV VITE_API_URL=${VITE_API_URL:-https://supfile-1.onrender.com}
 
 RUN npm run build
 
