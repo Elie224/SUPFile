@@ -504,23 +504,65 @@ export default function Files() {
               </div>
             )}
           </div>
-        <div>
-          <input
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            style={{ display: 'none' }}
-            id="file-upload"
-          />
-          <label htmlFor="file-upload" style={{ marginRight: 8, padding: '8px 16px', backgroundColor: '#2196F3', color: 'white', borderRadius: 4, cursor: 'pointer', display: 'inline-block' }}>
-            {t('upload')}
-          </label>
-          <button
-            onClick={() => setShowNewFolder(!showNewFolder)}
-            style={{ padding: '8px 16px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-          >
-            {t('newFolder')}
-          </button>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <input
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              id="file-upload"
+            />
+            <label 
+              htmlFor="file-upload" 
+              style={{ 
+                padding: '10px 20px', 
+                backgroundColor: '#2196F3', 
+                color: 'white', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                display: 'inline-block',
+                fontSize: '15px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#1976D2';
+                e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#2196F3';
+                e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+              }}
+            >
+              📤 {t('upload')}
+            </label>
+            <button
+              onClick={() => setShowNewFolder(!showNewFolder)}
+              style={{ 
+                padding: '10px 20px', 
+                backgroundColor: '#4CAF50', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(76, 175, 80, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#45a049';
+                e.target.style.boxShadow = '0 4px 8px rgba(76, 175, 80, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#4CAF50';
+                e.target.style.boxShadow = '0 2px 4px rgba(76, 175, 80, 0.3)';
+              }}
+            >
+              📁 {t('newFolder')}
+            </button>
+          </div>
         </div>
       </div>
 
