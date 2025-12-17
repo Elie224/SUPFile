@@ -84,7 +84,7 @@ async function createPublicShare(req, res, next) {
     res.status(201).json({
       data: {
         ...share,
-        share_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${share.public_token}`,
+        share_url: `${process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'}/share/${share.public_token}`,
       },
       message: 'Share created',
     });

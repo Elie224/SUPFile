@@ -184,7 +184,7 @@ app.get('/', (req, res) => {
       share: 'GET /api/share'
     },
     documentation: 'Consultez les fichiers dans le dossier docs/ pour plus d\'informations',
-    frontend: 'http://localhost:3000'
+    frontend: process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'
   });
 });
 

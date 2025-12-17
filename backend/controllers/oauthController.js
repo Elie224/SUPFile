@@ -24,7 +24,7 @@ const initiateOAuth = (provider) => {
       console.error(`  Provider config exists: ${!!providerConfig}`);
       console.error(`  Client ID present: ${!!providerConfig?.clientId}`);
       console.error(`  Client Secret present: ${!!providerConfig?.clientSecret}`);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} is not configured. Please contact the administrator.`)}`);
     }
     
@@ -39,7 +39,7 @@ const initiateOAuth = (provider) => {
       passport.authenticate(provider, { scope: provider === 'google' ? ['profile', 'email'] : ['user:email'] })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
       res.redirect(`${frontendUrl}/login?error=oauth_init_failed&message=${encodeURIComponent(error.message || 'Failed to initiate OAuth')}`);
     }
   };
@@ -51,12 +51,12 @@ const handleOAuthCallback = (provider) => {
     passport.authenticate(provider, { session: false }, async (err, user, info) => {
       if (err) {
         console.error(`OAuth ${provider} error:`, err);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(err.message)}`);
       }
 
       if (!user) {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=Authentication failed`);
       }
 
@@ -86,7 +86,7 @@ const handleOAuthCallback = (provider) => {
         }
 
         // Rediriger vers le frontend avec les tokens dans l'URL (ou mieux, dans un cookie sécurisé)
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         const redirectUrl = req.session.oauthRedirect || '/dashboard';
         
         // Encoder les tokens pour les passer dans l'URL
@@ -94,7 +94,7 @@ const handleOAuthCallback = (provider) => {
         res.redirect(`${frontendUrl}/auth/callback?tokens=${tokens}&redirect=${encodeURIComponent(redirectUrl)}`);
       } catch (error) {
         console.error(`OAuth ${provider} callback error:`, error);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`);
       }
     })(req, res, next);
