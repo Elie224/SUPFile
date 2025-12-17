@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
+import Footer from './Footer';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuthStore();
@@ -49,7 +50,11 @@ export default function Layout({ children }) {
   ];
 
   return (
-    <div>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh'
+    }}>
       {/* En-tête principal */}
       <nav style={{ 
         padding: '0',
@@ -473,7 +478,12 @@ export default function Layout({ children }) {
       )}
 
       {/* Contenu principal */}
-      {children}
+      <main style={{ flex: 1 }}>
+        {children}
+      </main>
+
+      {/* Footer */}
+      <Footer />
 
       <style>{`
         /* Mobile styles */
