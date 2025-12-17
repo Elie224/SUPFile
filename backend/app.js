@@ -196,6 +196,7 @@ app.use('/api/folders', require('./routes/folders'));
 app.use('/api/share', require('./routes/share'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/admin', require('./routes/admin'));
 
 // 404 handler (doit être avant errorHandler)
 app.use((req, res) => {

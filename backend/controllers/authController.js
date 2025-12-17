@@ -187,6 +187,7 @@ async function login(req, res, next) {
       quota_used: updatedUser.quota_used,
       quota_limit: updatedUser.quota_limit,
       preferences: updatedUser.preferences,
+      is_admin: updatedUser.is_admin || false,
       created_at: updatedUser.created_at,
       last_login_at: updatedUser.last_login_at || new Date(), // Utiliser la date mise à jour
     };

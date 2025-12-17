@@ -16,6 +16,7 @@ import Preview from './pages/Preview';
 import Share from './pages/Share';
 import Search from './pages/Search';
 import Trash from './pages/Trash';
+import Admin from './pages/Admin';
 import './styles.css';
 
 function App() {
@@ -79,6 +80,16 @@ function App() {
             <Layout>
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            </Layout>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Layout>
+              <ProtectedRoute>
+                <Admin />
               </ProtectedRoute>
             </Layout>
           }

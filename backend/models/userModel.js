@@ -12,6 +12,7 @@ const UserSchema = new Schema({
   quota_used: { type: Number, default: 0 },
   preferences: { type: Schema.Types.Mixed, default: { theme: 'light', language: 'en', notifications_enabled: true } },
   is_active: { type: Boolean, default: true },
+  is_admin: { type: Boolean, default: false },
   last_login_at: Date,
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
@@ -57,6 +58,7 @@ const UserModel = {
       quota_limit: u.quota_limit,
       quota_used: u.quota_used,
       preferences: u.preferences,
+      is_admin: u.is_admin || false,
       created_at: u.created_at,
       last_login_at: u.last_login_at,
     };
@@ -81,6 +83,7 @@ const UserModel = {
       quota_limit: u.quota_limit,
       quota_used: u.quota_used,
       preferences: u.preferences,
+      is_admin: u.is_admin || false,
       created_at: u.created_at,
       last_login_at: u.last_login_at,
     };

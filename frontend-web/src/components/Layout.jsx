@@ -47,6 +47,7 @@ export default function Layout({ children }) {
     { path: '/search', label: t('search') },
     { path: '/trash', label: t('trash') },
     { path: '/settings', label: t('settings') },
+    ...(user?.is_admin ? [{ path: '/admin', label: '⚙️ Administration' }] : []),
   ];
 
   return (

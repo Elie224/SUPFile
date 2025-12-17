@@ -56,6 +56,7 @@ async function getMe(req, res, next) {
       quota_used: user.quota_used,
       quota_limit: user.quota_limit,
       preferences: user.preferences,
+      is_admin: user.is_admin || false,
       created_at: user.created_at,
       last_login_at: user.last_login_at,
     };
