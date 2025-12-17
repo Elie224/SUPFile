@@ -79,7 +79,6 @@ export default function Layout({ children }) {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
-                display: 'none',
                 padding: '0',
                 backgroundColor: '#2196F3',
                 border: 'none',
@@ -107,7 +106,6 @@ export default function Layout({ children }) {
               fontSize: '22px', 
               fontWeight: '700', 
               color: '#2196F3',
-              display: 'none',
               letterSpacing: '-0.5px'
             }}
             className="mobile-logo"
@@ -185,7 +183,6 @@ export default function Layout({ children }) {
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               style={{
-                display: 'none',
                 padding: '8px 12px',
                 backgroundColor: '#f5f5f5',
                 border: 'none',
@@ -479,6 +476,7 @@ export default function Layout({ children }) {
       {children}
 
       <style>{`
+        /* Mobile styles */
         @media (max-width: 767px) {
           .mobile-menu-toggle {
             display: flex !important;
@@ -498,7 +496,11 @@ export default function Layout({ children }) {
           .desktop-user-button {
             display: none !important;
           }
+          .mobile-menu-drawer {
+            display: block !important;
+          }
         }
+        /* Desktop styles */
         @media (min-width: 768px) {
           .mobile-menu-toggle {
             display: none !important;
