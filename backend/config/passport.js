@@ -18,7 +18,7 @@ const configurePassport = () => {
   // Stratégie Google
   if (config.oauth.google?.clientId && config.oauth.google?.clientSecret) {
     console.log('✅ Google OAuth configured');
-    passport.use(new GoogleStrategy({
+    passport.use('google', new GoogleStrategy({
       clientID: config.oauth.google.clientId,
       clientSecret: config.oauth.google.clientSecret,
       callbackURL: config.oauth.google.redirectUri,
@@ -82,7 +82,7 @@ const configurePassport = () => {
   // Stratégie GitHub
   if (config.oauth.github?.clientId && config.oauth.github?.clientSecret) {
     console.log('✅ GitHub OAuth configured');
-    passport.use(new GitHubStrategy({
+    passport.use('github', new GitHubStrategy({
       clientID: config.oauth.github.clientId,
       clientSecret: config.oauth.github.clientSecret,
       callbackURL: config.oauth.github.redirectUri,

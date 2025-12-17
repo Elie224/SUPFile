@@ -36,6 +36,10 @@ const initiateOAuth = (provider) => {
     }
 
     try {
+      // Vérifier que la stratégie existe
+      if (!passport._strategies[provider]) {
+        throw new Error(`OAuth strategy "${provider}" is not configured. Please check your environment variables.`);
+      }
       passport.authenticate(provider, { scope: provider === 'google' ? ['profile', 'email'] : ['user:email'] })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);

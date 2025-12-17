@@ -13,8 +13,7 @@ const db = require('./models/db');
 
 // Initialize Passport OAuth strategies
 const configurePassport = require('./config/passport');
-configurePassport(); // Appeler immédiatement pour configurer les stratégies
-configurePassport();
+configurePassport(); // Configurer les stratégies OAuth
 
 // Créer le répertoire d'upload au démarrage
 async function ensureUploadDir() {
