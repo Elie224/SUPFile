@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Settings() {
   const { user, logout, setUser } = useAuthStore();
-  const { t, language: currentLang, setLanguage: setLang } = useLanguage();
+  const { t, setLanguage: setLang } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -20,9 +20,6 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Préférences
-  const [language, setLanguage] = useState('fr');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Statistiques
   const [quotaUsed, setQuotaUsed] = useState(0);
@@ -48,19 +45,14 @@ export default function Settings() {
       setEmail(userData.email || '');
       setDisplayName(userData.display_name || '');
       setAvatarUrl(userData.avatar_url || '');
-      // Thème toujours clair - Limiter à fr ou en
-      const userLang = userData.preferences?.language || 'fr';
-      const validLang = (userLang === 'fr' || userLang === 'en') ? userLang : 'fr';
-      setLanguage(validLang);
-      setLang(validLang);
-      setNotificationsEnabled(userData.preferences?.notifications_enabled !== false);
+      // Forcer le français
+      setLang('fr');
       setQuotaUsed(stats.quota?.used || 0);
       setQuotaLimit(stats.quota?.limit || 32212254720);
-      // Formater la date de création avec la langue sélectionnée
+      // Formater la date de création en français
       if (userData.created_at) {
         const createdDate = new Date(userData.created_at);
-        const locale = validLang === 'en' ? 'en-US' : 'fr-FR';
-        setAccountCreated(createdDate.toLocaleDateString(locale, {
+        setAccountCreated(createdDate.toLocaleDateString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric'
@@ -68,11 +60,10 @@ export default function Settings() {
       } else {
         setAccountCreated('');
       }
-      // Formater la dernière connexion avec l'heure
+      // Formater la dernière connexion avec l'heure en français
       if (userData.last_login_at) {
         const lastLoginDate = new Date(userData.last_login_at);
-        const locale = validLang === 'en' ? 'en-US' : 'fr-FR';
-        setLastLogin(lastLoginDate.toLocaleString(locale, {
+        setLastLogin(lastLoginDate.toLocaleString('fr-FR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
@@ -80,7 +71,7 @@ export default function Settings() {
           minute: '2-digit'
         }));
       } else {
-        setLastLogin(validLang === 'en' ? 'Never' : 'Jamais');
+        setLastLogin('Jamais');
       }
       
       // Mettre à jour le store
@@ -199,48 +190,6 @@ export default function Settings() {
     }
   };
 
-  const handleUpdatePreferences = async () => {
-    setSaving(true);
-    try {
-      // S'assurer que la langue est soit 'fr' soit 'en'
-      const validLanguage = (language === 'fr' || language === 'en') ? language : 'fr';
-      
-      await userService.updatePreferences({
-        preferences: {
-          theme: 'light', // Toujours clair
-          language: validLanguage,
-          notifications_enabled: notificationsEnabled
-        }
-      });
-      
-      // Mettre à jour le contexte de langue IMMÉDIATEMENT
-      setLang(validLanguage);
-      
-      // Forcer le thème clair
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-      
-      // Forcer un re-render de toute l'application
-      window.dispatchEvent(new CustomEvent('languageChanged', { detail: validLanguage }));
-      
-      showMessage('success', validLanguage === 'en' ? 'Preferences updated' : 'Préférences mises à jour');
-    } catch (err) {
-      showMessage('error', (language === 'en' ? 'Error: ' : 'Erreur: ') + (err.response?.data?.error?.message || err.message));
-    } finally {
-      setSaving(false);
-    }
-  };
-  
-  const handleLanguageChange = async (newLang) => {
-    const validLang = (newLang === 'fr' || newLang === 'en') ? newLang : 'fr';
-    
-    // Mettre à jour immédiatement le contexte pour un changement instantané
-    setLanguage(validLang);
-    setLang(validLang);
-    
-    // Ensuite sauvegarder les préférences
-    await handleUpdatePreferences();
-  };
 
   // Calculer le pourcentage brut et formaté
   const quotaPercentageRaw = quotaLimit > 0 && quotaUsed > 0 ? (quotaUsed / quotaLimit) * 100 : 0;
@@ -513,52 +462,12 @@ export default function Settings() {
         </form>
       </section>
 
-      {/* Préférences */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>🎨 {t('preferences')}</h2>
-        
-        
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('languageLabel')}</label>
-          <select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            style={{
-              padding: 12,
-              width: '100%',
-              maxWidth: 400,
-              border: '1px solid #ddd',
-              borderRadius: 8,
-              fontSize: '1em',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="fr">🇫🇷 Français</option>
-            <option value="en">🇬🇧 English</option>
-          </select>
-        </div>
-        
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={notificationsEnabled}
-              onChange={(e) => {
-                setNotificationsEnabled(e.target.checked);
-                handleUpdatePreferences();
-              }}
-              style={{ width: 20, height: 20, cursor: 'pointer' }}
-            />
-            <span style={{ fontWeight: 'bold', color: '#555' }}>{t('notifications')}</span>
-          </label>
-        </div>
-      </section>
 
       {/* Déconnexion */}
       <section style={{ padding: 24, backgroundColor: '#fff3e0', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>🚪 {t('logout')}</h2>
         <p style={{ marginBottom: 16, color: '#666' }}>
-          {t('language') === 'en' ? 'You can log out of your account at any time.' : 'Vous pouvez vous déconnecter de votre compte à tout moment.'}
+          Vous pouvez vous déconnecter de votre compte à tout moment.
         </p>
         <button
           onClick={logout}

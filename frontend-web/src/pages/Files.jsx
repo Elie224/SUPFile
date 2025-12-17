@@ -432,24 +432,78 @@ export default function Files() {
     : [];
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h1 style={{ margin: 0, marginBottom: 8 }}>{t('myFiles')}</h1>
-          {breadcrumbs.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={goBack} style={{ padding: '4px 8px', cursor: 'pointer' }}>← {t('back')}</button>
-              <span>|</span>
-              <span onClick={() => { setCurrentFolder(null); setFolderHistory([]); }} style={{ cursor: 'pointer', color: '#2196F3' }}>{t('root')}</span>
-              {breadcrumbs.map((name, idx) => (
-                <React.Fragment key={idx}>
-                  <span>/</span>
-                  <span style={{ color: '#666' }}>{name}</span>
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* En-tête amélioré */}
+      <div style={{ 
+        marginBottom: '24px',
+        padding: '20px',
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        border: '1px solid #e0e0e0'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ 
+              margin: 0, 
+              marginBottom: '8px',
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#333'
+            }}>📁 {t('myFiles')}</h1>
+            {breadcrumbs.length > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                flexWrap: 'wrap',
+                fontSize: '14px',
+                color: '#666'
+              }}>
+                <button 
+                  onClick={goBack} 
+                  style={{ 
+                    padding: '6px 12px',
+                    backgroundColor: '#f5f5f5',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#e0e0e0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#f5f5f5';
+                  }}
+                >
+                  ← {t('back')}
+                </button>
+                <span style={{ color: '#999' }}>|</span>
+                <span 
+                  onClick={() => { setCurrentFolder(null); setFolderHistory([]); }} 
+                  style={{ 
+                    cursor: 'pointer', 
+                    color: '#2196F3',
+                    fontWeight: '500',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.color = '#1976D2'}
+                  onMouseLeave={(e) => e.target.style.color = '#2196F3'}
+                >
+                  {t('root')}
+                </span>
+                {breadcrumbs.map((name, idx) => (
+                  <React.Fragment key={idx}>
+                    <span style={{ color: '#999' }}>/</span>
+                    <span style={{ color: '#666' }}>{name}</span>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </div>
         <div>
           <input
             type="file"
@@ -677,7 +731,22 @@ export default function Files() {
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        style={{ minHeight: 400, border: '2px dashed #ddd', borderRadius: 8, padding: 24 }}
+        style={{ 
+          minHeight: 400, 
+          border: '2px dashed #ddd', 
+          borderRadius: '12px', 
+          padding: '32px',
+          backgroundColor: '#fafafa',
+          transition: 'all 0.3s'
+        }}
+        onDragEnter={(e) => {
+          e.currentTarget.style.borderColor = '#2196F3';
+          e.currentTarget.style.backgroundColor = '#f0f7ff';
+        }}
+        onDragLeave={(e) => {
+          e.currentTarget.style.borderColor = '#ddd';
+          e.currentTarget.style.backgroundColor = '#fafafa';
+        }}
       >
         {loading ? (
           <div>{t('loading')}</div>

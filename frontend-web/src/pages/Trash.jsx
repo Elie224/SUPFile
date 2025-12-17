@@ -89,18 +89,39 @@ export default function Trash() {
   });
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>{t('trash')}</h1>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      <h1 style={{ 
+        fontSize: '28px',
+        marginBottom: '24px',
+        fontWeight: '700',
+        color: '#333'
+      }}>🗑️ {t('trash')}</h1>
       
       {allItems.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: '#999' }}>
-          <p>{t('trashEmpty')}</p>
+        <div style={{ 
+          padding: '48px 24px', 
+          textAlign: 'center', 
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          border: '1px solid #e0e0e0'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
+          <p style={{ fontSize: '18px', color: '#666', margin: 0 }}>{t('trashEmpty')}</p>
         </div>
       ) : (
         <>
-          <p style={{ marginBottom: 16, color: '#666' }}>
-            {allItems.length} {allItems.length > 1 ? t('itemsInTrashPlural') : t('itemsInTrash')}
-          </p>
+          <div style={{ 
+            marginBottom: '20px',
+            padding: '16px 20px',
+            backgroundColor: '#fff3e0',
+            borderRadius: '8px',
+            border: '1px solid #ffcc80'
+          }}>
+            <p style={{ margin: 0, color: '#e65100', fontSize: '15px', fontWeight: '500' }}>
+              📊 {allItems.length} {allItems.length > 1 ? t('itemsInTrashPlural') : t('itemsInTrash')}
+            </p>
+          </div>
           
           <div style={{ 
             overflowX: 'auto', 

@@ -39,19 +39,69 @@ export default function Search() {
   };
 
   return (
-    <div style={{ padding: '16px', maxWidth: '100%', overflowX: 'hidden' }}>
-      <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>{t('search')}</h1>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      <h1 style={{ 
+        fontSize: '28px', 
+        marginBottom: '24px',
+        fontWeight: '700',
+        color: '#333'
+      }}>🔍 {t('search')}</h1>
       
-      <div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
-        <div style={{ marginBottom: 16 }}>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('searchPlaceholder')}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
-          />
+      <div style={{ 
+        marginBottom: 24, 
+        padding: '24px', 
+        backgroundColor: '#ffffff',
+        border: '1px solid #e0e0e0', 
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('searchPlaceholder')}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              style={{ 
+                padding: '14px 18px', 
+                flex: 1,
+                fontSize: '16px', 
+                boxSizing: 'border-box',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#2196F3'}
+              onBlur={(e) => e.target.style.borderColor = '#ddd'}
+            />
+            <button
+              onClick={handleSearch}
+              style={{
+                padding: '14px 28px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#1976D2';
+                e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#2196F3';
+                e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+              }}
+            >
+              🔍 {t('search')}
+            </button>
+          </div>
         </div>
         
         <div style={{ 
@@ -63,11 +113,20 @@ export default function Search() {
         className="search-filters"
         >
           <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: '500' }}>{t('type')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: '600', color: '#555', fontSize: '14px' }}>{t('type')}</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
+              style={{ 
+                padding: '12px 16px', 
+                width: '100%', 
+                fontSize: '15px', 
+                boxSizing: 'border-box',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                cursor: 'pointer'
+              }}
             >
               <option value="all">{t('all')}</option>
               <option value="file">{t('file')}</option>
