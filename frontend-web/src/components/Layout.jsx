@@ -175,7 +175,7 @@ export default function Layout({ children }) {
             ))}
           </div>
 
-          {/* DROITE: User Menu */}
+          {/* DROITE: User Menu + Bouton Déconnexion */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -185,6 +185,36 @@ export default function Layout({ children }) {
           }}
           className="user-menu-container"
           >
+            {/* Bouton Déconnexion Mobile - TOUJOURS VISIBLE */}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(244, 67, 54, 0.3)',
+                transition: 'all 0.2s',
+                minHeight: '40px',
+                whiteSpace: 'nowrap'
+              }}
+              className="mobile-logout-button"
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#d32f2f';
+                e.target.style.boxShadow = '0 4px 8px rgba(244, 67, 54, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#f44336';
+                e.target.style.boxShadow = '0 2px 4px rgba(244, 67, 54, 0.3)';
+              }}
+            >
+              🚪 {t('logout')}
+            </button>
+
             {/* User Menu Mobile */}
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -225,6 +255,38 @@ export default function Layout({ children }) {
               }}>
                 {user.email.split('@')[0]}
               </span>
+            </button>
+
+            {/* Bouton Déconnexion Desktop - TOUJOURS VISIBLE */}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(244, 67, 54, 0.3)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap'
+              }}
+              className="desktop-logout-button"
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#d32f2f';
+                e.target.style.boxShadow = '0 4px 8px rgba(244, 67, 54, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#f44336';
+                e.target.style.boxShadow = '0 2px 4px rgba(244, 67, 54, 0.3)';
+              }}
+            >
+              🚪 {t('logout')}
             </button>
 
             {/* User Menu Desktop */}
@@ -429,11 +491,12 @@ export default function Layout({ children }) {
           ))}
         </div>
 
-        {/* Bouton Déconnexion dans le drawer */}
+        {/* Bouton Déconnexion dans le drawer - TRÈS VISIBLE */}
         <div style={{
-          padding: '16px',
-          borderTop: '1px solid #e0e0e0',
-          marginTop: 'auto'
+          padding: '20px 16px',
+          borderTop: '2px solid #e0e0e0',
+          marginTop: 'auto',
+          backgroundColor: '#fff5f5'
         }}>
           <button
             onClick={() => {
@@ -442,20 +505,32 @@ export default function Layout({ children }) {
             }}
             style={{
               width: '100%',
-              padding: '14px',
+              padding: '16px',
               backgroundColor: '#f44336',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '10px',
               cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '600',
-              transition: 'background-color 0.2s'
+              fontSize: '16px',
+              fontWeight: '700',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 8px rgba(244, 67, 54, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#d32f2f'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#f44336'}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#d32f2f';
+              e.target.style.boxShadow = '0 6px 12px rgba(244, 67, 54, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#f44336';
+              e.target.style.boxShadow = '0 4px 8px rgba(244, 67, 54, 0.3)';
+            }}
           >
-            {t('logout')}
+            <span style={{ fontSize: '20px' }}>🚪</span>
+            <span>{t('logout')}</span>
           </button>
         </div>
       </div>
