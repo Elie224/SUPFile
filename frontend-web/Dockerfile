@@ -9,11 +9,12 @@ RUN npm ci
 COPY . .
 
 # Build de l'application avec VITE_API_URL
-# Render passe automatiquement les variables d'environnement au build
-# Utiliser la variable d'environnement directement (Render les injecte)
-ENV VITE_API_URL=${VITE_API_URL:-https://supfile-1.onrender.com}
+# Render passe automatiquement les variables d'environnement au build Docker
+# La variable VITE_API_URL doit être définie dans Render avant le build
+ENV VITE_API_URL=${VITE_API_URL}
 
-RUN npm run build
+# Forcer le rebuild en ajoutant un timestamp pour invalider le cache
+RUN echo "Building with VITE_API_URL=${VITE_API_URL}" && npm run build
 
 # Stage de production
 FROM nginx:alpine
