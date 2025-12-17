@@ -105,7 +105,163 @@ td, th {
   border-color: var(--border-color) !important;
 }
 
+/* ============================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+   ============================================ */
 
+/* Base mobile */
+* {
+  box-sizing: border-box;
+}
 
+body {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
 
+/* Navigation responsive */
+nav {
+  position: relative;
+  padding: 12px !important;
+}
+
+nav > div {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+nav a {
+  padding: 8px 12px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Padding responsive pour les pages */
+div[style*="padding: 24"] {
+  padding: 16px !important;
+}
+
+/* Tables responsive */
+table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+thead, tbody, tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Formulaires responsive */
+input, select, textarea {
+  width: 100%;
+  max-width: 100%;
+  font-size: 16px; /* Évite le zoom sur iOS */
+  padding: 10px !important;
+}
+
+/* Boutons responsive */
+button {
+  width: 100%;
+  padding: 12px 16px !important;
+  font-size: 16px;
+  min-height: 44px; /* Taille minimale pour le touch */
+}
+
+/* Grid responsive */
+[style*="gridTemplateColumns"] {
+  grid-template-columns: 1fr !important;
+}
+
+/* Cards responsive */
+[style*="border: 1px solid"] {
+  margin-bottom: 16px;
+  padding: 12px !important;
+}
+
+/* Titres responsive */
+h1 {
+  font-size: 24px !important;
+  margin: 16px 0 !important;
+}
+
+h2 {
+  font-size: 20px !important;
+  margin: 12px 0 !important;
+}
+
+/* Media queries pour tablettes et desktop */
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  nav a {
+    font-size: 16px;
+  }
+
+  div[style*="padding: 24"] {
+    padding: 24px !important;
+  }
+
+  button {
+    width: auto;
+  }
+
+  [style*="gridTemplateColumns"] {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
+
+  table {
+    display: table;
+  }
+
+  thead, tbody, tr {
+    display: table-row;
+  }
+}
+
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 32px !important;
+  }
+
+  h2 {
+    font-size: 24px !important;
+  }
+}
+
+/* Amélioration du touch sur mobile */
+@media (hover: none) and (pointer: coarse) {
+  a, button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Scrollbar personnalisée pour mobile */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color);
+}
 

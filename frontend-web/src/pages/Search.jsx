@@ -39,8 +39,8 @@ export default function Search() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>{t('search')}</h1>
+    <div style={{ padding: '16px', maxWidth: '100%', overflowX: 'hidden' }}>
+      <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>{t('search')}</h1>
       
       <div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
         <div style={{ marginBottom: 16 }}>
@@ -50,17 +50,24 @@ export default function Search() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('searchPlaceholder')}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            style={{ padding: 8, width: '100%', fontSize: 16 }}
+            style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
           />
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr',
+          gap: 16, 
+          marginBottom: 16 
+        }}
+        className="search-filters"
+        >
           <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>{t('type')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: '500' }}>{t('type')}</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              style={{ padding: 8, width: '100%' }}
+              style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
             >
               <option value="all">{t('all')}</option>
               <option value="file">{t('file')}</option>
@@ -69,11 +76,11 @@ export default function Search() {
           </div>
           
           <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>{t('mimeType')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: '500' }}>{t('mimeType')}</label>
             <select
               value={filters.mime_type}
               onChange={(e) => setFilters({ ...filters, mime_type: e.target.value })}
-              style={{ padding: 8, width: '100%' }}
+              style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
             >
               <option value="">{t('all')}</option>
               <option value="image/">{t('images')}</option>
@@ -84,31 +91,41 @@ export default function Search() {
           </div>
           
           <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>{t('startDate')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: '500' }}>{t('startDate')}</label>
             <input
               type="date"
               lang={language === 'en' ? 'en-US' : 'fr-FR'}
               value={filters.date_from}
               onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
-              style={{ padding: 8, width: '100%' }}
+              style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
             />
           </div>
           
           <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>{t('endDate')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: '500' }}>{t('endDate')}</label>
             <input
               type="date"
               lang={language === 'en' ? 'en-US' : 'fr-FR'}
               value={filters.date_to}
               onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
-              style={{ padding: 8, width: '100%' }}
+              style={{ padding: '12px', width: '100%', fontSize: 16, boxSizing: 'border-box' }}
             />
           </div>
         </div>
         
         <button
           onClick={handleSearch}
-          style={{ padding: '8px 16px', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+          style={{ 
+            padding: '12px 24px', 
+            backgroundColor: '#2196F3', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: 4, 
+            cursor: 'pointer',
+            fontSize: 16,
+            width: '100%',
+            minHeight: '44px'
+          }}
         >
           {t('searchButton')}
         </button>
@@ -118,43 +135,62 @@ export default function Search() {
       
       {results.length > 0 && (
         <div>
-          <h2>{t('results')} ({results.length})</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('name')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('type')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('size')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('modified')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #eee', cursor: 'pointer' }} onClick={() => {
-                  if (item.item_type === 'file') {
-                    navigate(`/preview/${item.id}`);
-                  } else {
-                    navigate(`/files?folder=${item.id}`);
-                  }
-                }}>
-                  <td style={{ padding: 12 }}>
-                    {item.item_type === 'folder' ? '📁' : '📄'} {item.name}
-                  </td>
-                  <td style={{ padding: 12 }}>{item.item_type === 'folder' ? t('folder') : item.mime_type || t('file')}</td>
-                  <td style={{ padding: 12 }}>{formatBytes(item.size)}</td>
-                  <td style={{ padding: 12 }}>{new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>{t('results')} ({results.length})</h2>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #ddd' }}>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('name')}</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('type')}</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('size')}</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('modified')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {results.map((item) => (
+                  <tr 
+                    key={item.id} 
+                    style={{ 
+                      borderBottom: '1px solid #eee', 
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onClick={() => {
+                      if (item.item_type === 'file') {
+                        navigate(`/preview/${item.id}`);
+                      } else {
+                        navigate(`/files?folder=${item.id}`);
+                      }
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <td style={{ padding: '12px 8px', fontSize: '14px', wordBreak: 'break-word' }}>
+                      {item.item_type === 'folder' ? '📁' : '📄'} {item.name}
+                    </td>
+                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{item.item_type === 'folder' ? t('folder') : item.mime_type || t('file')}</td>
+                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{formatBytes(item.size)}</td>
+                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       
       {!loading && results.length === 0 && query && (
-        <div style={{ textAlign: 'center', color: '#999', padding: 24 }}>
+        <div style={{ textAlign: 'center', color: '#999', padding: '24px 16px' }}>
           {t('noResults')}
         </div>
       )}
+      <style>{`
+        @media (min-width: 768px) {
+          .search-filters {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
