@@ -390,8 +390,11 @@ export default function Layout({ children }) {
             maxHeight: mobileMenuOpen ? '500px' : '0',
             overflow: 'hidden',
             transition: 'max-height 0.3s ease-out, padding 0.3s ease-out',
-            boxShadow: mobileMenuOpen ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+            boxShadow: mobileMenuOpen ? '0 4px 6px rgba(0,0,0,0.1)' : 'none',
+            position: 'relative',
+            zIndex: 1001
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           {navLinks.map((link) => (
             <Link
@@ -414,16 +417,28 @@ export default function Layout({ children }) {
                 width: '100%',
                 textAlign: 'left'
               }}
+              onTouchStart={(e) => {
+                if (location.pathname !== link.path) {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                }
+              }}
+              onTouchEnd={(e) => {
+                if (location.pathname !== link.path) {
+                  setTimeout(() => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }, 200);
+                }
+              }}
               onMouseEnter={(e) => {
                 if (location.pathname !== link.path) {
-                  e.target.style.backgroundColor = '#f8f9fa';
-                  e.target.style.paddingLeft = '24px';
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.paddingLeft = '24px';
                 }
               }}
               onMouseLeave={(e) => {
                 if (location.pathname !== link.path) {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.paddingLeft = '20px';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.paddingLeft = '20px';
                 }
               }}
             >
@@ -492,14 +507,32 @@ export default function Layout({ children }) {
       {userMenuOpen && (
         <div
           onClick={() => setUserMenuOpen(false)}
+          onTouchStart={() => setUserMenuOpen(false)}
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 1000,
+            zIndex: 999,
             backgroundColor: 'transparent'
+          }}
+        />
+      )}
+      {/* Overlay pour fermer le menu mobile */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          onTouchStart={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: '56px',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 998,
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            transition: 'opacity 0.3s ease'
           }}
         />
       )}
