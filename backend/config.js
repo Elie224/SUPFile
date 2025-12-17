@@ -70,12 +70,16 @@ module.exports = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback',
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || (process.env.NODE_ENV === 'production' 
+        ? 'https://supfile-1.onrender.com/api/auth/google/callback'
+        : 'http://localhost:5000/api/auth/google/callback'),
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      redirectUri: process.env.GITHUB_REDIRECT_URI || 'http://localhost:5000/api/auth/github/callback',
+      redirectUri: process.env.GITHUB_REDIRECT_URI || (process.env.NODE_ENV === 'production'
+        ? 'https://supfile-1.onrender.com/api/auth/github/callback'
+        : 'http://localhost:5000/api/auth/github/callback'),
     },
   },
 };
