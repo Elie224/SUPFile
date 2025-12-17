@@ -1,23 +1,16 @@
-version: '3.9'
-
 services:
-  # Base de données PostgreSQL
+  # Base de données MongoDB
   db:
-    image: postgres:16-alpine
+    image: mongo:6.0
     container_name: supfile-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-supfile_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_secure_password_here}
-      POSTGRES_DB: ${POSTGRES_DB:-supfile}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-supfile_user} -d ${POSTGRES_DB:-supfile}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - db_data:/data/db
     networks:
       - supfile-network
 
@@ -28,23 +21,23 @@ services:
       dockerfile: Dockerfile
     container_name: supfile-backend
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       SERVER_PORT: 5000
       SERVER_HOST: 0.0.0.0
-      DB_HOST: db
-      DB_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-supfile_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_secure_password_here}
-      POSTGRES_DB: ${POSTGRES_DB:-supfile}
-      DB_URI=[REDACTED]
+      MONGO_URI=[REDACTED]
       JWT_SECRET=[REDACTED]
       JWT_REFRESH_SECRET=[REDACTED]
-      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5368709120}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
       UPLOAD_DIR: /usr/src/app/uploads
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:8081}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET=[REDACTED]
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/auth/callback/google}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET=[REDACTED]
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:3000/auth/callback/github}
     ports:
       - "5000:5000"
     volumes:
@@ -59,10 +52,12 @@ services:
   frontend:
     build:
       context: ./frontend-web
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: supfile-frontend
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      VITE_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
     ports:
       - "3000:3000"
     volumes:
@@ -71,21 +66,21 @@ services:
     networks:
       - supfile-network
     restart: unless-stopped
+    depends_on:
+      - backend
 
-  # Client Mobile (Expo)
+  # Client Mobile (Flutter)
   mobile:
     build:
       context: ./mobile-app
       dockerfile: Dockerfile
     container_name: supfile-mobile
     environment:
-      EXPO_PUBLIC_API_URL: ${VITE_API_URL:-http://localhost:5000}
+      API_URL: ${VITE_API_URL:-http://localhost:5000}
     ports:
-      - "19000:19000"
-      - "19001:19001"
+      - "8080:8080"
     volumes:
-      - ./mobile-app/src:/app/src
-      - /app/node_modules
+      - ./mobile-app/lib:/app/lib
     networks:
       - supfile-network
     restart: unless-stopped

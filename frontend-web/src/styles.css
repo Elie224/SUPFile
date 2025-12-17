@@ -1,0 +1,111 @@
+/* Variables CSS pour les thèmes */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --border-color: #e0e0e0;
+  --nav-bg: #f5f5f5;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #ddd;
+  --hover-bg: #f5f5f5;
+  --link-color: #2196F3;
+  --link-hover: #1976D2;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --border-color: #404040;
+  --nav-bg: #2d2d2d;
+  --card-bg: #2d2d2d;
+  --input-bg: #3d3d3d;
+  --input-border: #555;
+  --hover-bg: #3d3d3d;
+  --link-color: #64b5f6;
+  --link-hover: #90caf9;
+}
+
+/* Application globale */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Navigation */
+nav {
+  background-color: var(--nav-bg) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+nav a {
+  color: var(--text-color) !important;
+}
+
+nav a:hover {
+  color: var(--link-color) !important;
+}
+
+/* Cartes et sections */
+section {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Inputs */
+input, select, textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--input-border) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--link-color) !important;
+  outline-color: var(--link-color) !important;
+}
+
+/* Liens */
+a {
+  color: var(--link-color) !important;
+}
+
+a:hover {
+  color: var(--link-hover) !important;
+}
+
+/* Boutons - garder les couleurs mais ajuster le texte */
+button {
+  color: white !important;
+}
+
+/* Zones de texte */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-color) !important;
+}
+
+p, span, div {
+  color: var(--text-color) !important;
+}
+
+/* Tables */
+table {
+  background-color: var(--card-bg) !important;
+}
+
+td, th {
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Messages */
+[style*="background-color: #ffebee"],
+[style*="background-color: #e8f5e9"],
+[style*="background-color: #fff3e0"] {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+
+
+
+

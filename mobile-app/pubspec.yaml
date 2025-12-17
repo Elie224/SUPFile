@@ -1,0 +1,86 @@
+name: supfile_mobile
+description: SUPFile - Mobile Client (Flutter)
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP & API
+  http: ^1.1.0
+  dio: ^5.3.2
+  
+  # État global
+  provider: ^6.1.1
+  
+  # Navigation
+  go_router: ^12.1.1
+  
+  # Stockage local
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  
+  # Sécurité
+  crypto: ^3.0.3
+  
+  # Performance & Cache
+  dio_cache_interceptor: ^3.4.3
+  dio_cache_interceptor_hive_store: ^3.1.1
+  
+  # Upload de fichiers
+  file_picker: ^8.0.0
+  image_picker: ^1.0.4
+  
+  # Prévisualisation
+  syncfusion_flutter_pdfviewer: ^31.2.18
+  video_player: ^2.7.2
+  audioplayers: ^5.2.1
+  
+  # Graphiques
+  fl_chart: ^0.65.0
+  
+  # UI
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.0
+  
+  # Internationalisation
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+  
+  # Utilitaires
+  path_provider: ^2.1.1
+  permission_handler: ^11.0.1
+  url_launcher: ^6.2.2
+  
+  # OAuth natif
+  google_sign_in: ^6.2.1
+  flutter_appauth: ^6.0.0
+  uni_links: ^0.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets (dossiers créés si nécessaire)
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+  
+  # Fonts (utiliser les polices système par défaut)
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: fonts/Roboto-Regular.ttf
+  #       - asset: fonts/Roboto-Bold.ttf
+  #         weight: 700
+
+

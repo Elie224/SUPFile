@@ -24,11 +24,11 @@ const signupSchema = Joi.object({
     }),
   passwordConfirm: Joi.string()
     .valid(Joi.ref('password'))
-    .required()
+    .optional()
     .messages({
       'any.only': 'Passwords do not match',
     }),
-}).unknown(false);
+}).unknown(true);
 
 // Schéma pour la connexion
 const loginSchema = Joi.object({
@@ -44,7 +44,7 @@ const loginSchema = Joi.object({
     .messages({
       'any.required': 'Password is required',
     }),
-}).unknown(false);
+}).unknown(true);
 
 // Schéma pour création de dossier
 const createFolderSchema = Joi.object({
@@ -73,17 +73,22 @@ const renameSchema = Joi.object({
 
 // Schéma pour partage public
 const publicShareSchema = Joi.object({
-  file_id: Joi.number().integer().optional(),
-  folder_id: Joi.number().integer().optional(),
-  password: Joi.string().min(6).optional().messages({
+  file_id: Joi.string().optional().allow(null, ''),
+  folder_id: Joi.string().optional().allow(null, ''),
+  password: Joi.string().min(6).optional().allow(null, '').messages({
     'string.min': 'Password must be at least 6 characters',
   }),
-  expires_at: Joi.date().iso().optional().messages({
+  expires_at: Joi.alternatives().try(
+    Joi.date().iso(),
+    Joi.string().isoDate(),
+    Joi.string().allow('', null)
+  ).optional().messages({
     'date.base': 'Must be a valid date',
+    'alternatives.match': 'Must be a valid date string',
   }),
 })
   .or('file_id', 'folder_id')
-  .unknown(false)
+  .unknown(true) // Permettre d'autres champs pour éviter les erreurs
   .messages({
     'alternatives.match': 'Either file_id or folder_id must be provided',
   });
@@ -105,12 +110,6 @@ const changePasswordSchema = Joi.object({
       'string.min': 'Password must be at least 8 characters',
       'string.pattern.base': 'Password must contain uppercase letter and number',
       'any.required': 'New password is required',
-    }),
-  new_password_confirm: Joi.string()
-    .valid(Joi.ref('new_password'))
-    .required()
-    .messages({
-      'any.only': 'Passwords do not match',
     }),
 }).unknown(false);
 

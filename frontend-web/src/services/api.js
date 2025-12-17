@@ -13,24 +13,65 @@ const apiClient = axios.create({
   },
 });
 
+// Instance séparée pour les uploads (sans Content-Type par défaut)
+const uploadClient = axios.create({
+  baseURL: `${API_URL}/api`,
+});
+
 // Intercepteur pour ajouter le JWT à chaque requête
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('No access token found in localStorage for request:', config.url);
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Intercepteur pour les uploads - ajouter le token mais laisser Content-Type géré par le navigateur
+uploadClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Ne pas définir Content-Type - laisser le navigateur le faire pour FormData
+  return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 // Intercepteur pour gérer les erreurs (notamment 401)
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Token expiré - rediriger vers login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      window.location.href = '/login';
+      // Token expiré - essayer de rafraîchir
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const response = await authService.refresh(refreshToken);
+          const { access_token, refresh_token } = response.data.data;
+          localStorage.setItem('access_token', access_token);
+          localStorage.setItem('refresh_token', refresh_token);
+          
+          // Réessayer la requête originale
+          error.config.headers.Authorization = `Bearer ${access_token}`;
+          return apiClient.request(error.config);
+        } catch (refreshError) {
+          // Refresh échoué - rediriger vers login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+        }
+      } else {
+        // Pas de refresh token - rediriger vers login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   },
@@ -44,32 +85,36 @@ export const authService = {
     apiClient.post('/auth/login', { email, password }),
   refresh: (refreshToken) =>
     apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
-  logout: () => apiClient.post('/auth/logout'),
-  oauthGoogle: (code) => apiClient.post('/auth/oauth', { provider: 'google', code }),
-  oauthGithub: (code) => apiClient.post('/auth/oauth', { provider: 'github', code }),
+  logout: (refreshToken) => apiClient.post('/auth/logout', { refresh_token: refreshToken }),
 };
 
 // Services fichiers
 export const fileService = {
   list: (folderId = null) =>
     apiClient.get('/files', { params: { folder_id: folderId } }),
-  upload: (file, folderId = null) => {
+  upload: (file, folderId = null, onProgress = null) => {
     const formData = new FormData();
     formData.append('file', file);
     if (folderId) formData.append('folder_id', folderId);
-    return apiClient.post('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
+    
+    const config = {};
+    
+    if (onProgress) {
+      config.onUploadProgress = (progressEvent) => {
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / progressEvent.total,
         );
-        // Retourner le progrès pour utilisation dans composant
-        return percentCompleted;
-      },
-    });
+        onProgress(percentCompleted);
+      };
+    }
+    
+    // Utiliser uploadClient qui n'a pas de Content-Type par défaut
+    return uploadClient.post('/files/upload', formData, config);
   },
   download: (fileId) => apiClient.get(`/files/${fileId}/download`),
   delete: (fileId) => apiClient.delete(`/files/${fileId}`),
+  restore: (fileId) => apiClient.post(`/files/${fileId}/restore`),
+  listTrash: () => apiClient.get('/files/trash'),
   rename: (fileId, newName) =>
     apiClient.patch(`/files/${fileId}`, { name: newName }),
   move: (fileId, newFolderId) =>
@@ -84,9 +129,15 @@ export const folderService = {
     apiClient.post('/folders', { name, parent_id: parentId }),
   rename: (folderId, newName) =>
     apiClient.patch(`/folders/${folderId}`, { name: newName }),
+  move: (folderId, newParentId) =>
+    apiClient.patch(`/folders/${folderId}`, { parent_id: newParentId }),
   delete: (folderId) => apiClient.delete(`/folders/${folderId}`),
+  restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
+  listTrash: () => apiClient.get('/folders/trash'),
   downloadAsZip: (folderId) =>
     apiClient.get(`/folders/${folderId}/download`, { responseType: 'blob' }),
+  list: (parentId = null) =>
+    apiClient.get('/folders', { params: { parent_id: parentId || null } }),
 };
 
 // Services partage
@@ -103,17 +154,26 @@ export const shareService = {
       password: options.password,
       expires_at: options.expiresAt,
     }),
-  shareWithUser: (fileId, userId) =>
-    apiClient.post('/share/internal', { file_id: fileId, user_id: userId }),
-  getPublicShare: (token) =>
-    apiClient.get(`/share/${token}`, {
-      validateStatus: () => true, // Autoriser 404, etc.
+  shareWithUser: (fileId, folderId, userId) =>
+    apiClient.post('/share/internal', { 
+      file_id: fileId || null, 
+      folder_id: folderId || null,
+      shared_with_user_id: userId 
     }),
+  getPublicShare: (token, password = null) => {
+    const params = password ? { password } : {};
+    return apiClient.get(`/share/${token}`, {
+      params,
+      validateStatus: () => true, // Autoriser 404, etc.
+    });
+  },
 };
 
 // Services utilisateur
 export const userService = {
   getMe: () => apiClient.get('/users/me'),
+  listUsers: (search = '') =>
+    apiClient.get('/users', { params: { search } }),
   updateProfile: (data) =>
     apiClient.patch('/users/me', data),
   changePassword: (currentPassword, newPassword) =>
