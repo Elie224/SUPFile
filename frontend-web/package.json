@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:render": "VITE_API_URL=${VITE_API_URL:-https://supfile-1.onrender.com} vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx"
   },

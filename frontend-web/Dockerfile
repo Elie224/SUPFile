@@ -11,9 +11,10 @@ COPY . .
 # Build de l'application avec VITE_API_URL
 # Render passe automatiquement les variables d'environnement au build Docker
 # La variable VITE_API_URL doit être définie dans Render avant le build
-ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
-# Forcer le rebuild en ajoutant un timestamp pour invalider le cache
+# Forcer le rebuild - afficher la valeur pour debug
 RUN echo "Building with VITE_API_URL=${VITE_API_URL}" && npm run build
 
 # Stage de production
