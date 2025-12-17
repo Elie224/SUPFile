@@ -102,51 +102,136 @@ export default function Trash() {
             {allItems.length} {allItems.length > 1 ? t('itemsInTrashPlural') : t('itemsInTrash')}
           </p>
           
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('name')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('type')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('size')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('deletedOn')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allItems.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 12 }}>
-                    {item.type === 'folder' ? '📁' : '📄'} {item.name}
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    {item.type === 'folder' ? t('folder') : item.mime_type || t('file')}
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    {item.type === 'file' ? formatBytes(item.size) : '-'}
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    {formatDate(item.deleted_at)}
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    <button
-                      onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
-                      style={{
-                        padding: '4px 12px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        marginRight: 8,
-                      }}
-                    >
-                      {t('restore')}
-                    </button>
-                  </td>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e0e0e0'
+          }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              minWidth: '600px'
+            }}>
+              <thead>
+                <tr style={{ 
+                  backgroundColor: '#f8f9fa',
+                  borderBottom: '2px solid #e0e0e0'
+                }}>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('name')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('type')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('size')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('deletedOn')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('actions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {allItems.map((item, index) => (
+                  <tr 
+                    key={item.id} 
+                    style={{ 
+                      borderBottom: index < allItems.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f7ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
+                    }}
+                  >
+                    <td style={{ padding: '16px', fontSize: '15px' }}>
+                      <span style={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: item.type === 'folder' ? '20px' : '18px' }}>
+                          {item.type === 'folder' ? '📁' : '📄'}
+                        </span>
+                        <span style={{ fontWeight: item.type === 'folder' ? '600' : '400', color: item.type === 'folder' ? '#2196F3' : '#333' }}>
+                          {item.name}
+                        </span>
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
+                      {item.type === 'folder' ? t('folder') : item.mime_type || t('file')}
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
+                      {item.type === 'file' ? formatBytes(item.size) : '-'}
+                    </td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
+                      {formatDate(item.deleted_at)}
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <button
+                        onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#4CAF50',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          transition: 'background-color 0.2s',
+                          boxShadow: '0 2px 4px rgba(76, 175, 80, 0.3)'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                      >
+                        {t('restore')}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

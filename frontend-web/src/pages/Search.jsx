@@ -135,25 +135,73 @@ export default function Search() {
       
       {results.length > 0 && (
         <div>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>{t('results')} ({results.length})</h2>
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px', fontWeight: '600', color: '#333' }}>{t('results')} ({results.length})</h2>
+          <div style={{ 
+            overflowX: 'auto', 
+            WebkitOverflowScrolling: 'touch',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e0e0e0'
+          }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              minWidth: '600px'
+            }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #ddd' }}>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('name')}</th>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('type')}</th>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('size')}</th>
-                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '14px' }}>{t('modified')}</th>
+                <tr style={{ 
+                  backgroundColor: '#f8f9fa',
+                  borderBottom: '2px solid #e0e0e0'
+                }}>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('name')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('type')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('size')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('modified')}</th>
                 </tr>
               </thead>
               <tbody>
-                {results.map((item) => (
+                {results.map((item, index) => (
                   <tr 
                     key={item.id} 
                     style={{ 
-                      borderBottom: '1px solid #eee', 
+                      borderBottom: index < results.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
                       cursor: 'pointer',
-                      transition: 'background-color 0.2s'
+                      transition: 'background-color 0.2s ease'
                     }}
                     onClick={() => {
                       if (item.item_type === 'file') {
@@ -162,15 +210,31 @@ export default function Search() {
                         navigate(`/files?folder=${item.id}`);
                       }
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f7ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
+                    }}
                   >
-                    <td style={{ padding: '12px 8px', fontSize: '14px', wordBreak: 'break-word' }}>
-                      {item.item_type === 'folder' ? '📁' : '📄'} {item.name}
+                    <td style={{ 
+                      padding: '16px', 
+                      fontSize: '15px',
+                      wordBreak: 'break-word',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: item.item_type === 'folder' ? '20px' : '18px' }}>
+                        {item.item_type === 'folder' ? '📁' : '📄'}
+                      </span>
+                      <span style={{ fontWeight: item.item_type === 'folder' ? '600' : '400', color: item.item_type === 'folder' ? '#2196F3' : '#333' }}>
+                        {item.name}
+                      </span>
                     </td>
-                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{item.item_type === 'folder' ? t('folder') : item.mime_type || t('file')}</td>
-                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{formatBytes(item.size)}</td>
-                    <td style={{ padding: '12px 8px', fontSize: '14px' }}>{new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{item.item_type === 'folder' ? t('folder') : item.mime_type || t('file')}</td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{formatBytes(item.size)}</td>
+                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
                   </tr>
                 ))}
               </tbody>

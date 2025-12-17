@@ -686,43 +686,124 @@ export default function Files() {
             <p>{t('emptyFolder')}</p>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('name')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('size')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('modified')}</th>
-                <th style={{ textAlign: 'left', padding: 12 }}>{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => {
-                // S'assurer que le type est bien défini
-                const itemType = item.type || (item.folder_id === null && item.parent_id === null ? 'folder' : 'file');
-                const itemId = item.id || item._id;
-                
-                return (
-                <tr key={itemId} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 12 }}>
-                    {itemType === 'folder' ? (
-                      <span
-                        onClick={() => openFolder({ ...item, type: itemType, id: itemId })}
-                        style={{ cursor: 'pointer', fontWeight: 'bold', color: '#2196F3' }}
-                      >
-                        📁 {item.name}
-                      </span>
-                    ) : (
-                      <span
-                        onClick={() => navigate(`/preview/${itemId}`)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        📄 {item.name}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: 12 }}>{formatBytes(item.size || 0)}</td>
-                  <td style={{ padding: 12 }}>{new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
-                  <td style={{ padding: 12 }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e0e0e0'
+          }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              minWidth: '600px'
+            }}>
+              <thead>
+                <tr style={{ 
+                  backgroundColor: '#f8f9fa',
+                  borderBottom: '2px solid #e0e0e0'
+                }}>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('name')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('size')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('modified')}</th>
+                  <th style={{ 
+                    textAlign: 'left', 
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => {
+                  // S'assurer que le type est bien défini
+                  const itemType = item.type || (item.folder_id === null && item.parent_id === null ? 'folder' : 'file');
+                  const itemId = item.id || item._id;
+                  
+                  return (
+                  <tr 
+                    key={itemId} 
+                    style={{ 
+                      borderBottom: index < items.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f7ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
+                    }}
+                  >
+                    <td style={{ padding: '16px' }}>
+                      {itemType === 'folder' ? (
+                        <span
+                          onClick={() => openFolder({ ...item, type: itemType, id: itemId })}
+                          style={{ 
+                            cursor: 'pointer', 
+                            fontWeight: '600', 
+                            color: '#2196F3',
+                            fontSize: '15px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.color = '#1976D2'}
+                          onMouseLeave={(e) => e.target.style.color = '#2196F3'}
+                        >
+                          <span style={{ fontSize: '20px' }}>📁</span> {item.name}
+                        </span>
+                      ) : (
+                        <span
+                          onClick={() => navigate(`/preview/${itemId}`)}
+                          style={{ 
+                            cursor: 'pointer',
+                            fontSize: '15px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            color: '#333',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.color = '#2196F3'}
+                          onMouseLeave={(e) => e.target.style.color = '#333'}
+                        >
+                          <span style={{ fontSize: '18px' }}>📄</span> {item.name}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px', color: '#666', fontSize: '14px' }}>{formatBytes(item.size || 0)}</td>
+                    <td style={{ padding: '16px', color: '#666', fontSize: '14px' }}>{new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
+                    <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {itemType === 'file' && (
                         <>
@@ -966,6 +1047,7 @@ export default function Files() {
               )})}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
