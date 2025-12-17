@@ -13,9 +13,13 @@ export default function OAuthCallback() {
     const tokensParam = searchParams.get('tokens');
     const redirectParam = searchParams.get('redirect') || '/dashboard';
     const errorParam = searchParams.get('error');
+    const messageParam = searchParams.get('message');
 
     if (errorParam) {
-      navigate(`/login?error=${errorParam}`, { replace: true });
+      const errorMessage = messageParam 
+        ? `error=${errorParam}&message=${encodeURIComponent(messageParam)}`
+        : `error=${errorParam}`;
+      navigate(`/login?${errorMessage}`, { replace: true });
       return;
     }
 
@@ -27,17 +31,23 @@ export default function OAuthCallback() {
           // Stocker les tokens et mettre à jour le store
           setTokens(tokens.access_token, tokens.refresh_token);
           
-          // Rediriger vers la page demandée
-          navigate(redirectParam, { replace: true });
+          // Attendre un peu pour que le store se mette à jour
+          setTimeout(() => {
+            // Rediriger vers la page demandée
+            navigate(redirectParam, { replace: true });
+          }, 100);
         } else {
-          throw new Error('Invalid tokens');
+          throw new Error('Invalid tokens: missing access_token or refresh_token');
         }
       } catch (error) {
         console.error('OAuth callback error:', error);
-        navigate('/login?error=oauth_callback_failed', { replace: true });
+        const errorMessage = error.message 
+          ? `error=oauth_callback_failed&message=${encodeURIComponent(error.message)}`
+          : 'error=oauth_callback_failed';
+        navigate(`/login?${errorMessage}`, { replace: true });
       }
     } else {
-      navigate('/login?error=no_tokens', { replace: true });
+      navigate('/login?error=no_tokens&message=' + encodeURIComponent('Aucun token reçu depuis le serveur OAuth'), { replace: true });
     }
   }, [searchParams, navigate, setTokens]);
 

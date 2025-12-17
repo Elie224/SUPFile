@@ -86,10 +86,56 @@ const configurePassport = () => {
       clientID: config.oauth.github.clientId,
       clientSecret: config.oauth.github.clientSecret,
       callbackURL: config.oauth.github.redirectUri,
+      scope: ['user:email'], // Demander explicitement l'accès à l'email
     }, async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails?.[0]?.value || `${profile.username}@github.noreply`;
-        const displayName = profile.displayName || profile.username;
+        // GitHub peut ne pas fournir l'email dans le profile directement
+        // Il faut utiliser l'API GitHub pour récupérer l'email
+        let email = profile.emails?.[0]?.value;
+        
+        // Si pas d'email dans le profile, essayer de le récupérer via l'API GitHub
+        if (!email && accessToken) {
+          try {
+            const https = require('https');
+            const emailResponse = await new Promise((resolve, reject) => {
+              https.get({
+                hostname: 'api.github.com',
+                path: '/user/emails',
+                headers: {
+                  'User-Agent': 'SUPFile',
+                  'Authorization': `token ${accessToken}`,
+                  'Accept': 'application/vnd.github.v3+json'
+                }
+              }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                  try {
+                    const emails = JSON.parse(data);
+                    // Chercher l'email principal ou le premier email vérifié
+                    const primaryEmail = emails.find(e => e.primary) || emails.find(e => e.verified) || emails[0];
+                    resolve(primaryEmail?.email);
+                  } catch (e) {
+                    reject(e);
+                  }
+                });
+              }).on('error', reject);
+            });
+            
+            if (emailResponse) {
+              email = emailResponse;
+            }
+          } catch (emailError) {
+            console.warn('Failed to fetch GitHub email:', emailError.message);
+          }
+        }
+        
+        // Fallback si toujours pas d'email
+        if (!email) {
+          email = `${profile.username}@github.noreply`;
+        }
+        
+        const displayName = profile.displayName || profile.username || profile._json?.name;
 
         // Chercher un utilisateur existant
         const UserSchema = mongoose.model('User');

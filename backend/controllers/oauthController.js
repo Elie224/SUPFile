@@ -52,15 +52,23 @@ const handleOAuthCallback = (provider) => {
       if (err) {
         console.error(`OAuth ${provider} error:`, err);
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
-        return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(err.message)}`);
+        const errorMessage = err.message || 'Erreur lors de l\'authentification OAuth';
+        return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
 
       if (!user) {
+        console.error(`OAuth ${provider}: No user returned from authentication`);
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
-        return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=Authentication failed`);
+        const errorMessage = info?.message || 'Échec de l\'authentification. Veuillez réessayer.';
+        return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
 
       try {
+        // Vérifier que l'utilisateur a bien un email
+        if (!user.email) {
+          throw new Error('Aucun email trouvé dans le profil OAuth');
+        }
+
         // Mettre à jour last_login_at
         await User.updateLastLogin(user.id);
 
@@ -83,19 +91,22 @@ const handleOAuthCallback = (provider) => {
           });
         } catch (sessionErr) {
           console.error('Failed to create session for OAuth user:', sessionErr.message || sessionErr);
+          // Ne pas bloquer la connexion si la session échoue
         }
 
-        // Rediriger vers le frontend avec les tokens dans l'URL (ou mieux, dans un cookie sécurisé)
+        // Rediriger vers le frontend avec les tokens dans l'URL
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
-        const redirectUrl = req.session.oauthRedirect || '/dashboard';
+        const redirectUrl = req.session?.oauthRedirect || '/dashboard';
         
         // Encoder les tokens pour les passer dans l'URL
         const tokens = encodeURIComponent(JSON.stringify({ access_token, refresh_token }));
+        console.log(`OAuth ${provider} success: User ${user.email} authenticated`);
         res.redirect(`${frontendUrl}/auth/callback?tokens=${tokens}&redirect=${encodeURIComponent(redirectUrl)}`);
       } catch (error) {
         console.error(`OAuth ${provider} callback error:`, error);
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
-        res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`);
+        const errorMessage = error.message || 'Erreur lors du traitement de l\'authentification OAuth';
+        res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
     })(req, res, next);
   };
