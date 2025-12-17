@@ -67,20 +67,34 @@ export default function Layout({ children }) {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
                 display: 'none',
-                padding: '8px',
-                backgroundColor: 'transparent',
+                padding: '0',
+                backgroundColor: '#2196F3',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '20px',
-                width: '40px',
-                height: '40px',
-                color: '#333',
-                transition: 'background-color 0.2s',
-                flexShrink: 0
+                fontSize: '24px',
+                width: '44px',
+                height: '44px',
+                color: '#ffffff',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
+                fontWeight: 'bold',
+                lineHeight: '44px',
+                textAlign: 'center'
               }}
               className="mobile-menu-toggle"
               aria-label="Menu"
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#1976D2';
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#2196F3';
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+              }}
             >
               {mobileMenuOpen ? '✕' : '☰'}
             </button>
@@ -372,10 +386,11 @@ export default function Layout({ children }) {
             display: mobileMenuOpen ? 'block' : 'none',
             backgroundColor: '#ffffff',
             borderTop: '1px solid #e0e0e0',
-            padding: '8px 0',
+            padding: mobileMenuOpen ? '12px 0' : '0',
             maxHeight: mobileMenuOpen ? '500px' : '0',
             overflow: 'hidden',
-            transition: 'max-height 0.3s ease-out, padding 0.3s ease-out'
+            transition: 'max-height 0.3s ease-out, padding 0.3s ease-out',
+            boxShadow: mobileMenuOpen ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
           }}
         >
           {navLinks.map((link) => (
@@ -384,28 +399,43 @@ export default function Layout({ children }) {
               to={link.path}
               onClick={() => setMobileMenuOpen(false)}
               style={{
-                padding: '14px 20px',
+                padding: '16px 20px',
                 textDecoration: 'none',
                 color: location.pathname === link.path ? '#2196F3' : '#333',
                 fontWeight: location.pathname === link.path ? '600' : '400',
                 display: 'flex',
                 alignItems: 'center',
-                minHeight: '48px',
+                justifyContent: 'flex-start',
+                minHeight: '52px',
                 backgroundColor: location.pathname === link.path ? '#e3f2fd' : 'transparent',
-                transition: 'background-color 0.2s',
-                borderLeft: location.pathname === link.path ? '4px solid #2196F3' : '4px solid transparent'
+                transition: 'all 0.2s ease',
+                borderLeft: location.pathname === link.path ? '4px solid #2196F3' : '4px solid transparent',
+                fontSize: '16px',
+                width: '100%',
+                textAlign: 'left'
               }}
               onMouseEnter={(e) => {
                 if (location.pathname !== link.path) {
-                  e.target.style.backgroundColor = '#f5f5f5';
+                  e.target.style.backgroundColor = '#f8f9fa';
+                  e.target.style.paddingLeft = '24px';
                 }
               }}
               onMouseLeave={(e) => {
                 if (location.pathname !== link.path) {
                   e.target.style.backgroundColor = 'transparent';
+                  e.target.style.paddingLeft = '20px';
                 }
               }}
             >
+              <span style={{ 
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: location.pathname === link.path ? '#2196F3' : '#ccc',
+                marginRight: '12px',
+                flexShrink: 0
+              }}></span>
               {link.label}
             </Link>
           ))}
