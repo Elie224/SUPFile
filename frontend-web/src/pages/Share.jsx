@@ -57,7 +57,7 @@ export default function Share() {
     
     try {
       const resource = share.resource;
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
       
       // Construire l'URL avec le token et le mot de passe si nécessaire
       const params = new URLSearchParams();
@@ -120,7 +120,7 @@ export default function Share() {
     try {
       setLoading(true);
       // Recharger le partage avec le mot de passe
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
       const response = await fetch(`${apiUrl}/api/share/${token}?password=${encodeURIComponent(password)}`);
       
       if (response.ok) {

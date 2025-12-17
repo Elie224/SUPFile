@@ -173,7 +173,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => {
-              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+              const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
               window.location.href = `${apiUrl}/api/auth/google`;
             }}
             style={{
@@ -216,7 +216,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => {
-              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+              const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
               window.location.href = `${apiUrl}/api/auth/github`;
             }}
             style={{

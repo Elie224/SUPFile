@@ -12,7 +12,7 @@ export default function OAuthProxy({ provider }) {
     });
 
     // Rediriger vers le backend avec tous les paramètres
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
     const backendCallbackUrl = `${apiUrl}/api/auth/${provider}/callback?${params.toString()}`;
     
     // Redirection immédiate vers le backend

@@ -19,7 +19,7 @@ export default function Preview() {
       setError(null);
       
       // D'abord récupérer les infos du fichier pour connaître son type MIME
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
       const token = localStorage.getItem('access_token');
       
       // Récupérer les détails du fichier
@@ -125,7 +125,7 @@ export default function Preview() {
       <div style={{ padding: 24, textAlign: 'center' }}>
         <h2>Erreur</h2>
         <p>{error}</p>
-        <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/files/${id}/download`} download>
+        <a href={`${import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com'}/api/files/${id}/download`} download>
           Télécharger le fichier
         </a>
       </div>

@@ -2,8 +2,9 @@
 // À utiliser dans tous les composants React
 
 import axios from 'axios';
+import { API_URL } from '../config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// API_URL est maintenant importé depuis config.js avec la valeur par défaut pour la production
 
 // Créer une instance axios avec configuration par défaut
 const apiClient = axios.create({

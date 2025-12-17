@@ -171,7 +171,7 @@ export default function Files() {
     setItemToDelete(null);
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
       const token = localStorage.getItem('access_token');
       
       if (!token) {
@@ -731,7 +731,7 @@ export default function Files() {
                               e.preventDefault();
                               e.stopPropagation();
                               try {
-                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
                                 const token = localStorage.getItem('access_token');
                                 
                                 if (!token) {
@@ -814,7 +814,7 @@ export default function Files() {
                               e.preventDefault();
                               e.stopPropagation();
                               try {
-                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
                                 const token = localStorage.getItem('access_token');
                                 
                                 if (!token) {

@@ -143,7 +143,7 @@ export default function Settings() {
       const formData = new FormData();
       formData.append('avatar', file);
       
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
       const token = localStorage.getItem('access_token');
       
       const response = await fetch(`${API_URL}/api/users/me/avatar`, {
@@ -282,7 +282,7 @@ export default function Settings() {
           <div style={{ position: 'relative' }}>
             {avatarUrl ? (
               <img
-                src={avatarUrl.startsWith('http') ? avatarUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${avatarUrl}`}
+                src={avatarUrl.startsWith('http') ? avatarUrl : `${import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com'}${avatarUrl}`}
                 alt="Avatar"
                 style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #2196F3' }}
                 onError={(e) => {
