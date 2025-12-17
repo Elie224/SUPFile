@@ -28,6 +28,14 @@ const initiateOAuth = (provider) => {
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} is not configured. Please contact the administrator.`)}`);
     }
     
+    // Vérifier que la stratégie Passport existe
+    if (!passport._strategies || !passport._strategies[provider]) {
+      console.error(`OAuth ${provider} strategy not found in Passport`);
+      console.error(`Available strategies:`, Object.keys(passport._strategies || {}));
+      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+      return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} strategy is not registered. Please check server configuration.`)}`);
+    }
+    
     console.log(`[OAuth ${provider}] Configuration OK, initiating authentication...`);
 
     // Stocker l'URL de redirection après connexion si fournie
@@ -36,10 +44,6 @@ const initiateOAuth = (provider) => {
     }
 
     try {
-      // Vérifier que la stratégie existe
-      if (!passport._strategies[provider]) {
-        throw new Error(`OAuth strategy "${provider}" is not configured. Please check your environment variables.`);
-      }
       passport.authenticate(provider, { scope: provider === 'google' ? ['profile', 'email'] : ['user:email'] })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);
