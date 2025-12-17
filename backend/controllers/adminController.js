@@ -1,6 +1,4 @@
 const UserModel = require('../models/userModel');
-const FileModel = require('../models/fileModel');
-const FolderModel = require('../models/folderModel');
 const mongoose = require('mongoose');
 
 // Statistiques générales
