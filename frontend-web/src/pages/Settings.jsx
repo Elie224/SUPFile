@@ -300,13 +300,15 @@ export default function Settings() {
                   height: 12,
                   backgroundColor: '#e0e0e0',
                   borderRadius: 6,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  position: 'relative'
                 }}>
                   <div style={{
-                    width: `${quotaPercentageRaw}%`,
+                    width: `${quotaUsed > 0 ? Math.max(quotaPercentageRaw, 0.1) : 0}%`,
                     height: '100%',
                     backgroundColor: quotaColor,
-                    transition: 'width 0.3s ease'
+                    transition: 'width 0.3s ease',
+                    minWidth: quotaUsed > 0 ? '3px' : '0'
                   }} />
                 </div>
               </div>

@@ -101,35 +101,48 @@ export default function Dashboard() {
                 backgroundColor: '#f5f5f5', 
                 borderRadius: '14px', 
                 overflow: 'hidden',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
+                position: 'relative'
               }}>
-                <div
-                  style={{
-                    width: `${stats.quota.percentageRaw || stats.quota.percentage}%`,
-                    height: '100%',
-                    backgroundColor: (stats.quota.percentageRaw || stats.quota.percentage) > 80 ? '#f44336' : '#4caf50',
-                    transition: 'width 0.5s ease',
-                    borderRadius: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    paddingRight: '8px',
-                    minWidth: stats.quota.percentageRaw > 0 ? '28px' : '0'
-                  }}
-                >
-                  {(stats.quota.percentageRaw || stats.quota.percentage) > 5 && (
-                    <span style={{ 
-                      fontSize: '11px', 
-                      fontWeight: '600', 
-                      color: 'white',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                    }}>
-                      {stats.quota.percentage < 1 
-                        ? stats.quota.percentage.toFixed(2) 
-                        : stats.quota.percentage}%
-                    </span>
-                  )}
-                </div>
+                {(() => {
+                  const percentageRaw = stats.quota.percentageRaw || stats.quota.percentage || 0;
+                  // Pour les très petits pourcentages, utiliser une largeur minimale visible
+                  // Calculer la largeur en pourcentage avec un minimum de 0.1% pour la visibilité
+                  const barWidth = stats.quota.used > 0 
+                    ? Math.max(percentageRaw, 0.1)
+                    : 0;
+                  const barColor = percentageRaw > 80 ? '#f44336' : percentageRaw > 75 ? '#ff9800' : '#4caf50';
+                  
+                  return (
+                    <div
+                      style={{
+                        width: `${barWidth}%`,
+                        height: '100%',
+                        backgroundColor: barColor,
+                        transition: 'width 0.5s ease',
+                        borderRadius: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        paddingRight: '8px',
+                        minWidth: stats.quota.used > 0 ? '3px' : '0'
+                      }}
+                    >
+                      {percentageRaw > 5 && (
+                        <span style={{ 
+                          fontSize: '11px', 
+                          fontWeight: '600', 
+                          color: 'white',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                        }}>
+                          {stats.quota.percentage < 1 
+                            ? stats.quota.percentage.toFixed(2) 
+                            : stats.quota.percentage}%
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div style={{ 
                 marginTop: '8px', 
