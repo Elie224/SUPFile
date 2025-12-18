@@ -305,24 +305,33 @@ export default function Dashboard() {
               <button
                 onClick={() => navigate('/files')}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#f5f5f5',
-                  color: '#2196F3',
-                  border: '1px solid #2196F3',
-                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#e3f2fd';
+                  e.target.style.backgroundColor = '#1976D2';
+                  e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
+                  e.target.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#f5f5f5';
+                  e.target.style.backgroundColor = '#2196F3';
+                  e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+                  e.target.style.transform = 'translateY(0)';
                 }}
               >
-                {t('viewAll')} →
+                <span>{t('viewAll')}</span>
+                <span style={{ fontSize: '16px' }}>→</span>
               </button>
             </div>
             {stats.recent_files && stats.recent_files.length > 0 ? (
