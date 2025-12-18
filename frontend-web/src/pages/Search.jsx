@@ -300,9 +300,10 @@ export default function Search() {
                     <button
                       onClick={() => {
                         if (item.item_type === 'folder' || item.type === 'folder') {
-                          navigate(`/files?folder_id=${item.id}`);
+                          navigate(`/files?folder=${item.id}`);
                         } else {
-                          navigate(`/files?file_id=${item.id}`);
+                          // Pour les fichiers, naviguer vers la page de prévisualisation
+                          navigate(`/preview/${item.id}`);
                         }
                       }}
                       style={{

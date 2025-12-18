@@ -158,21 +158,13 @@ export default function Preview() {
       <div style={{ border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
         {previewType === 'image' && (
           <div style={{ textAlign: 'center', padding: 24 }}>
-            <img
-              src={`${file.previewUrl}?token=${token}`}
-              alt="Preview"
-              style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
-            />
+            <ImagePreview url={file.previewUrl} token={token} />
           </div>
         )}
 
         {previewType === 'pdf' && (
           <div style={{ height: '80vh' }}>
-            <iframe
-              src={`${file.previewUrl}?token=${token}`}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              title="PDF Preview"
-            />
+            <PdfPreview url={file.previewUrl} token={token} />
           </div>
         )}
 
@@ -184,21 +176,13 @@ export default function Preview() {
 
         {previewType === 'video' && (
           <div style={{ padding: 24, textAlign: 'center' }}>
-            <video
-              controls
-              style={{ maxWidth: '100%', maxHeight: '80vh' }}
-              src={`${file.streamUrl}?token=${token}`}
-            >
-              Votre navigateur ne supporte pas la lecture vidéo.
-            </video>
+            <VideoPreview url={file.streamUrl} token={token} />
           </div>
         )}
 
         {previewType === 'audio' && (
           <div style={{ padding: 24, textAlign: 'center' }}>
-            <audio controls style={{ width: '100%', maxWidth: '600px' }} src={`${file.streamUrl}?token=${token}`}>
-              Votre navigateur ne supporte pas la lecture audio.
-            </audio>
+            <AudioPreview url={file.streamUrl} token={token} />
           </div>
         )}
 
@@ -235,6 +219,218 @@ export default function Preview() {
         </div>
       )}
     </div>
+  );
+}
+
+// Composant pour prévisualiser les images avec authentification
+function ImagePreview({ url, token }) {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Impossible de charger l\'image');
+        }
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to load image:', err);
+        setError(err.message);
+      }
+    };
+    
+    loadImage();
+    
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [url, token]);
+
+  if (error) {
+    return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
+  }
+
+  if (!imageUrl) {
+    return <div style={{ padding: 24, textAlign: 'center' }}>Chargement de l'image...</div>;
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt="Preview"
+      style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+    />
+  );
+}
+
+// Composant pour prévisualiser les PDF avec authentification
+function PdfPreview({ url, token }) {
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Impossible de charger le PDF');
+        }
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setPdfUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to load PDF:', err);
+        setError(err.message);
+      }
+    };
+    
+    loadPdf();
+    
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [url, token]);
+
+  if (error) {
+    return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
+  }
+
+  if (!pdfUrl) {
+    return <div style={{ padding: 24, textAlign: 'center' }}>Chargement du PDF...</div>;
+  }
+
+  return (
+    <iframe
+      src={pdfUrl}
+      style={{ width: '100%', height: '100%', border: 'none' }}
+      title="PDF Preview"
+    />
+  );
+}
+
+// Composant pour prévisualiser les vidéos avec authentification
+function VideoPreview({ url, token }) {
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadVideo = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Impossible de charger la vidéo');
+        }
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setVideoUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to load video:', err);
+        setError(err.message);
+      }
+    };
+    
+    loadVideo();
+    
+    return () => {
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [url, token]);
+
+  if (error) {
+    return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
+  }
+
+  if (!videoUrl) {
+    return <div style={{ padding: 24, textAlign: 'center' }}>Chargement de la vidéo...</div>;
+  }
+
+  return (
+    <video
+      controls
+      style={{ maxWidth: '100%', maxHeight: '80vh' }}
+      src={videoUrl}
+    >
+      Votre navigateur ne supporte pas la lecture vidéo.
+    </video>
+  );
+}
+
+// Composant pour prévisualiser les fichiers audio avec authentification
+function AudioPreview({ url, token }) {
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadAudio = async () => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Impossible de charger l\'audio');
+        }
+        
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setAudioUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to load audio:', err);
+        setError(err.message);
+      }
+    };
+    
+    loadAudio();
+    
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [url, token]);
+
+  if (error) {
+    return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
+  }
+
+  if (!audioUrl) {
+    return <div style={{ padding: 24, textAlign: 'center' }}>Chargement de l'audio...</div>;
+  }
+
+  return (
+    <audio controls style={{ width: '100%', maxWidth: '600px' }} src={audioUrl}>
+      Votre navigateur ne supporte pas la lecture audio.
+    </audio>
   );
 }
 

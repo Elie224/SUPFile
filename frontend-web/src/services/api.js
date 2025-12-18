@@ -128,6 +128,7 @@ export const fileService = {
 export const folderService = {
   create: (name, parentId = null) =>
     apiClient.post('/folders', { name, parent_id: parentId }),
+  get: (folderId) => apiClient.get(`/folders/${folderId}`),
   rename: (folderId, newName) =>
     apiClient.patch(`/folders/${folderId}`, { name: newName }),
   move: (folderId, newParentId) =>

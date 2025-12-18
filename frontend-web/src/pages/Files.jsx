@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Files() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, language } = useLanguage(); // Inclure language pour forcer le re-render
   const [items, setItems] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
@@ -30,6 +31,19 @@ export default function Files() {
   const [selectedDestinationFolder, setSelectedDestinationFolder] = useState(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
 
+  // Charger le dossier depuis les paramètres URL au montage
+  useEffect(() => {
+    const folderId = searchParams.get('folder');
+    if (folderId && folderId !== currentFolder?.id) {
+      // Charger les informations du dossier
+      folderService.get(folderId).then(response => {
+        setCurrentFolder(response.data.data);
+      }).catch(err => {
+        console.error('Failed to load folder:', err);
+      });
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     loadFiles();
   }, [currentFolder]);
@@ -41,6 +55,8 @@ export default function Files() {
       setItems(response.data.data.items || []);
     } catch (err) {
       console.error('Failed to load files:', err);
+      // Afficher un message d'erreur à l'utilisateur
+      alert(t('loadError') || 'Erreur lors du chargement des fichiers: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setLoading(false);
     }
