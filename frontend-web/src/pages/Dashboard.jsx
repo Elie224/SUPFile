@@ -307,36 +307,40 @@ export default function Dashboard() {
               <button
                 onClick={() => navigate('/files')}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#2196F3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
+                  padding: '14px 28px',
+                  backgroundColor: '#1976D2',
+                  color: '#FFFFFF',
+                  border: '2px solid #1976D2',
+                  borderRadius: '10px',
                   cursor: 'pointer',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.4)',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.5)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '10px',
                   whiteSpace: 'nowrap',
-                  minWidth: '120px',
-                  justifyContent: 'center'
+                  minWidth: '140px',
+                  justifyContent: 'center',
+                  textTransform: 'none',
+                  letterSpacing: '0.3px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1976D2';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.5)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.backgroundColor = '#1565C0';
+                  e.currentTarget.style.borderColor = '#1565C0';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(25, 118, 210, 0.6)';
+                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2196F3';
-                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(33, 150, 243, 0.4)';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.backgroundColor = '#1976D2';
+                  e.currentTarget.style.borderColor = '#1976D2';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(25, 118, 210, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
                 }}
               >
-                <span style={{ fontWeight: '600' }}>{t('viewAll')}</span>
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>→</span>
+                <span style={{ fontWeight: '700', fontSize: '16px' }}>{t('viewAll')}</span>
+                <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>→</span>
               </button>
             </div>
             {stats.recent_files && stats.recent_files.length > 0 ? (
