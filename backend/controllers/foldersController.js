@@ -304,8 +304,34 @@ async function listTrash(req, res, next) {
   }
 }
 
+// Récupérer un dossier par ID
+async function getFolder(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const folder = await FolderModel.findById(id);
+    if (!folder) {
+      return res.status(404).json({ error: { message: 'Folder not found' } });
+    }
+
+    // Comparer les ObjectId correctement
+    const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
+    const userOwnerId = userId?.toString ? userId.toString() : userId;
+    
+    if (folderOwnerId !== userOwnerId) {
+      return res.status(403).json({ error: { message: 'Access denied' } });
+    }
+
+    res.status(200).json({ data: folder });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createFolder,
+  getFolder,
   updateFolder,
   deleteFolder,
   restoreFolder,

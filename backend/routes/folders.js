@@ -18,6 +18,9 @@ router.post('/', validate(createFolderSchema), foldersController.createFolder);
 // Lister les dossiers supprimés (corbeille) - DOIT être avant les autres routes /:id
 router.get('/trash', foldersController.listTrash);
 
+// Récupérer un dossier par ID
+router.get('/:id', foldersController.getFolder);
+
 // Mettre à jour un dossier (rename/move)
 router.patch('/:id', validate(renameSchema), foldersController.updateFolder);
 
