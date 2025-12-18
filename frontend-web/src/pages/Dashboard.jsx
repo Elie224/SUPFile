@@ -292,7 +292,9 @@ export default function Dashboard() {
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              marginBottom: '16px'
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '12px'
             }}>
               <h2 style={{ 
                 fontSize: '18px', 
@@ -305,33 +307,36 @@ export default function Dashboard() {
               <button
                 onClick={() => navigate('/files')}
                 style={{
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   backgroundColor: '#2196F3',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   transition: 'all 0.2s',
-                  boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px',
+                  whiteSpace: 'nowrap',
+                  minWidth: '120px',
+                  justifyContent: 'center'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#1976D2';
-                  e.target.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.4)';
-                  e.target.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.backgroundColor = '#1976D2';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#2196F3';
-                  e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
-                  e.target.style.transform = 'translateY(0)';
+                  e.currentTarget.style.backgroundColor = '#2196F3';
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(33, 150, 243, 0.4)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <span>{t('viewAll')}</span>
-                <span style={{ fontSize: '16px' }}>→</span>
+                <span style={{ fontWeight: '600' }}>{t('viewAll')}</span>
+                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>→</span>
               </button>
             </div>
             {stats.recent_files && stats.recent_files.length > 0 ? (
