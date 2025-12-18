@@ -832,10 +832,49 @@ export default function Files() {
         }}
       >
         {loading ? (
-          <div>{t('loading')}</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <div style={{ fontSize: '18px', marginBottom: '8px' }}>⏳</div>
+            <div>{t('loading') || 'Chargement...'}</div>
+          </div>
+        ) : error ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px', 
+            color: '#d32f2f',
+            backgroundColor: '#ffebee',
+            borderRadius: '8px',
+            margin: '20px'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⚠️</div>
+            <div style={{ fontSize: '16px', fontWeight: '500', marginBottom: '16px' }}>
+              {error}
+            </div>
+            <button
+              onClick={() => {
+                setError(null);
+                loadFiles();
+              }}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#999' }}>
-            <p>{t('emptyFolder')}</p>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+            <p style={{ fontSize: '16px', marginBottom: '8px' }}>{t('emptyFolder') || 'Aucun fichier ou dossier'}</p>
+            <p style={{ fontSize: '14px', color: '#bbb' }}>
+              Glissez-déposez des fichiers ici ou cliquez sur "Uploader"
+            </p>
           </div>
         ) : (
           <div style={{ 
