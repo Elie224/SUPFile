@@ -39,36 +39,62 @@ const FolderModel = {
   },
 
   async findByOwner(ownerId, parentId = null, includeDeleted = false, options = {}) {
-    const query = { owner_id: ownerId, parent_id: parentId || null };
-    if (!includeDeleted) {
-      query.is_deleted = false;
+    try {
+      // Convertir ownerId en ObjectId si nécessaire
+      const ownerObjectId = typeof ownerId === 'string' ? new mongoose.Types.ObjectId(ownerId) : ownerId;
+      const parentObjectId = parentId && typeof parentId === 'string' ? new mongoose.Types.ObjectId(parentId) : (parentId || null);
+      
+      const query = { owner_id: ownerObjectId, parent_id: parentObjectId };
+      if (!includeDeleted) {
+        query.is_deleted = false;
+      }
+      
+      // Pagination côté base de données pour meilleures performances
+      const skip = options.skip || 0;
+      const limit = options.limit || 50;
+      const sortBy = options.sortBy || 'name';
+      const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
+      
+      const sortObj = {};
+      sortObj[sortBy] = sortOrder;
+      
+      const queryBuilder = Folder.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      
+      // Essayer d'utiliser le hint seulement si l'index existe
+      try {
+        queryBuilder.hint({ owner_id: 1, parent_id: 1, is_deleted: 1 });
+      } catch (hintError) {
+        // Si le hint échoue, continuer sans hint
+        console.warn('Hint failed for folders, continuing without hint:', hintError.message);
+      }
+      
+      const folders = await queryBuilder;
+      return folders.map(f => this.toDTO(f));
+    } catch (err) {
+      console.error('Error in findByOwner (folders):', err);
+      throw err;
     }
-    
-    // Pagination côté base de données pour meilleures performances
-    const skip = options.skip || 0;
-    const limit = options.limit || 50;
-    const sortBy = options.sortBy || 'name';
-    const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
-    
-    const sortObj = {};
-    sortObj[sortBy] = sortOrder;
-    
-    const folders = await Folder.find(query)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limit)
-      .lean()
-      .hint({ owner_id: 1, parent_id: 1, is_deleted: 1 }); // Utiliser l'index composé
-    
-    return folders.map(f => this.toDTO(f));
   },
 
   async countByOwner(ownerId, parentId = null, includeDeleted = false) {
-    const query = { owner_id: ownerId, parent_id: parentId || null };
-    if (!includeDeleted) {
-      query.is_deleted = false;
+    try {
+      // Convertir ownerId en ObjectId si nécessaire
+      const ownerObjectId = typeof ownerId === 'string' ? new mongoose.Types.ObjectId(ownerId) : ownerId;
+      const parentObjectId = parentId && typeof parentId === 'string' ? new mongoose.Types.ObjectId(parentId) : (parentId || null);
+      
+      const query = { owner_id: ownerObjectId, parent_id: parentObjectId };
+      if (!includeDeleted) {
+        query.is_deleted = false;
+      }
+      return await Folder.countDocuments(query);
+    } catch (err) {
+      console.error('Error in countByOwner (folders):', err);
+      throw err;
     }
-    return await Folder.countDocuments(query);
   },
 
   async findRootFolder(ownerId) {

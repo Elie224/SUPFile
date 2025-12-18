@@ -54,43 +54,88 @@ const FileModel = {
   },
 
   async findByOwner(ownerId, folderId = null, includeDeleted = false, options = {}) {
-    const query = { owner_id: ownerId };
-    if (folderId !== null) {
-      query.folder_id = folderId;
+    try {
+      // Convertir ownerId en ObjectId si nécessaire
+      const ownerObjectId = typeof ownerId === 'string' ? new mongoose.Types.ObjectId(ownerId) : ownerId;
+      
+      const query = { owner_id: ownerObjectId };
+      if (folderId !== null) {
+        const folderObjectId = typeof folderId === 'string' ? new mongoose.Types.ObjectId(folderId) : folderId;
+        query.folder_id = folderObjectId;
+      } else {
+        // Si folderId est null, chercher les fichiers sans dossier (racine)
+        query.folder_id = null;
+      }
+      if (!includeDeleted) {
+        query.is_deleted = false;
+      }
+      
+      // Pagination côté base de données pour meilleures performances
+      const skip = options.skip || 0;
+      const limit = options.limit || 50;
+      const sortBy = options.sortBy || 'name';
+      const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
+      
+      // Utiliser l'index composé si disponible
+      const sortObj = {};
+      if (sortBy === 'name') {
+        sortObj.name = sortOrder;
+      } else if (sortBy === 'updated_at') {
+        sortObj.updated_at = sortOrder;
+      } else {
+        sortObj[sortBy] = sortOrder;
+      }
+      
+      // Construire la requête sans hint() pour éviter les erreurs si l'index n'existe pas
+      const queryBuilder = File.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      
+      // Essayer d'utiliser le hint seulement si l'index existe
+      try {
+        queryBuilder.hint({ owner_id: 1, folder_id: 1, is_deleted: 1 });
+      } catch (hintError) {
+        // Si le hint échoue, continuer sans hint
+        console.warn('Hint failed, continuing without hint:', hintError.message);
+      }
+      
+      const files = await queryBuilder;
+      return files.map(f => this.toDTO(f));
+    } catch (err) {
+      console.error('Error in findByOwner:', err);
+      throw err;
     }
-    if (!includeDeleted) {
-      query.is_deleted = false;
-    }
-    
-    // Pagination côté base de données pour meilleures performances
-    const skip = options.skip || 0;
-    const limit = options.limit || 50;
-    const sortBy = options.sortBy || 'name';
-    const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
-    
-    // Utiliser l'index composé si disponible
-    const sortObj = {};
-    if (sortBy === 'name') {
-      sortObj.name = sortOrder;
-    } else if (sortBy === 'updated_at') {
-      sortObj.updated_at = sortOrder;
-    } else {
-      sortObj[sortBy] = sortOrder;
-    }
-    
-    const files = await File.find(query)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limit)
-      .lean()
-      .hint({ owner_id: 1, folder_id: 1, is_deleted: 1 }); // Utiliser l'index composé
-    
-    return files.map(f => this.toDTO(f));
   },
 
   async findByPath(filePath) {
     const file = await File.findOne({ file_path: filePath }).lean();
     return file ? this.toDTO(file) : null;
+  },
+
+  async countByOwner(ownerId, folderId = null, includeDeleted = false) {
+    try {
+      // Convertir ownerId en ObjectId si nécessaire
+      const ownerObjectId = typeof ownerId === 'string' ? new mongoose.Types.ObjectId(ownerId) : ownerId;
+      
+      const query = { owner_id: ownerObjectId };
+      if (folderId !== null) {
+        const folderObjectId = typeof folderId === 'string' ? new mongoose.Types.ObjectId(folderId) : folderId;
+        query.folder_id = folderObjectId;
+      } else {
+        // Si folderId est null, chercher les fichiers sans dossier (racine)
+        query.folder_id = null;
+      }
+      if (!includeDeleted) {
+        query.is_deleted = false;
+      }
+      
+      return await File.countDocuments(query);
+    } catch (err) {
+      console.error('Error in countByOwner:', err);
+      throw err;
+    }
   },
 
   async update(id, updates) {
