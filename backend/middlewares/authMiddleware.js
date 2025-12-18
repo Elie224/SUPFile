@@ -17,8 +17,8 @@ function authMiddleware(req, res, next) {
       });
     }
 
-    // Vérifier et décoder le token
-    const decoded = jwt.verify(token, config.jwt.secret);
+    // Vérifier et décoder le token avec algorithme explicite pour la sécurité
+    const decoded = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
     req.user = decoded;
 
     next();
@@ -45,8 +45,12 @@ function optionalAuthMiddleware(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, config.jwt.secret);
-      req.user = decoded;
+      try {
+        const decoded = jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
+        req.user = decoded;
+      } catch (err) {
+        // Ignorer l'erreur - route publique
+      }
     }
 
     next();

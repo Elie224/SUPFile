@@ -3,6 +3,7 @@ const router = express.Router();
 const usersController = require('../controllers/usersController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 const { validate, changePasswordSchema } = require('../middlewares/validation');
+const { validateFileUpload } = require('../middlewares/fileValidation');
 
 // Toutes les routes nécessitent une authentification
 router.use(authMiddleware);
@@ -13,7 +14,7 @@ router.get('/me', usersController.getMe);
 // Mettre à jour le profil
 router.patch('/me', usersController.updateProfile);
 
-// Uploader un avatar
+// Uploader un avatar (multer gère l'upload, puis validation)
 router.post('/me/avatar', usersController.uploadAvatar);
 
 // Changer le mot de passe

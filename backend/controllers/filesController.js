@@ -7,6 +7,10 @@ const FolderModel = require('../models/folderModel');
 const UserModel = require('../models/userModel');
 const config = require('../config');
 const { AppError } = require('../middlewares/errorHandler');
+const logger = require('../utils/logger');
+const { compareObjectIds } = require('../utils/objectId');
+const { successResponse, errorResponse } = require('../utils/response');
+const { calculateRealQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
 
 // Configuration multer pour l'upload
 const storage = multer.diskStorage({
@@ -29,7 +33,7 @@ const storage = multer.diskStorage({
       
       cb(null, uploadDir);
     } catch (error) {
-      console.error('Error creating upload directory:', error);
+      logger.logError(error, { context: 'upload directory creation' });
       cb(error);
     }
   },
@@ -44,7 +48,13 @@ const upload = multer({
   storage,
   limits: { fileSize: config.upload.maxFileSize },
   fileFilter: (req, file, cb) => {
-    // Accepter tous les types de fichiers
+    // Validation basique du nom de fichier
+    if (!file.originalname || file.originalname.length > 255) {
+      return cb(new AppError('Invalid filename', 400));
+    }
+    
+    // En développement, accepter tous les types pour faciliter les tests
+    // En production, la validation stricte sera faite par validateFileUpload
     cb(null, true);
   },
 }).single('file');
@@ -53,44 +63,42 @@ const upload = multer({
 const uploadMiddleware = (req, res, next) => {
   // Vérifier que l'utilisateur est authentifié
   if (!req.user || !req.user.id) {
-    console.error('Upload middleware: User not authenticated', { user: req.user });
-    return res.status(401).json({ error: { message: 'Authentication required' } });
+    logger.logWarn('Upload middleware: User not authenticated', { user: req.user });
+    return errorResponse(res, 'Authentication required', 401);
   }
   
-  console.log('Upload middleware: Starting upload for user', req.user.id);
-  console.log('Upload middleware: Content-Type:', req.headers['content-type']);
-  console.log('Upload middleware: Has file in request?', !!req.file);
+  logger.logDebug('Upload middleware: Starting upload', {
+    userId: req.user.id,
+    contentType: req.headers['content-type'],
+    hasFile: !!req.file,
+  });
   
   upload(req, res, (err) => {
     if (err instanceof multer.MulterError) {
-      console.error('Multer error:', err.code, err.message);
+      logger.logError(err, { context: 'multer error', code: err.code });
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return next(new AppError('File too large', 413));
+        return next(new AppError('File too large', 413, 'FILE_TOO_LARGE'));
       }
-      return next(new AppError(err.message, 400));
+      return next(new AppError(err.message, 400, 'UPLOAD_ERROR'));
     }
     if (err) {
-      console.error('Upload middleware error:', err);
+      logger.logError(err, { context: 'upload middleware' });
       return next(err);
     }
     
     // Vérifier que le fichier a bien été reçu
     if (!req.file) {
-      console.error('Upload middleware: No file received after multer processing');
-      console.error('Request body:', req.body);
-      console.error('Request files:', req.files);
-      return res.status(400).json({ 
-        error: { 
-          message: 'No file provided. Please ensure the file is sent with the field name "file"' 
-        } 
+      logger.logWarn('Upload middleware: No file received', {
+        body: req.body,
+        files: req.files,
       });
+      return errorResponse(res, 'No file provided. Please ensure the file is sent with the field name "file"', 400);
     }
     
-    console.log('Upload middleware: File received successfully', {
+    logger.logInfo('Upload middleware: File received successfully', {
       originalname: req.file.originalname,
       size: req.file.size,
       mimetype: req.file.mimetype,
-      path: req.file.path
     });
     
     next();
@@ -112,43 +120,50 @@ async function listFiles(req, res, next) {
         return res.status(404).json({ error: { message: 'Folder not found' } });
       }
       
-      // Comparer les ObjectId correctement
-      const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
-      const userOwnerId = userId?.toString ? userId.toString() : userId;
-      
-      if (folderOwnerId !== userOwnerId) {
-        return res.status(403).json({ error: { message: 'Access denied' } });
+      // Vérifier que le dossier appartient à l'utilisateur
+      if (!compareObjectIds(folder.owner_id, userId)) {
+        return errorResponse(res, 'Access denied', 403);
       }
     }
 
-    // Récupérer les fichiers et dossiers
-    const files = await FileModel.findByOwner(userId, folderId, false);
-    const folders = await FolderModel.findByOwner(userId, folderId, false);
+    // Récupérer les fichiers et dossiers avec pagination côté base de données
+    const skipNum = parseInt(skip);
+    const limitNum = parseInt(limit);
+    
+    // Récupérer en parallèle avec pagination optimisée
+    const [files, folders, totalFiles, totalFolders] = await Promise.all([
+      FileModel.findByOwner(userId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
+      FolderModel.findByOwner(userId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
+      FileModel.countByOwner(userId, folderId, false),
+      FolderModel.countByOwner(userId, folderId, false),
+    ]);
 
-    // Combiner et trier
+    // Combiner et trier (tri déjà fait côté DB, mais combiner pour l'affichage)
     const items = [
       ...folders.map(f => ({ ...f, type: 'folder' })),
       ...files.map(f => ({ ...f, type: 'file' })),
     ];
 
-    // Trier
-    items.sort((a, b) => {
-      const aVal = a[sort_by] || a.name;
-      const bVal = b[sort_by] || b.name;
-      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      return sort_order === 'asc' ? comparison : -comparison;
-    });
+    // Trier à nouveau pour combiner fichiers et dossiers (si nécessaire)
+    if (sort_by === 'name') {
+      items.sort((a, b) => {
+        const aVal = a.name || '';
+        const bVal = b.name || '';
+        const comparison = aVal.localeCompare(bVal, 'fr', { sensitivity: 'base' });
+        return sort_order === 'asc' ? comparison : -comparison;
+      });
+    }
 
-    // Pagination
-    const paginated = items.slice(parseInt(skip), parseInt(skip) + parseInt(limit));
+    const total = totalFiles + totalFolders;
 
     res.status(200).json({
       data: {
-        items: paginated,
+        items,
         pagination: {
-          total: items.length,
-          skip: parseInt(skip),
-          limit: parseInt(limit),
+          total,
+          skip: skipNum,
+          limit: limitNum,
+          hasMore: (skipNum + limitNum) < total,
         },
       },
     });
@@ -167,12 +182,13 @@ async function uploadFile(req, res, next) {
       return res.status(400).json({ error: { message: 'No file provided' } });
     }
 
-    // Vérifier le quota utilisateur
+    // Vérifier le quota utilisateur (calculer depuis les fichiers réels)
     const user = await UserModel.findById(userId);
-    const currentUsed = await FileModel.getTotalSizeByOwner(userId);
+    const currentUsed = await calculateRealQuotaUsed(userId);
     const fileSize = req.file.size;
+    const quotaLimit = user.quota_limit || 32212254720; // 30 Go par défaut
 
-    if (currentUsed + fileSize > user.quota_limit) {
+    if (currentUsed + fileSize > quotaLimit) {
       // Supprimer le fichier uploadé
       await fs.unlink(req.file.path).catch(() => {});
       return res.status(507).json({ error: { message: 'Insufficient storage quota' } });
@@ -187,13 +203,10 @@ async function uploadFile(req, res, next) {
         return res.status(404).json({ error: { message: 'Folder not found' } });
       }
       
-      // Comparer les ObjectId correctement
-      const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
-      const userOwnerId = userId?.toString ? userId.toString() : userId;
-      
-      if (folderOwnerId !== userOwnerId) {
+      // Vérifier que le dossier appartient à l'utilisateur
+      if (!compareObjectIds(folder.owner_id, userId)) {
         await fs.unlink(req.file.path).catch(() => {});
-        return res.status(403).json({ error: { message: 'Access denied' } });
+        return errorResponse(res, 'Access denied', 403);
       }
     } else {
       // Créer ou récupérer le dossier racine
@@ -223,10 +236,12 @@ async function uploadFile(req, res, next) {
       filePath: req.file.path,
     });
 
-    // Mettre à jour le quota utilisé
-    const mongoose = require('mongoose');
-    const User = mongoose.models.User;
-    await User.findByIdAndUpdate(userId, { quota_used: currentUsed + fileSize });
+    // Mettre à jour le quota utilisé (ajouter la taille du fichier)
+    await updateQuotaAfterOperation(userId, fileSize);
+
+    // Invalider le cache du dashboard pour cet utilisateur
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
 
     res.status(201).json({
       data: file,
@@ -445,6 +460,11 @@ async function updateFile(req, res, next) {
     }
 
     const updated = await FileModel.update(id, updates);
+    
+    // Invalider le cache du dashboard pour cet utilisateur
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
+    
     res.status(200).json({ data: updated, message: 'File updated' });
   } catch (err) {
     next(err);
@@ -470,13 +490,17 @@ async function deleteFile(req, res, next) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
+    // Récupérer la taille du fichier avant suppression
+    const fileSize = file.size || 0;
+    
     await FileModel.softDelete(id);
     
     // Mettre à jour le quota utilisé (soustraire la taille du fichier)
-    const currentUsed = await FileModel.getTotalSizeByOwner(userId);
-    const mongoose = require('mongoose');
-    const User = mongoose.models.User;
-    await User.findByIdAndUpdate(userId, { quota_used: currentUsed });
+    await updateQuotaAfterOperation(userId, -fileSize);
+    
+    // Invalider le cache du dashboard pour cet utilisateur
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
     
     res.status(200).json({ message: 'File deleted' });
   } catch (err) {
@@ -504,13 +528,17 @@ async function restoreFile(req, res, next) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
+    // Récupérer la taille du fichier avant restauration
+    const fileSize = file.size || 0;
+    
     await FileModel.restore(id);
     
-    // Mettre à jour le quota utilisé
-    const currentUsed = await FileModel.getTotalSizeByOwner(userId);
-    const mongoose = require('mongoose');
-    const User = mongoose.models.User;
-    await User.findByIdAndUpdate(userId, { quota_used: currentUsed });
+    // Mettre à jour le quota utilisé (ajouter la taille du fichier)
+    await updateQuotaAfterOperation(userId, fileSize);
+    
+    // Invalider le cache du dashboard pour cet utilisateur
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
     
     res.status(200).json({ message: 'File restored' });
   } catch (err) {

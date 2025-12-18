@@ -3,6 +3,7 @@ const FileModel = require('../models/fileModel');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs').promises;
+const { calculateRealQuotaUsed, syncQuotaUsed } = require('../utils/quota');
 
 // Créer un dossier
 async function createFolder(req, res, next) {
@@ -114,6 +115,15 @@ async function deleteFolder(req, res, next) {
     }
 
     await FolderModel.softDelete(id);
+    
+    // Synchroniser le quota après suppression du dossier
+    // (les fichiers du dossier sont maintenant marqués comme supprimés)
+    await syncQuotaUsed(userId);
+    
+    // Invalider le cache du dashboard
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
+    
     res.status(200).json({ message: 'Folder deleted' });
   } catch (err) {
     next(err);
@@ -247,6 +257,15 @@ async function restoreFolder(req, res, next) {
     }
 
     await FolderModel.restore(id);
+    
+    // Synchroniser le quota après restauration du dossier
+    // (les fichiers du dossier sont maintenant restaurés)
+    await syncQuotaUsed(userId);
+    
+    // Invalider le cache du dashboard
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
+    
     res.status(200).json({ message: 'Folder restored' });
   } catch (err) {
     console.error('Error restoring folder:', err);

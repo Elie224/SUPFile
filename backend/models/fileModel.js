@@ -12,12 +12,16 @@ const FileSchema = new Schema({
   deleted_at: Date,
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-// Indexes
+// Indexes optimisés pour les performances
 FileSchema.index({ folder_id: 1 });
 FileSchema.index({ owner_id: 1 });
 FileSchema.index({ file_path: 1 });
 FileSchema.index({ is_deleted: 1 });
-FileSchema.index({ owner_id: 1, folder_id: 1, is_deleted: 1 });
+FileSchema.index({ owner_id: 1, folder_id: 1, is_deleted: 1 }); // Index composé pour les requêtes fréquentes
+FileSchema.index({ owner_id: 1, is_deleted: 1, updated_at: -1 }); // Pour les fichiers récents
+FileSchema.index({ owner_id: 1, mime_type: 1, is_deleted: 1 }); // Pour les recherches par type
+FileSchema.index({ name: 'text', mime_type: 'text' }); // Index texte pour la recherche
+FileSchema.index({ updated_at: -1 }); // Pour le tri par date
 
 const File = mongoose.models.File || mongoose.model('File', FileSchema);
 
@@ -49,7 +53,7 @@ const FileModel = {
     return files.map(f => this.toDTO(f));
   },
 
-  async findByOwner(ownerId, folderId = null, includeDeleted = false) {
+  async findByOwner(ownerId, folderId = null, includeDeleted = false, options = {}) {
     const query = { owner_id: ownerId };
     if (folderId !== null) {
       query.folder_id = folderId;
@@ -57,7 +61,30 @@ const FileModel = {
     if (!includeDeleted) {
       query.is_deleted = false;
     }
-    const files = await File.find(query).sort({ name: 1 }).lean();
+    
+    // Pagination côté base de données pour meilleures performances
+    const skip = options.skip || 0;
+    const limit = options.limit || 50;
+    const sortBy = options.sortBy || 'name';
+    const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
+    
+    // Utiliser l'index composé si disponible
+    const sortObj = {};
+    if (sortBy === 'name') {
+      sortObj.name = sortOrder;
+    } else if (sortBy === 'updated_at') {
+      sortObj.updated_at = sortOrder;
+    } else {
+      sortObj[sortBy] = sortOrder;
+    }
+    
+    const files = await File.find(query)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .hint({ owner_id: 1, folder_id: 1, is_deleted: 1 }); // Utiliser l'index composé
+    
     return files.map(f => this.toDTO(f));
   },
 
@@ -115,8 +142,11 @@ const FileModel = {
   async search(ownerId, query, filters = {}) {
     const matchQuery = { owner_id: new mongoose.Types.ObjectId(ownerId), is_deleted: false };
     
-    if (query) {
-      matchQuery.name = { $regex: query, $options: 'i' };
+    // Recherche par nom de fichier (toujours utiliser regex pour compatibilité)
+    if (query && query.trim()) {
+      // Échapper les caractères spéciaux regex
+      const escapedQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      matchQuery.name = { $regex: escapedQuery, $options: 'i' };
     }
 
     if (filters.mimeType) {
@@ -137,16 +167,37 @@ const FileModel = {
         matchQuery.updated_at.$gte = new Date(filters.dateFrom);
       }
       if (filters.dateTo) {
-        matchQuery.updated_at.$lte = new Date(filters.dateTo);
+        // Ajouter 23h59m59s pour inclure toute la journée
+        const endDate = new Date(filters.dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        matchQuery.updated_at.$lte = endDate;
       }
     }
 
-    const files = await File.find(matchQuery)
-      .sort({ [filters.sortBy || 'updated_at']: filters.sortOrder === 'asc' ? 1 : -1 })
-      .limit(filters.limit || 50)
-      .skip(filters.skip || 0)
-      .lean();
+    const sortBy = filters.sortBy || 'updated_at';
+    const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
+    const limit = filters.limit || 50;
+    const skip = filters.skip || 0;
 
+    // Utiliser l'index approprié selon le tri
+    let hint = null;
+    if (sortBy === 'updated_at') {
+      hint = { owner_id: 1, is_deleted: 1, updated_at: -1 };
+    } else if (filters.mimeType) {
+      hint = { owner_id: 1, mime_type: 1, is_deleted: 1 };
+    }
+
+    const queryBuilder = File.find(matchQuery)
+      .sort({ [sortBy]: sortOrder })
+      .limit(limit)
+      .skip(skip)
+      .lean();
+    
+    if (hint) {
+      queryBuilder.hint(hint);
+    }
+
+    const files = await queryBuilder;
     return files.map(f => this.toDTO(f));
   },
 

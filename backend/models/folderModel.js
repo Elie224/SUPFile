@@ -9,11 +9,15 @@ const FolderSchema = new Schema({
   deleted_at: Date,
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-// Indexes
+// Indexes optimisés pour les performances
 FolderSchema.index({ owner_id: 1, parent_id: 1 });
 FolderSchema.index({ owner_id: 1 });
 FolderSchema.index({ parent_id: 1 });
 FolderSchema.index({ is_deleted: 1 });
+FolderSchema.index({ owner_id: 1, parent_id: 1, is_deleted: 1 }); // Index composé optimisé
+FolderSchema.index({ owner_id: 1, is_deleted: 1, updated_at: -1 }); // Pour les dossiers récents
+FolderSchema.index({ name: 'text' }); // Index texte pour la recherche
+FolderSchema.index({ updated_at: -1 }); // Pour le tri par date
 
 const Folder = mongoose.models.Folder || mongoose.model('Folder', FolderSchema);
 
@@ -34,13 +38,37 @@ const FolderModel = {
     return folder ? this.toDTO(folder) : null;
   },
 
-  async findByOwner(ownerId, parentId = null, includeDeleted = false) {
+  async findByOwner(ownerId, parentId = null, includeDeleted = false, options = {}) {
     const query = { owner_id: ownerId, parent_id: parentId || null };
     if (!includeDeleted) {
       query.is_deleted = false;
     }
-    const folders = await Folder.find(query).sort({ name: 1 }).lean();
+    
+    // Pagination côté base de données pour meilleures performances
+    const skip = options.skip || 0;
+    const limit = options.limit || 50;
+    const sortBy = options.sortBy || 'name';
+    const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
+    
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder;
+    
+    const folders = await Folder.find(query)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .hint({ owner_id: 1, parent_id: 1, is_deleted: 1 }); // Utiliser l'index composé
+    
     return folders.map(f => this.toDTO(f));
+  },
+
+  async countByOwner(ownerId, parentId = null, includeDeleted = false) {
+    const query = { owner_id: ownerId, parent_id: parentId || null };
+    if (!includeDeleted) {
+      query.is_deleted = false;
+    }
+    return await Folder.countDocuments(query);
   },
 
   async findRootFolder(ownerId) {
@@ -78,6 +106,44 @@ const FolderModel = {
   async checkOwnership(id, ownerId) {
     const folder = await Folder.findOne({ _id: id, owner_id: ownerId }).lean();
     return !!folder;
+  },
+
+  async search(ownerId, query, filters = {}) {
+    const matchQuery = { owner_id: new mongoose.Types.ObjectId(ownerId), is_deleted: false };
+    
+    // Recherche par nom de dossier
+    if (query && query.trim()) {
+      // Échapper les caractères spéciaux regex
+      const escapedQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      matchQuery.name = { $regex: escapedQuery, $options: 'i' };
+    }
+
+    // Filtrer par date si nécessaire
+    if (filters.dateFrom || filters.dateTo) {
+      matchQuery.updated_at = {};
+      if (filters.dateFrom) {
+        matchQuery.updated_at.$gte = new Date(filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        // Ajouter 23h59m59s pour inclure toute la journée
+        const endDate = new Date(filters.dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        matchQuery.updated_at.$lte = endDate;
+      }
+    }
+
+    const sortBy = filters.sortBy || 'updated_at';
+    const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
+    const limit = filters.limit || 50;
+    const skip = filters.skip || 0;
+
+    const folders = await Folder.find(matchQuery)
+      .sort({ [sortBy]: sortOrder })
+      .limit(limit)
+      .skip(skip)
+      .lean();
+
+    return folders.map(f => this.toDTO(f));
   },
 
   toDTO(folder) {

@@ -29,11 +29,24 @@ const avatarUpload = multer({
   storage: avatarStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new AppError('Only image files are allowed', 400));
+    // Valider que c'est une image
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      return cb(new AppError('Only image files are allowed', 400));
     }
+    
+    // Valider le nom de fichier
+    if (!file.originalname || file.originalname.length > 255) {
+      return cb(new AppError('Invalid filename', 400));
+    }
+    
+    // Vérifier les extensions dangereuses
+    const dangerousExts = ['.exe', '.bat', '.cmd', '.sh', '.js'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (dangerousExts.includes(ext)) {
+      return cb(new AppError('File type not allowed for security reasons', 403));
+    }
+    
+    cb(null, true);
   },
 }).single('avatar');
 

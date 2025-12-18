@@ -7,6 +7,13 @@ const session = require('express-session');
 const passport = require('passport');
 const config = require('./config');
 const { errorHandler } = require('./middlewares/errorHandler');
+const { generalLimiter, authLimiter, uploadLimiter, shareLimiter } = require('./middlewares/rateLimiter');
+const { sanitizeQuery, validateName } = require('./middlewares/security');
+const compressionMiddleware = require('./middlewares/compression');
+const { performanceMiddleware } = require('./middlewares/performance');
+const { cacheMiddleware, invalidateUserCache } = require('./utils/cache');
+const logger = require('./utils/logger');
+const mongoose = require('mongoose');
 
 // Initialize MongoDB connection
 const db = require('./models/db');
@@ -58,12 +65,44 @@ async function startServer() {
 
 const app = express();
 
-// Security middleware avec configuration pour permettre les ressources cross-origin
+// Compression HTTP pour améliorer les performances (DOIT être avant les routes)
+app.use(compressionMiddleware);
+
+// Performance monitoring
+app.use(performanceMiddleware);
+
+// Security middleware avec configuration améliorée
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false, // Désactivé pour permettre les ressources externes
-  contentSecurityPolicy: false, // Désactivé pour éviter les problèmes avec les ressources statiques
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 }));
+
+// Rate limiting global
+app.use(generalLimiter);
+
+// Nettoyage des requêtes contre les injections NoSQL
+app.use(sanitizeQuery);
 
 // CORS middleware - doit être avant les routes
 app.use(cors(config.cors));
@@ -86,8 +125,8 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Body parser middleware - ne pas parser pour multipart/form-data (géré par multer)
-app.use(express.json());
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true, parameterLimit: 10000 }));
 
 // Servir les fichiers statiques avec les bons en-têtes CORS
 app.use('/public', express.static(path.join(__dirname, 'public'), {
@@ -187,14 +226,18 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', require('./routes/auth'));
+// Health check (avant les autres routes pour monitoring)
+app.use('/api/health', require('./routes/health'));
+
+// API Routes avec rate limiting spécifique et cache
+app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/files', require('./routes/files'));
-app.use('/api/folders', require('./routes/folders'));
-app.use('/api/share', require('./routes/share'));
+app.use('/api/folders', validateName, require('./routes/folders'));
+app.use('/api/share', shareLimiter, require('./routes/share'));
 app.use('/api/search', require('./routes/search'));
-app.use('/api/dashboard', require('./routes/dashboard'));
+// Cache pour le dashboard (5 minutes)
+app.use('/api/dashboard', cacheMiddleware(300000), require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 
 // 404 handler (doit être avant errorHandler)
@@ -208,14 +251,58 @@ app.use(errorHandler);
 const PORT = config.server.port;
 const HOST = config.server.host;
 
+// Gestion du graceful shutdown
+let server;
+
+const gracefulShutdown = (signal) => {
+  logger.logInfo(`Received ${signal}, shutting down gracefully...`);
+  
+  if (server) {
+    server.close(() => {
+      logger.logInfo('HTTP server closed');
+      
+      // Fermer la connexion MongoDB
+      mongoose.connection.close(false, () => {
+        logger.logInfo('MongoDB connection closed');
+        process.exit(0);
+      });
+    });
+    
+    // Forcer la fermeture après 10 secondes
+    setTimeout(() => {
+      logger.logError(new Error('Forced shutdown after timeout'), { context: 'graceful shutdown' });
+      process.exit(1);
+    }, 10000);
+  } else {
+    process.exit(0);
+  }
+};
+
+// Écouter les signaux de fermeture
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Gestion des erreurs non capturées
+process.on('uncaughtException', (err) => {
+  logger.logError(err, { context: 'uncaughtException' });
+  gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.logError(new Error(`Unhandled Rejection: ${reason}`), { context: 'unhandledRejection', promise });
+  gracefulShutdown('unhandledRejection');
+});
+
 // Démarrer le serveur après vérification MongoDB
 startServer().then(() => {
-  app.listen(PORT, HOST, () => {
-    console.log(`✓ SUPFile API listening on http://${HOST}:${PORT}`);
-    console.log(`✓ Environment: ${config.server.nodeEnv}`);
+  server = app.listen(PORT, HOST, () => {
+    logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
+      environment: config.server.nodeEnv,
+      port: PORT,
+    });
   });
 }).catch((err) => {
-  console.error('❌ Failed to start server:', err.message);
+  logger.logError(err, { context: 'server startup' });
   process.exit(1);
 });
 

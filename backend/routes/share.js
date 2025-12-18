@@ -3,6 +3,7 @@ const router = express.Router();
 const shareController = require('../controllers/shareController');
 const { authMiddleware, optionalAuthMiddleware } = require('../middlewares/authMiddleware');
 const { validate, publicShareSchema } = require('../middlewares/validation');
+const { validateObjectId } = require('../middlewares/security');
 
 // Créer un partage public (authentifié)
 router.post('/public', authMiddleware, validate(publicShareSchema), shareController.createPublicShare);
@@ -17,7 +18,7 @@ router.get('/:token', optionalAuthMiddleware, shareController.getPublicShare);
 router.get('/', authMiddleware, shareController.listShares);
 
 // Désactiver un partage (authentifié)
-router.delete('/:id', authMiddleware, shareController.deactivateShare);
+router.delete('/:id', authMiddleware, validateObjectId, shareController.deactivateShare);
 
 module.exports = router;
 

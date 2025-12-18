@@ -3,12 +3,14 @@ const router = express.Router();
 const foldersController = require('../controllers/foldersController');
 const { authMiddleware, optionalAuthMiddleware } = require('../middlewares/authMiddleware');
 const { validate, createFolderSchema, renameSchema } = require('../middlewares/validation');
+const { validateObjectId } = require('../middlewares/security');
 
 // Télécharger un dossier (peut être public avec token de partage - DOIT être avant authMiddleware)
 router.get('/:id/download', optionalAuthMiddleware, foldersController.downloadFolder);
 
 // Routes protégées (toutes les autres routes nécessitent une authentification)
 router.use(authMiddleware);
+router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
 
 // Créer un dossier
 router.post('/', validate(createFolderSchema), foldersController.createFolder);
