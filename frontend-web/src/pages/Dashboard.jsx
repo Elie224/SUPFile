@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,14 +61,52 @@ export default function Dashboard() {
       maxWidth: '1200px',
       margin: '0 auto'
     }}>
-      <h1 style={{ 
-        fontSize: '28px', 
-        fontWeight: '600', 
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
         marginBottom: '24px',
-        color: '#333'
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        {t('dashboard')}
-      </h1>
+        <h1 style={{ 
+          fontSize: '28px', 
+          fontWeight: '600', 
+          margin: 0,
+          color: '#333'
+        }}>
+          {t('dashboard')}
+        </h1>
+        <button
+          onClick={() => navigate('/files')}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '600',
+            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#1976D2';
+            e.target.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = '#2196F3';
+            e.target.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.3)';
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>📁</span>
+          {t('myFiles')}
+        </button>
+      </div>
       
       {stats && (
         <>
@@ -248,14 +288,43 @@ export default function Dashboard() {
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
           }}>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              marginBottom: '16px',
-              color: '#333'
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '16px'
             }}>
-              {t('recentFiles')}
-            </h2>
+              <h2 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                margin: 0,
+                color: '#333'
+              }}>
+                {t('recentFiles')}
+              </h2>
+              <button
+                onClick={() => navigate('/files')}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f5f5f5',
+                  color: '#2196F3',
+                  border: '1px solid #2196F3',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e3f2fd';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#f5f5f5';
+                }}
+              >
+                {t('viewAll')} →
+              </button>
+            </div>
             {stats.recent_files && stats.recent_files.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {stats.recent_files.map((file, index) => (

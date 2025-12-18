@@ -369,7 +369,7 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        {/* Navigation Links - ALIGNÉS À GAUCHE */}
+          {/* Navigation Links - ALIGNÉS À GAUCHE */}
         <div style={{ padding: '8px 0' }}>
           {navLinks.map((link) => (
             <Link
@@ -390,7 +390,8 @@ export default function Layout({ children }) {
                 borderLeft: location.pathname === link.path ? '4px solid #2196F3' : '4px solid transparent',
                 fontSize: '16px',
                 width: '100%',
-                textAlign: 'left'
+                textAlign: 'left',
+                cursor: 'pointer'
               }}
               onTouchStart={(e) => {
                 if (location.pathname !== link.path) {
