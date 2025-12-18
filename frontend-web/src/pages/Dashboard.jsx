@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuthStore } from '../services/authStore';
 import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -7,13 +7,10 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { t, language } = useLanguage(); // Inclure language pour forcer le re-render
+  const { t, language } = useLanguage();
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  const loadDashboard = async () => {
+  // Memoization de la fonction de chargement
+  const loadDashboard = useCallback(async () => {
     try {
       const response = await dashboardService.getStats();
       setStats(response.data.data);
@@ -22,15 +19,25 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const formatBytes = (bytes) => {
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  // Memoization de formatBytes
+  const formatBytes = useCallback((bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
+  }, []);
+
+  // Memoization des fichiers récents
+  const recentFiles = useMemo(() => {
+    return stats?.recent_files || [];
+  }, [stats?.recent_files]);
 
   if (loading) {
     return (

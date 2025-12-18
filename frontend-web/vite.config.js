@@ -9,5 +9,28 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    // Optimisations de build
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Supprimer console.log en production
+        drop_debugger: true,
+      },
+    },
+    // Code splitting automatique
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          auth: ['./src/services/authStore'],
+        },
+      },
+    },
+    // Augmenter la limite de taille pour les warnings
+    chunkSizeWarningLimit: 1000,
+  },
+  // Optimisations de développement
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 });

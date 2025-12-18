@@ -1,23 +1,38 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './services/authStore';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import OAuthCallback from './pages/OAuthCallback';
-import OAuthProxy from './pages/OAuthProxy';
-import Dashboard from './pages/Dashboard';
-import Files from './pages/Files';
-import Settings from './pages/Settings';
-import Preview from './pages/Preview';
-import Share from './pages/Share';
-import Search from './pages/Search';
-import Trash from './pages/Trash';
-import Admin from './pages/Admin';
+import ErrorBoundary from './components/ErrorBoundary';
 import './styles.css';
+
+// Lazy loading des pages pour améliorer les performances
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
+const OAuthProxy = lazy(() => import('./pages/OAuthProxy'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Files = lazy(() => import('./pages/Files'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Preview = lazy(() => import('./pages/Preview'));
+const Share = lazy(() => import('./pages/Share'));
+const Search = lazy(() => import('./pages/Search'));
+const Trash = lazy(() => import('./pages/Trash'));
+const Admin = lazy(() => import('./pages/Admin'));
+
+// Composant de chargement
+const LoadingFallback = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '200px',
+  }}>
+    <div style={{ fontSize: '16px', color: '#666' }}>Chargement...</div>
+  </div>
+);
 
 function App() {
   const { user, accessToken, initialize } = useAuthStore();
@@ -39,14 +54,16 @@ function App() {
   }, [user]);
 
   return (
-    <LanguageProvider>
-      <BrowserRouter
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
-        <Routes>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
@@ -125,9 +142,11 @@ function App() {
           }
         />
         <Route path="/" element={<Navigate to={user && accessToken ? '/dashboard' : '/login'} replace />} />
-        </Routes>
-      </BrowserRouter>
-    </LanguageProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }
 
