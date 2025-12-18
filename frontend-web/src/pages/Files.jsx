@@ -30,6 +30,7 @@ export default function Files() {
   const [availableFolders, setAvailableFolders] = useState([]);
   const [selectedDestinationFolder, setSelectedDestinationFolder] = useState(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [error, setError] = useState(null);
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -38,8 +39,10 @@ export default function Files() {
       // Charger les informations du dossier
       folderService.get(folderId).then(response => {
         setCurrentFolder(response.data.data);
+        setError(null);
       }).catch(err => {
         console.error('Failed to load folder:', err);
+        setError('Impossible de charger le dossier: ' + (err.response?.data?.error?.message || err.message || 'Erreur inconnue'));
       });
     }
   }, [searchParams]);
@@ -51,12 +54,34 @@ export default function Files() {
   const loadFiles = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fileService.list(currentFolder?.id || null);
       setItems(response.data.data.items || []);
     } catch (err) {
       console.error('Failed to load files:', err);
-      // Afficher un message d'erreur à l'utilisateur
-      alert(t('loadError') || 'Erreur lors du chargement des fichiers: ' + (err.response?.data?.error?.message || err.message));
+      const errorMessage = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
+      const statusCode = err.response?.status;
+      
+      let userMessage = t('loadError') || 'Erreur lors du chargement des fichiers';
+      
+      if (statusCode === 401) {
+        userMessage = 'Votre session a expiré. Veuillez vous reconnecter.';
+        // Rediriger vers login après 2 secondes
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else if (statusCode === 403) {
+        userMessage = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
+      } else if (statusCode === 404) {
+        userMessage = 'Dossier non trouvé.';
+      } else if (!err.response) {
+        userMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+      } else {
+        userMessage += ': ' + errorMessage;
+      }
+      
+      setError(userMessage);
+      setItems([]); // Vider la liste en cas d'erreur
     } finally {
       setLoading(false);
     }
