@@ -16,13 +16,12 @@ mongoose.set('strictQuery', false);
 // Le buffering est géré automatiquement par Mongoose
 
 const options = {
-  serverSelectionTimeoutMS: 30000, // 30 secondes
-  socketTimeoutMS: 45000, // 45 secondes
+  serverSelectionTimeoutMS: 30000, // 30 secondes (timeout pour la sélection de serveur)
+  socketTimeoutMS: 45000, // 45 secondes (timeout pour les opérations socket)
   connectTimeoutMS: 30000, // Timeout de connexion initiale
   maxPoolSize: 50, // Augmenté pour meilleure scalabilité
   minPoolSize: 5, // Pool minimum pour performances
   maxIdleTimeMS: 30000, // Fermer les connexions inactives après 30s
-  serverSelectionRetryMS: 5000, // Réessayer la sélection de serveur
   heartbeatFrequencyMS: 10000, // Vérifier la santé toutes les 10s
 };
 
