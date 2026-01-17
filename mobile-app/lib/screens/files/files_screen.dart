@@ -935,6 +935,7 @@ class _FilesScreenState extends State<FilesScreen> {
     );
   }
 
+  /// Sélectionne et upload un ou plusieurs fichiers avec indicateur de progression
   Future<void> _pickAndUploadFile(BuildContext context) async {
     try {
       final filesProvider = Provider.of<FilesProvider>(context, listen: false);
@@ -946,24 +947,87 @@ class _FilesScreenState extends State<FilesScreen> {
       );
 
       if (result != null && result.files.isNotEmpty) {
-        // Afficher un dialogue de progression
+        final totalFiles = result.files.length;
+        int currentFileIndex = 0;
+        int successCount = 0;
+        int failCount = 0;
+        String? currentFileName;
+        double currentProgress = 0.0;
+
+        // Créer un dialogue de progression avec StatefulBuilder
+        BuildContext? dialogContext;
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
+          builder: (ctx) {
+            dialogContext = ctx;
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                return AlertDialog(
+                  title: const Text('Upload en cours'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (currentFileName != null) ...[
+                        Text(
+                          'Fichier: $currentFileName',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Text(
+                        '${currentFileIndex + 1} / $totalFiles fichier(s)',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: currentFileIndex < totalFiles
+                            ? (currentFileIndex + currentProgress) / totalFiles
+                            : 1.0,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          currentFileIndex < totalFiles
+                              ? AppConstants.supinfoPurple
+                              : Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${((currentFileIndex + currentProgress) / totalFiles * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         );
 
-        int successCount = 0;
-        int failCount = 0;
+        // Uploader chaque fichier avec progression
+        for (var pickedFile in result.files) {
+          if (pickedFile.path != null && context.mounted) {
+            final filePath = File(pickedFile.path!);
+            currentFileName = pickedFile.name;
+            currentProgress = 0.0;
 
-        for (var file in result.files) {
-          if (file.path != null) {
-            final filePath = File(file.path!);
             final success = await filesProvider.uploadFile(
               filePath.path,
               folderId: widget.folderId,
               onProgress: (sent, total) {
-                // TODO: Afficher la progression pour chaque fichier
+                if (context.mounted && dialogContext != null) {
+                  // La progression est suivie mais le dialogue se mettra à jour après chaque fichier
+                  currentProgress = total > 0 ? sent / total : 0.0;
+                }
               },
             );
             
@@ -973,6 +1037,9 @@ class _FilesScreenState extends State<FilesScreen> {
               failCount++;
             }
           }
+          
+          currentFileIndex++;
+          currentProgress = 1.0; // Fichier terminé
         }
 
         if (context.mounted) {
@@ -984,16 +1051,21 @@ class _FilesScreenState extends State<FilesScreen> {
                 '$successCount fichier(s) uploadé(s)${failCount > 0 ? ', $failCount échec(s)' : ''}',
               ),
               backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
+              duration: const Duration(seconds: 3),
             ),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
+        // Fermer le dialogue s'il est encore ouvert
+        Navigator.pop(context);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de l\'upload: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
