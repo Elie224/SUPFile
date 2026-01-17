@@ -108,3 +108,4 @@ Le pourcentage de stockage est maintenant **100% dynamique** et se met à jour a
 
 Le pourcentage de stockage fonctionne maintenant correctement et se met à jour en temps réel ! 🎉
 
+

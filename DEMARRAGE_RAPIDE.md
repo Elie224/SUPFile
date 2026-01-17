@@ -116,3 +116,4 @@ Une fois le backend démarré avec succès :
 
 **Note :** Le script `start-backend.ps1` configure automatiquement tout ce qui est nécessaire pour un environnement de développement optimal.
 
+

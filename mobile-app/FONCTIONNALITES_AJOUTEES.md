@@ -128,3 +128,4 @@ Pour utiliser Google Sign-In natif, configurez votre projet dans Google Cloud Co
 
 Toutes les fonctionnalités manquantes identifiées ont été implémentées avec succès. L'application mobile est maintenant complète et conforme à toutes les exigences du cahier des charges.
 
+

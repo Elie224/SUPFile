@@ -7,13 +7,22 @@ const mongoose = require('mongoose');
 const config = require('../config');
 const db = require('../models/db');
 
+// Charger le schéma User avant de l'utiliser
+require('../models/userModel');
+
 async function setAdmin() {
   try {
     // Attendre la connexion MongoDB
     await db.connectionPromise;
     console.log('✅ Connexion MongoDB établie');
 
-    const User = mongoose.models.User || mongoose.model('User');
+    // Le modèle User est maintenant chargé via require('../models/userModel')
+    const User = mongoose.models.User;
+    
+    if (!User) {
+      throw new Error('Le modèle User n\'a pas été trouvé. Vérifiez que le schéma est correctement chargé.');
+    }
+
     const adminEmail = '<SUPER_ADMIN_EMAIL>';
 
     // Trouver l'utilisateur
@@ -25,6 +34,12 @@ async function setAdmin() {
       process.exit(1);
     }
 
+    // Vérifier si déjà admin
+    if (user.is_admin) {
+      console.log(`ℹ️  ${adminEmail} est déjà administrateur`);
+      process.exit(0);
+    }
+
     // Définir comme admin
     user.is_admin = true;
     await user.save();
@@ -33,9 +48,11 @@ async function setAdmin() {
     process.exit(0);
   } catch (error) {
     console.error('❌ Erreur:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
 
 setAdmin();
+
 

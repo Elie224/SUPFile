@@ -22,4 +22,19 @@ services:
         value: ./uploads
       - key: MAX_FILE_SIZE
         value: "32212254720"  # 30 GB
+      - key: GOOGLE_CLIENT_ID
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: GOOGLE_REDIRECT_URI
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: GITHUB_CLIENT_ID
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: GITHUB_CLIENT_SECRET
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: GITHUB_REDIRECT_URI
+        sync: false  # À configurer manuellement dans le dashboard Render (voir CONFIGURATION_OAUTH_RENDER.md)
+      - key: FRONTEND_URL
+        sync: false  # À configurer avec l'URL du frontend après déploiement
+
 

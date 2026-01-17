@@ -106,3 +106,4 @@ GOOGLE_REDIRECT_URI = https://supfile-1.onrender.com/api/auth/google/callback
 - ⚠️ Pas de slash final dans les URIs de callback
 - ⚠️ Les URLs doivent être identiques dans Google Cloud Console et Render
 
+

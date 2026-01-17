@@ -50,3 +50,4 @@ Si ça ne fonctionne pas sur mobile, vérifiez :
 2. Que CORS est configuré dans le backend avec l'URL exacte du frontend
 3. Ouvrez la console du navigateur mobile pour voir les erreurs
 
+

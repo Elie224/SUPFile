@@ -69,3 +69,4 @@ Toutes les routes admin nécessitent :
 - Les utilisateurs ne peuvent pas supprimer leur propre compte
 - Toutes les routes sont protégées par authentification JWT
 
+

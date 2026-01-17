@@ -108,3 +108,4 @@ Assurez-vous simplement que :
 2. Cette URL est définie dans la variable `GOOGLE_REDIRECT_URI` dans Render (ou laissez-la vide pour utiliser la valeur par défaut)
 3. Les variables `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` sont définies dans Render
 
+

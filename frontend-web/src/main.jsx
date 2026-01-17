@@ -6,6 +6,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 
 // Lazy loading des pages pour améliorer les performances
