@@ -11,7 +11,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const { t, language } = useLanguage();
 
-  // Memoization de la fonction de chargement
   const loadDashboard = useCallback(async () => {
     try {
       const response = await dashboardService.getStats();
@@ -27,7 +26,6 @@ export default function Dashboard() {
     loadDashboard();
   }, [loadDashboard]);
 
-  // Memoization de formatBytes
   const formatBytes = useCallback((bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -36,387 +34,229 @@ export default function Dashboard() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }, []);
 
-  // Memoization des fichiers récents
   const recentFiles = useMemo(() => {
     return stats?.recent_files || [];
   }, [stats?.recent_files]);
 
   if (loading) {
     return (
-      <div style={{ 
-        padding: '24px 16px', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '200px'
-      }}>
-        <div style={{ fontSize: '16px', color: '#666' }}>{t('loading')}</div>
+      <div className="container-fluid p-4">
+        <div className="text-center p-5">
+          <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">{t('loading')}</span>
+          </div>
+          <p className="text-muted">{t('loading')}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ 
-      padding: '16px',
-      maxWidth: '1200px',
-      margin: '0 auto'
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <h1 style={{ 
-          fontSize: '28px', 
-          fontWeight: '600', 
-          margin: 0,
-          color: '#333'
-        }}>
-          {t('dashboard')}
+    <div className="container-fluid p-3 p-md-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* En-tête */}
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h1 className="h2 mb-0 d-flex align-items-center gap-2">
+          <i className="bi bi-speedometer2 text-primary"></i>
+          {t('dashboard') || 'Tableau de bord'}
         </h1>
         <button
+          className="btn btn-primary d-flex align-items-center gap-2"
           onClick={() => navigate('/files')}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '600',
-            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#1976D2';
-            e.target.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#2196F3';
-            e.target.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.3)';
-          }}
+          style={{ minHeight: '44px' }}
         >
-          <span style={{ fontSize: '20px' }}>📁</span>
-          {t('myFiles')}
+          <i className="bi bi-folder-fill"></i>
+          {t('myFiles') || 'Mes fichiers'}
         </button>
       </div>
       
       {stats && (
-        <>
-          {/* Quota */}
-          <div style={{ 
-            marginBottom: '20px', 
-            padding: '20px', 
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-          }}>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              marginBottom: '16px',
-              color: '#333'
-            }}>
-              {t('storageSpace')}
-            </h2>
-            <div style={{ marginTop: '12px' }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                marginBottom: '12px',
-                flexWrap: 'wrap',
-                gap: '8px'
-              }}>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  <strong style={{ color: '#333' }}>{t('used')}:</strong> {formatBytes(stats.quota.used)}
-                </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  <strong style={{ color: '#333' }}>{t('available')}:</strong> {formatBytes(stats.quota.available)}
-                </div>
-              </div>
-              <div style={{ 
-                width: '100%', 
-                height: '28px', 
-                backgroundColor: '#f5f5f5', 
-                borderRadius: '14px', 
-                overflow: 'hidden',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
-                position: 'relative'
-              }}>
-                {(() => {
-                  const percentageRaw = stats.quota.percentageRaw || stats.quota.percentage || 0;
-                  // Pour les très petits pourcentages, utiliser une largeur minimale visible
-                  // Calculer la largeur en pourcentage avec un minimum de 0.1% pour la visibilité
-                  const barWidth = stats.quota.used > 0 
-                    ? Math.max(percentageRaw, 0.1)
-                    : 0;
-                  const barColor = percentageRaw > 80 ? '#f44336' : percentageRaw > 75 ? '#ff9800' : '#4caf50';
-                  
-                  return (
-                    <div
-                      style={{
-                        width: `${barWidth}%`,
-                        height: '100%',
-                        backgroundColor: barColor,
-                        transition: 'width 0.5s ease',
-                        borderRadius: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        paddingRight: '8px',
-                        minWidth: stats.quota.used > 0 ? '3px' : '0'
-                      }}
-                    >
-                      {percentageRaw > 5 && (
-                        <span style={{ 
-                          fontSize: '11px', 
-                          fontWeight: '600', 
-                          color: 'white',
-                          textShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                        }}>
-                          {stats.quota.percentage < 1 
-                            ? stats.quota.percentage.toFixed(2) 
-                            : stats.quota.percentage}%
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div style={{ 
-                marginTop: '8px', 
-                fontSize: '13px', 
-                color: '#666',
-                textAlign: 'center'
-              }}>
-                {stats.quota.percentage < 1 
-                  ? stats.quota.percentage.toFixed(2) 
-                  : stats.quota.percentage}% {t('usedOf')} {formatBytes(stats.quota.limit)}
+        <div className="row g-4">
+          {/* Statistiques générales - En haut */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="card shadow-md h-100 fade-in">
+              <div className="card-body text-center">
+                <i className="bi bi-file-earmark text-primary" style={{ fontSize: '32px' }}></i>
+                <h3 className="h4 mt-3 mb-1 text-primary">{stats.total_files}</h3>
+                <p className="text-muted small mb-0">{t('totalFiles') || 'Total fichiers'}</p>
               </div>
             </div>
           </div>
 
-          {/* Répartition avec graphique */}
-          <div style={{ 
-            marginBottom: '20px', 
-            padding: '20px', 
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-          }}>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              marginBottom: '20px',
-              color: '#333'
-            }}>
-              {t('breakdownByType')}
-            </h2>
-            <div style={{ marginTop: '16px' }}>
-              {/* Graphique en barres horizontales */}
-              {[
-                { key: 'images', label: t('images'), color: '#4CAF50', value: stats.breakdown.images },
-                { key: 'videos', label: t('videos'), color: '#2196F3', value: stats.breakdown.videos },
-                { key: 'documents', label: t('documents'), color: '#FF9800', value: stats.breakdown.documents },
-                { key: 'audio', label: t('audio'), color: '#9C27B0', value: stats.breakdown.audio },
-                { key: 'other', label: t('others'), color: '#607D8B', value: stats.breakdown.other }
-              ].map((item) => {
-                const percentage = stats.breakdown.total > 0 ? (item.value / stats.breakdown.total * 100) : 0;
-                return (
-                  <div key={item.key} style={{ marginBottom: '16px' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '8px'
-                    }}>
-                      <span style={{ 
-                        fontSize: '14px', 
-                        fontWeight: '500',
-                        color: '#333',
-                        minWidth: '80px'
-                      }}>
-                        {item.label}
-                      </span>
-                      <span style={{ 
-                        fontSize: '13px', 
-                        color: '#666',
-                        fontWeight: '500'
-                      }}>
-                        {formatBytes(item.value)}
-                      </span>
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="card shadow-md h-100 fade-in">
+              <div className="card-body text-center">
+                <i className="bi bi-folder text-success" style={{ fontSize: '32px' }}></i>
+                <h3 className="h4 mt-3 mb-1 text-success">{stats.total_folders}</h3>
+                <p className="text-muted small mb-0">{t('totalFolders') || 'Total dossiers'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="card shadow-md h-100 fade-in">
+              <div className="card-body text-center">
+                <i className="bi bi-hdd-stack text-info" style={{ fontSize: '32px' }}></i>
+                <h3 className="h4 mt-3 mb-1 text-info">{formatBytes(stats.quota.used)}</h3>
+                <p className="text-muted small mb-0">{t('used') || 'Utilisé'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="card shadow-md h-100 fade-in">
+              <div className="card-body text-center">
+                <i className="bi bi-hdd text-warning" style={{ fontSize: '32px' }}></i>
+                <h3 className="h4 mt-3 mb-1 text-warning">{formatBytes(stats.quota.available)}</h3>
+                <p className="text-muted small mb-0">{t('available') || 'Disponible'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quota - Carte principale */}
+          <div className="col-12">
+            <div className="card shadow-md mb-4 fade-in">
+              <div className="card-header bg-light">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <i className="bi bi-hdd-stack text-primary"></i>
+                  {t('storageSpace') || 'Espace de stockage'}
+                </h5>
+              </div>
+              <div className="card-body">
+                <div className="d-flex justify-content-between mb-3 flex-wrap gap-2">
+                  <span className="text-muted">
+                    <strong>{t('used')}:</strong> {formatBytes(stats.quota.used)}
+                  </span>
+                  <span className="text-muted">
+                    <strong>{t('available')}:</strong> {formatBytes(stats.quota.available)}
+                  </span>
+                </div>
+                {(() => {
+                  const percentageRaw = stats.quota.percentageRaw || stats.quota.percentage || 0;
+                  const barWidth = stats.quota.used > 0 ? Math.max(percentageRaw, 0.1) : 0;
+                  const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
+                  
+                  return (
+                    <div className="progress" style={{ height: '28px' }}>
+                      <div 
+                        className={`progress-bar bg-${barColor}`}
+                        role="progressbar" 
+                        style={{ width: `${barWidth}%` }}
+                      >
+                        {percentageRaw > 5 && (
+                          <span className="small fw-bold">
+                            {stats.quota.percentage < 1 
+                              ? stats.quota.percentage.toFixed(2) 
+                              : Math.round(stats.quota.percentage)}%
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ 
-                      width: '100%', 
-                      height: '24px', 
-                      backgroundColor: '#f5f5f5', 
-                      borderRadius: '12px', 
-                      position: 'relative', 
-                      overflow: 'hidden',
-                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
-                    }}>
-                      <div style={{
-                        width: `${percentage}%`,
-                        height: '100%',
-                        backgroundColor: item.color,
-                        transition: 'width 0.5s ease',
-                        borderRadius: '12px',
-                        minWidth: percentage > 0 ? '4px' : '0'
-                      }}></div>
+                  );
+                })()}
+                <small className="text-muted d-block text-center mt-2">
+                  {stats.quota.percentage < 1 
+                    ? stats.quota.percentage.toFixed(2) 
+                    : Math.round(stats.quota.percentage)}% {t('usedOf')} {formatBytes(stats.quota.limit)}
+                </small>
+              </div>
+            </div>
+          </div>
+
+          {/* Répartition par type */}
+          <div className="col-12 col-lg-6">
+            <div className="card shadow-md mb-4 fade-in">
+              <div className="card-header bg-light">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <i className="bi bi-pie-chart text-primary"></i>
+                  {t('breakdownByType') || 'Répartition par type'}
+                </h5>
+              </div>
+              <div className="card-body">
+                {[
+                  { key: 'images', label: t('images'), color: '#4CAF50', icon: 'bi-image', value: stats.breakdown.images },
+                  { key: 'videos', label: t('videos'), color: '#2196F3', icon: 'bi-camera-video', value: stats.breakdown.videos },
+                  { key: 'documents', label: t('documents'), color: '#FF9800', icon: 'bi-file-earmark-pdf', value: stats.breakdown.documents },
+                  { key: 'audio', label: t('audio'), color: '#9C27B0', icon: 'bi-music-note-beamed', value: stats.breakdown.audio },
+                  { key: 'other', label: t('others'), color: '#607D8B', icon: 'bi-file-earmark', value: stats.breakdown.other }
+                ].map((item) => {
+                  const percentage = stats.breakdown.total > 0 ? (item.value / stats.breakdown.total * 100) : 0;
+                  return (
+                    <div key={item.key} className="mb-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="small fw-medium d-flex align-items-center gap-2">
+                          <i className={`bi ${item.icon}`} style={{ color: item.color }}></i>
+                          {item.label}
+                        </span>
+                        <span className="small text-muted fw-semibold">
+                          {formatBytes(item.value)}
+                        </span>
+                      </div>
+                      <div className="progress" style={{ height: '24px' }}>
+                        <div 
+                          className="progress-bar"
+                          role="progressbar" 
+                          style={{ width: `${percentage}%`, backgroundColor: item.color }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Fichiers récents */}
-          <div style={{ 
-            marginBottom: '20px', 
-            padding: '20px', 
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '16px',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <h2 style={{ 
-                fontSize: '18px', 
-                fontWeight: '600', 
-                margin: 0,
-                color: '#333'
-              }}>
-                {t('recentFiles')}
-              </h2>
-              <button
-                onClick={() => navigate('/files')}
-                style={{
-                  padding: '14px 28px',
-                  backgroundColor: '#1976D2',
-                  color: '#FFFFFF',
-                  border: '2px solid #1976D2',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  whiteSpace: 'nowrap',
-                  minWidth: '140px',
-                  justifyContent: 'center',
-                  textTransform: 'none',
-                  letterSpacing: '0.3px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1565C0';
-                  e.currentTarget.style.borderColor = '#1565C0';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(25, 118, 210, 0.6)';
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1976D2';
-                  e.currentTarget.style.borderColor = '#1976D2';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(25, 118, 210, 0.5)';
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                }}
-              >
-                <span style={{ fontWeight: '700', fontSize: '16px' }}>{t('viewAll')}</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>→</span>
-              </button>
-            </div>
-            {stats.recent_files && stats.recent_files.length > 0 ? (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {stats.recent_files.map((file, index) => (
-                  <li 
-                    key={file.id} 
-                    style={{ 
-                      padding: '12px 0', 
-                      borderBottom: index < stats.recent_files.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      fontSize: '14px',
-                      color: '#333'
-                    }}
-                  >
-                    <div style={{ fontWeight: '500', marginBottom: '4px' }}>{file.name}</div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
-                      {formatBytes(file.size)} • {new Date(file.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p style={{ color: '#999', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
-                {t('noRecentFiles')}
-              </p>
-            )}
-          </div>
-
-          {/* Statistiques générales */}
-          <div style={{ 
-            padding: '20px', 
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-          }}>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              marginBottom: '16px',
-              color: '#333'
-            }}>
-              {t('statistics')}
-            </h2>
-            <div style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-              gap: '16px'
-            }}>
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '24px', fontWeight: '600', color: '#2196F3', marginBottom: '4px' }}>
-                  {stats.total_files}
-                </div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{t('totalFiles')}</div>
+          <div className="col-12 col-lg-6">
+            <div className="card shadow-md mb-4 fade-in">
+              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 className="mb-0 d-flex align-items-center gap-2">
+                  <i className="bi bi-clock-history text-primary"></i>
+                  {t('recentFiles') || 'Fichiers récents'}
+                </h5>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => navigate('/files')}
+                >
+                  <i className="bi bi-arrow-right me-1"></i>
+                  {t('viewAll') || 'Voir tout'}
+                </button>
               </div>
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '24px', fontWeight: '600', color: '#4CAF50', marginBottom: '4px' }}>
-                  {stats.total_folders}
-                </div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{t('totalFolders')}</div>
+              <div className="card-body">
+                {recentFiles.length > 0 ? (
+                  <ul className="list-unstyled mb-0">
+                    {recentFiles.map((file, index) => (
+                      <li 
+                        key={file.id}
+                        className="py-2 border-bottom"
+                        style={{ borderColor: index < recentFiles.length - 1 ? '#f0f0f0' : 'transparent' }}
+                      >
+                        <div 
+                          className="d-flex align-items-center gap-2 cursor-pointer"
+                          onClick={() => navigate(`/preview/${file.id}`)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <i className="bi bi-file-earmark text-primary"></i>
+                          <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                            <div className="fw-medium text-truncate">{file.name}</div>
+                            <small className="text-muted">
+                              {formatBytes(file.size)} • {new Date(file.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}
+                            </small>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-center py-4">
+                    <i className="bi bi-inbox text-muted" style={{ fontSize: '48px' }}></i>
+                    <p className="text-muted mt-3 mb-0">{t('noRecentFiles') || 'Aucun fichier récent'}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
-

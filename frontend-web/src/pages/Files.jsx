@@ -491,7 +491,10 @@ export default function Files() {
               fontSize: '28px',
               fontWeight: '700',
               color: '#333'
-            }}>📁 {t('myFiles')}</h1>
+            }}>
+              <i className="bi bi-folder-fill me-2"></i>
+              {t('myFiles')}
+            </h1>
             {breadcrumbs.length > 0 && (
               <div style={{ 
                 display: 'flex', 
@@ -576,7 +579,8 @@ export default function Files() {
                 e.target.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
               }}
             >
-              📤 {t('upload')}
+              <i className="bi bi-upload me-2"></i>
+              {t('upload')}
             </label>
             <button
               onClick={() => setShowNewFolder(!showNewFolder)}
@@ -601,7 +605,8 @@ export default function Files() {
                 e.target.style.boxShadow = '0 2px 4px rgba(76, 175, 80, 0.3)';
               }}
             >
-              📁 {t('newFolder')}
+              <i className="bi bi-folder-plus me-2"></i>
+              {t('newFolder')}
             </button>
           </div>
         </div>
@@ -1003,7 +1008,8 @@ export default function Files() {
                           onMouseEnter={(e) => e.target.style.color = '#1976D2'}
                           onMouseLeave={(e) => e.target.style.color = '#2196F3'}
                         >
-                          <span style={{ fontSize: '20px' }}>📁</span> {item.name}
+                          <i className="bi bi-folder-fill text-warning me-2" style={{ fontSize: '20px' }}></i>
+                          {item.name}
                         </span>
                       ) : (
                         <span
@@ -1020,7 +1026,8 @@ export default function Files() {
                           onMouseEnter={(e) => e.target.style.color = '#2196F3'}
                           onMouseLeave={(e) => e.target.style.color = '#333'}
                         >
-                          <span style={{ fontSize: '18px' }}>📄</span> {item.name}
+                          <i className="bi bi-file-earmark text-primary me-2" style={{ fontSize: '18px' }}></i>
+                          {item.name}
                         </span>
                       )}
                     </td>
@@ -1068,22 +1075,17 @@ export default function Files() {
                                 alert(err.message || t('downloadError'));
                               }
                             }}
+                            className="btn btn-outline-primary btn-sm"
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#2196F3',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 4,
-                              cursor: 'pointer',
                               fontSize: '0.9em',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                             title={t('download')}
                           >
-                            ⬇️ {t('download')}
+                            <i className="bi bi-download me-1"></i>
+                            {t('download')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1092,22 +1094,17 @@ export default function Files() {
                               setShowShareModal({ id: itemId, name: item.name, type: 'file' });
                               setShareLink('');
                             }}
+                            className="btn btn-primary btn-sm"
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#4CAF50',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 4,
-                              cursor: 'pointer',
                               fontSize: '0.9em',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                             title={t('share')}
                           >
-                            🔗 {t('share')}
+                            <i className="bi bi-share me-1"></i>
+                            {t('share')}
                           </button>
                         </>
                       )}
@@ -1166,7 +1163,8 @@ export default function Files() {
                             }}
                             title={t('downloadZip')}
                           >
-                            ⬇️ {t('downloadZip')}
+                            <i className="bi bi-download me-1"></i>
+                            {t('downloadZip')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1175,22 +1173,17 @@ export default function Files() {
                               setShowShareModal({ id: itemId, name: item.name, type: 'folder' });
                               setShareLink('');
                             }}
+                            className="btn btn-primary btn-sm"
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#4CAF50',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 4,
-                              cursor: 'pointer',
                               fontSize: '0.9em',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                             title={t('share')}
                           >
-                            🔗 {t('share')}
+                            <i className="bi bi-share me-1"></i>
+                            {t('share')}
                           </button>
                         </>
                       )}
@@ -1201,22 +1194,17 @@ export default function Files() {
                           setEditingItem({ ...item, type: itemType, id: itemId });
                           setEditName(item.name);
                         }}
+                        className="btn btn-outline-secondary btn-sm"
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#FF9800',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
                           fontSize: '0.9em',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
+                          display: 'inline-flex',
+                          alignItems: 'center'
                         }}
                         title={t('rename')}
                       >
-                        ✏️ {t('rename')}
+                        <i className="bi bi-pencil me-1"></i>
+                        {t('rename')}
                       </button>
                       <button
                         onClick={(e) => {
@@ -1224,22 +1212,17 @@ export default function Files() {
                           e.stopPropagation();
                           openMoveModal({ ...item, type: itemType, id: itemId });
                         }}
+                        className="btn btn-outline-secondary btn-sm"
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#9C27B0',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
                           fontSize: '0.9em',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
+                          display: 'inline-flex',
+                          alignItems: 'center'
                         }}
                         title={t('move')}
                       >
-                        📦 {t('move')}
+                        <i className="bi bi-arrow-left-right me-1"></i>
+                        {t('move')}
                       </button>
                       <button
                         onClick={(e) => {
@@ -1247,22 +1230,17 @@ export default function Files() {
                           e.stopPropagation();
                           deleteItem({ ...item, type: itemType, id: itemId });
                         }}
+                        className="btn btn-outline-danger btn-sm"
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#f44336',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
                           fontSize: '0.9em',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4
+                          display: 'inline-flex',
+                          alignItems: 'center'
                         }}
                         title={t('delete')}
                       >
-                        🗑️ {t('delete')}
+                        <i className="bi bi-trash me-1"></i>
+                        {t('delete')}
                       </button>
                     </div>
                   </td>
@@ -1297,7 +1275,8 @@ export default function Files() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}>
             <h2 style={{ marginTop: 0, marginBottom: 16 }}>
-              📦 {t('move')} "{itemToMove.name}"
+              <i className="bi bi-arrow-left-right me-2"></i>
+              {t('move')} "{itemToMove.name}"
             </h2>
             
             {loadingFolders ? (
@@ -1421,7 +1400,8 @@ export default function Files() {
                   fontWeight: 'bold'
                 }}
               >
-                🗑️ {t('delete')}
+                <i className="bi bi-trash me-2"></i>
+                {t('delete')}
               </button>
             </div>
           </div>
