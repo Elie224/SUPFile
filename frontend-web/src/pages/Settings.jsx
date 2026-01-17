@@ -225,7 +225,10 @@ export default function Settings() {
 
       {/* Informations du compte */}
       <section style={{ marginBottom: 32, padding: 24, backgroundColor: '#f5f5f5', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>📊 {t('accountInfo')}</h2>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>
+          <i className="bi bi-graph-up me-2"></i>
+          {t('accountInfo')}
+        </h2>
         
         <div style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 20 }}>
           <div style={{ position: 'relative' }}>

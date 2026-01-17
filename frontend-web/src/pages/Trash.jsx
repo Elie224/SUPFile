@@ -3,10 +3,11 @@ import { fileService, folderService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Trash() {
-  const { t, language } = useLanguage(); // Inclure language pour forcer le re-render
+  const { t, language } = useLanguage();
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     loadTrash();
@@ -18,22 +19,19 @@ export default function Trash() {
       setFiles([]);
       setFolders([]);
       
-      // Charger les fichiers supprimés
       const filesResponse = await fileService.listTrash();
       if (filesResponse?.data?.data?.items) {
         setFiles(filesResponse.data.data.items);
       }
       
-      // Charger les dossiers supprimés
       const foldersResponse = await folderService.listTrash();
       if (foldersResponse?.data?.data?.items) {
         setFolders(foldersResponse.data.data.items);
       }
     } catch (err) {
       console.error('Failed to load trash:', err);
-      console.error('Error response:', err.response?.data);
       const errorMsg = err.response?.data?.error?.message || err.message || t('loadError');
-      alert(errorMsg);
+      setMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -43,10 +41,11 @@ export default function Trash() {
     try {
       await fileService.restore(fileId);
       loadTrash();
-      alert(t('file') + ' ' + t('restoreSuccess'));
+      setMessage({ type: 'success', text: t('restoreSuccess') || 'Fichier restauré avec succès' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Failed to restore file:', err);
-      alert(t('restoreError'));
+      setMessage({ type: 'error', text: t('restoreError') || 'Erreur lors de la restauration' });
     }
   };
 
@@ -54,10 +53,44 @@ export default function Trash() {
     try {
       await folderService.restore(folderId);
       loadTrash();
-      alert(t('folder') + ' ' + t('restoreSuccess'));
+      setMessage({ type: 'success', text: t('restoreSuccess') || 'Dossier restauré avec succès' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Failed to restore folder:', err);
-      alert(t('restoreError'));
+      setMessage({ type: 'error', text: t('restoreError') || 'Erreur lors de la restauration' });
+    }
+  };
+
+  const emptyTrash = async () => {
+    if (!confirm(t('confirmEmptyTrash') || 'Êtes-vous sûr de vouloir vider la corbeille ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      // Supprimer définitivement tous les fichiers
+      for (const file of files) {
+        try {
+          await fileService.delete(file.id);
+        } catch (err) {
+          console.error(`Failed to delete file ${file.id}:`, err);
+        }
+      }
+
+      // Supprimer définitivement tous les dossiers
+      for (const folder of folders) {
+        try {
+          await folderService.delete(folder.id);
+        } catch (err) {
+          console.error(`Failed to delete folder ${folder.id}:`, err);
+        }
+      }
+
+      loadTrash();
+      setMessage({ type: 'success', text: t('trashEmptied') || 'Corbeille vidée avec succès' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error('Failed to empty trash:', err);
+      setMessage({ type: 'error', text: t('emptyTrashError') || 'Erreur lors du vidage de la corbeille' });
     }
   };
 
@@ -72,11 +105,26 @@ export default function Trash() {
   const formatDate = (date) => {
     if (!date) return '-';
     const locale = language === 'en' ? 'en-US' : 'fr-FR';
-    return new Date(date).toLocaleString(locale);
+    return new Date(date).toLocaleString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
-    return <div style={{ padding: 24 }}>{t('loading')}</div>;
+    return (
+      <div className="container-fluid p-4">
+        <div className="text-center p-5">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">{t('loading')}</span>
+          </div>
+          <p className="text-muted">{t('loading')}</p>
+        </div>
+      </div>
+    );
   }
 
   const allItems = [
@@ -89,173 +137,132 @@ export default function Trash() {
   });
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ 
-        fontSize: '28px',
-        marginBottom: '24px',
-        fontWeight: '700',
-        color: '#333'
-      }}>🗑️ {t('trash')}</h1>
-      
+    <div className="container-fluid p-3 p-md-4" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      {/* En-tête */}
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h1 className="h2 mb-0 d-flex align-items-center gap-2">
+          <i className="bi bi-trash text-danger"></i>
+          {t('trash') || 'Corbeille'}
+        </h1>
+        {allItems.length > 0 && (
+          <button
+            className="btn btn-danger d-flex align-items-center gap-2"
+            onClick={emptyTrash}
+            style={{ minHeight: '44px' }}
+          >
+            <i className="bi bi-trash3"></i>
+            {t('emptyTrash') || 'Vider la corbeille'}
+          </button>
+        )}
+      </div>
+
+      {/* Messages */}
+      {message.text && (
+        <div className={`alert alert-${message.type === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2 mb-3`} role="alert">
+          <i className={`bi ${message.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}`}></i>
+          <span>{message.text}</span>
+        </div>
+      )}
+
       {allItems.length === 0 ? (
-        <div style={{ 
-          padding: '48px 24px', 
-          textAlign: 'center', 
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          border: '1px solid #e0e0e0'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
-          <p style={{ fontSize: '18px', color: '#666', margin: 0 }}>{t('trashEmpty')}</p>
+        <div className="card shadow-sm">
+          <div className="card-body text-center p-5">
+            <i className="bi bi-trash text-muted" style={{ fontSize: '64px' }}></i>
+            <h5 className="mt-3 mb-2 text-muted">{t('trashEmpty') || 'Corbeille vide'}</h5>
+            <p className="text-muted mb-0">
+              {t('trashEmptyDescription') || 'Les fichiers supprimés apparaîtront ici'}
+            </p>
+          </div>
         </div>
       ) : (
         <>
-          <div style={{ 
-            marginBottom: '20px',
-            padding: '16px 20px',
-            backgroundColor: '#fff3e0',
-            borderRadius: '8px',
-            border: '1px solid #ffcc80'
-          }}>
-            <p style={{ margin: 0, color: '#e65100', fontSize: '15px', fontWeight: '500' }}>
-              📊 {allItems.length} {allItems.length > 1 ? t('itemsInTrashPlural') : t('itemsInTrash')}
-            </p>
+          {/* Info nombre d'éléments */}
+          <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
+            <i className="bi bi-info-circle"></i>
+            <span>
+              <strong>{allItems.length}</strong> {allItems.length > 1 ? (t('itemsInTrashPlural') || 'éléments dans la corbeille') : (t('itemsInTrash') || 'élément dans la corbeille')}
+            </span>
           </div>
           
-          <div style={{ 
-            overflowX: 'auto', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0'
-          }}>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'separate',
-              borderSpacing: 0,
-              minWidth: '600px'
-            }}>
-              <thead>
-                <tr style={{ 
-                  backgroundColor: '#f8f9fa',
-                  borderBottom: '2px solid #e0e0e0'
-                }}>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('name')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('type')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('size')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('deletedOn')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allItems.map((item, index) => (
-                  <tr 
-                    key={item.id} 
-                    style={{ 
-                      borderBottom: index < allItems.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
-                      transition: 'background-color 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f0f7ff';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
-                    }}
-                  >
-                    <td style={{ padding: '16px', fontSize: '15px' }}>
-                      <span style={{ 
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <span style={{ fontSize: item.type === 'folder' ? '20px' : '18px' }}>
-                          {item.type === 'folder' ? '📁' : '📄'}
-                        </span>
-                        <span style={{ fontWeight: item.type === 'folder' ? '600' : '400', color: item.type === 'folder' ? '#2196F3' : '#333' }}>
-                          {item.name}
-                        </span>
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
-                      {item.type === 'folder' ? t('folder') : item.mime_type || t('file')}
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
-                      {item.type === 'file' ? formatBytes(item.size) : '-'}
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>
-                      {formatDate(item.deleted_at)}
-                    </td>
-                    <td style={{ padding: '16px' }}>
-                      <button
-                        onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#4CAF50',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          transition: 'background-color 0.2s',
-                          boxShadow: '0 2px 4px rgba(76, 175, 80, 0.3)'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
-                      >
-                        {t('restore')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Table des éléments */}
+          <div className="card shadow-md">
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-hover mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ padding: '16px' }}>
+                        <i className="bi bi-file-earmark me-2"></i>
+                        {t('name') || 'Nom'}
+                      </th>
+                      <th style={{ padding: '16px' }}>
+                        <i className="bi bi-tag me-2"></i>
+                        {t('type') || 'Type'}
+                      </th>
+                      <th style={{ padding: '16px' }}>
+                        <i className="bi bi-hdd me-2"></i>
+                        {t('size') || 'Taille'}
+                      </th>
+                      <th style={{ padding: '16px' }}>
+                        <i className="bi bi-calendar-x me-2"></i>
+                        {t('deletedOn') || 'Supprimé le'}
+                      </th>
+                      <th style={{ padding: '16px' }}>
+                        <i className="bi bi-gear me-2"></i>
+                        {t('actions') || 'Actions'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allItems.map((item, index) => (
+                      <tr key={item.id}>
+                        <td style={{ padding: '16px' }}>
+                          <div className="d-flex align-items-center gap-2">
+                            {item.type === 'folder' ? (
+                              <i className="bi bi-folder-fill text-warning" style={{ fontSize: '20px' }}></i>
+                            ) : (
+                              <i className="bi bi-file-earmark text-primary" style={{ fontSize: '20px' }}></i>
+                            )}
+                            <span className={item.type === 'folder' ? 'fw-semibold text-primary' : ''}>
+                              {item.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted">
+                            {item.type === 'folder' ? (
+                              <><i className="bi bi-folder me-1"></i> {t('folder') || 'Dossier'}</>
+                            ) : (
+                              item.mime_type || t('file') || 'Fichier'
+                            )}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted">
+                            {item.type === 'file' ? formatBytes(item.size) : '-'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted small">{formatDate(item.deleted_at)}</span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <button
+                            className="btn btn-success btn-sm d-flex align-items-center gap-1"
+                            onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
+                          >
+                            <i className="bi bi-arrow-counterclockwise"></i>
+                            {t('restore') || 'Restaurer'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </>
       )}
     </div>
   );
 }
-
