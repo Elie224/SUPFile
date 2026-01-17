@@ -22,56 +22,75 @@ const db = require('./models/db');
 const configurePassport = require('./config/passport');
 configurePassport(); // Configurer les stratégies OAuth
 
-// Créer le répertoire d'upload au démarrage
+/**
+ * Crée le répertoire d'upload s'il n'existe pas
+ * Cette fonction est appelée au démarrage du serveur pour s'assurer
+ * que le dossier d'upload est prêt à recevoir des fichiers
+ */
 async function ensureUploadDir() {
   try {
     const uploadDir = path.resolve(config.upload.uploadDir);
     await fs.mkdir(uploadDir, { recursive: true });
-    console.log(`✓ Upload directory ready: ${uploadDir}`);
+    logger.logInfo('Upload directory ready', { uploadDir });
   } catch (err) {
-    console.error('❌ Failed to create upload directory:', err.message);
+    logger.logError(err, { context: 'ensureUploadDir' });
   }
 }
 ensureUploadDir();
 
-// Attendre que MongoDB soit connecté avant de démarrer le serveur
+/**
+ * Attend que MongoDB soit connecté avant de démarrer le serveur HTTP
+ * Cette fonction vérifie l'état de la connexion MongoDB et attend
+ * un maximum de 30 secondes avant de continuer
+ * @returns {Promise<void>}
+ */
 async function startServer() {
   try {
-    // Attendre la connexion MongoDB (max 30 secondes)
-    const maxWait = 30000;
+    const MAX_WAIT_TIME = 30000; // 30 secondes maximum
+    const POLL_INTERVAL = 500; // Vérifier toutes les 500ms
     const startTime = Date.now();
     
     // Attendre que la promesse de connexion soit résolue
     try {
       await db.connectionPromise;
-      console.log('✅ MongoDB ready, starting server...');
+      logger.logInfo('MongoDB ready, starting server...');
     } catch (connErr) {
       // Si la connexion échoue, attendre un peu et vérifier l'état
-      while (db.connection.readyState !== 1 && (Date.now() - startTime) < maxWait) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // On vérifie périodiquement si la connexion est établie
+      while (db.connection.readyState !== 1 && (Date.now() - startTime) < MAX_WAIT_TIME) {
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       }
       
       if (db.connection.readyState !== 1) {
-        console.error('❌ MongoDB connection timeout. Server will start but database operations may fail.');
-        console.error('   Please ensure MongoDB is running and accessible.');
+        logger.logWarn('MongoDB connection timeout', {
+          readyState: db.connection.readyState,
+          message: 'Server will start but database operations may fail'
+        });
       } else {
-        console.log('✅ MongoDB ready, starting server...');
+        logger.logInfo('MongoDB ready, starting server...');
       }
     }
   } catch (err) {
-    console.error('❌ Error waiting for MongoDB:', err.message);
+    logger.logError(err, { context: 'startServer' });
   }
 }
 
+// ============================================================
+// CONFIGURATION EXPRESS APP
+// ============================================================
 const app = express();
 
-// Compression HTTP pour améliorer les performances (DOIT être avant les routes)
+// ============================================================
+// MIDDLEWARES GLOBAUX
+// ============================================================
+
+// Compression HTTP - Réduit la taille des réponses (DOIT être avant les routes)
 app.use(compressionMiddleware);
 
-// Performance monitoring
+// Performance monitoring - Mesure les temps de réponse
 app.use(performanceMiddleware);
 
-// Security middleware avec configuration améliorée
+// Security middleware - Protection contre les vulnérabilités courantes
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false, // Désactivé pour permettre les ressources externes
@@ -184,12 +203,22 @@ app.get('/favicon.ico', (req, res) => {
     });
 });
 
-// Health check endpoint
+// ============================================================
+// ROUTES DE BASE (avant /api)
+// ============================================================
+
+/**
+ * Health check endpoint
+ * Utilisé par les systèmes de monitoring pour vérifier que l'API est en ligne
+ */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'SUPFile API is running' });
 });
 
-// Page d'accueil de l'API - Réponse JSON simple
+/**
+ * Page d'accueil de l'API
+ * Retourne les informations sur l'API et les endpoints disponibles
+ */
 app.get('/', (req, res) => {
   res.status(200).json({
     name: 'SUPFile API',
@@ -226,38 +255,77 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check (avant les autres routes pour monitoring)
+// ============================================================
+// ROUTES API
+// ============================================================
+
+// Health check - Monitoring de l'API (avant les autres routes)
 app.use('/api/health', require('./routes/health'));
 
-// API Routes avec rate limiting spécifique et cache
+// Authentification - Rate limiting strict pour éviter les attaques par force brute
 app.use('/api/auth', authLimiter, require('./routes/auth'));
+
+// Utilisateurs - Gestion des profils utilisateurs
 app.use('/api/users', require('./routes/users'));
+
+// Fichiers - Upload, téléchargement, gestion des fichiers
 app.use('/api/files', require('./routes/files'));
+
+// Dossiers - Création, modification, suppression de dossiers
 app.use('/api/folders', validateName, require('./routes/folders'));
+
+// Partage - Gestion des liens de partage (rate limiting pour éviter les abus)
 app.use('/api/share', shareLimiter, require('./routes/share'));
+
+// Recherche - Recherche de fichiers et dossiers
 app.use('/api/search', require('./routes/search'));
-// Cache pour le dashboard (5 minutes)
+
+// Dashboard - Statistiques utilisateur (cache 5 minutes pour performance)
 app.use('/api/dashboard', cacheMiddleware(300000), require('./routes/dashboard'));
+
+// Administration - Endpoints réservés aux administrateurs
 app.use('/api/admin', require('./routes/admin'));
 
-// 404 handler (doit être avant errorHandler)
+// ============================================================
+// GESTION DES ERREURS
+// ============================================================
+
+/**
+ * Handler 404 - Route non trouvée
+ * DOIT être avant errorHandler pour intercepter les routes non définies
+ */
 app.use((req, res) => {
   res.status(404).json({ error: { message: 'Route not found', status: 404 } });
 });
 
-// Error handling middleware (DOIT être en dernier)
+/**
+ * Error handler middleware
+ * DOIT être en dernier pour capturer toutes les erreurs
+ */
 app.use(errorHandler);
 
+// ============================================================
+// CONSTANTES DE CONFIGURATION SERVEUR
+// ============================================================
 const PORT = config.server.port;
 const HOST = config.server.host;
+const SHUTDOWN_TIMEOUT = 10000; // 10 secondes avant fermeture forcée
 
-// Gestion du graceful shutdown
+// ============================================================
+// GESTION DU GRACEFUL SHUTDOWN
+// ============================================================
 let server;
 
+/**
+ * Arrêt gracieux du serveur
+ * Ferme les connexions HTTP et MongoDB de manière propre
+ * @param {string} signal - Signal reçu (SIGTERM, SIGINT, etc.)
+ */
 const gracefulShutdown = (signal) => {
   logger.logInfo(`Received ${signal}, shutting down gracefully...`);
   
   if (server) {
+    // Fermer le serveur HTTP
     server.close(() => {
       logger.logInfo('HTTP server closed');
       
@@ -268,32 +336,46 @@ const gracefulShutdown = (signal) => {
       });
     });
     
-    // Forcer la fermeture après 10 secondes
+    // Forcer la fermeture après le timeout si nécessaire
     setTimeout(() => {
       logger.logError(new Error('Forced shutdown after timeout'), { context: 'graceful shutdown' });
       process.exit(1);
-    }, 10000);
+    }, SHUTDOWN_TIMEOUT);
   } else {
     process.exit(0);
   }
 };
 
-// Écouter les signaux de fermeture
+// ============================================================
+// GESTION DES SIGNAUX PROCESS
+// ============================================================
+
+// Écouter les signaux de fermeture du système
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Gestion des erreurs non capturées
+// Gestion des erreurs non capturées - Logger et arrêt propre
 process.on('uncaughtException', (err) => {
   logger.logError(err, { context: 'uncaughtException' });
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.logError(new Error(`Unhandled Rejection: ${reason}`), { context: 'unhandledRejection', promise });
+  logger.logError(new Error(`Unhandled Rejection: ${reason}`), {
+    context: 'unhandledRejection',
+    promise
+  });
   gracefulShutdown('unhandledRejection');
 });
 
-// Démarrer le serveur après vérification MongoDB
+// ============================================================
+// DÉMARRAGE DU SERVEUR
+// ============================================================
+
+/**
+ * Démarre le serveur HTTP après vérification de la connexion MongoDB
+ * Attend que MongoDB soit prêt avant de démarrer le serveur Express
+ */
 startServer().then(() => {
   server = app.listen(PORT, HOST, () => {
     logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
@@ -306,4 +388,7 @@ startServer().then(() => {
   process.exit(1);
 });
 
+// ============================================================
+// EXPORTS
+// ============================================================
 module.exports = app;
