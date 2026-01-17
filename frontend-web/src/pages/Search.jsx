@@ -10,6 +10,7 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     type: 'all',
     mime_type: '',
@@ -26,6 +27,7 @@ export default function Search() {
       handleSearch(debouncedQuery);
     } else {
       setResults([]);
+      setError('');
     }
   }, [debouncedQuery, filters]);
 
@@ -37,14 +39,15 @@ export default function Search() {
     
     if (!hasQuery && !hasFilters) {
       setResults([]);
+      setError('');
       return;
     }
     
     setLoading(true);
+    setError('');
     try {
-      // Préparer les paramètres de recherche
-      const searchParams = {
-        q: hasQuery ? searchQuery.trim() : '',
+      // Préparer les paramètres de recherche (sans q qui est passé séparément)
+      const searchFilters = {
         type: filters.type === 'files' ? 'file' : filters.type === 'folders' ? 'folder' : filters.type,
         mime_type: filters.mime_type || undefined,
         date_from: filters.date_from || undefined,
@@ -52,24 +55,25 @@ export default function Search() {
       };
       
       // Supprimer les paramètres undefined
-      Object.keys(searchParams).forEach(key => {
-        if (searchParams[key] === undefined || searchParams[key] === '') {
-          delete searchParams[key];
+      Object.keys(searchFilters).forEach(key => {
+        if (searchFilters[key] === undefined || searchFilters[key] === '') {
+          delete searchFilters[key];
         }
       });
       
-      const response = await dashboardService.search(searchParams.q || '', searchParams);
+      // Appel correct : query en premier paramètre, filters en second
+      const response = await dashboardService.search(hasQuery ? searchQuery.trim() : '', searchFilters);
       setResults(response.data.data.items || []);
     } catch (err) {
       console.error('Search failed:', err);
       console.error('Error details:', err.response?.data || err.message);
       setResults([]);
-      // Afficher un message d'erreur à l'utilisateur
-      alert('Erreur lors de la recherche: ' + (err.response?.data?.error?.message || err.message || 'Erreur inconnue'));
+      const errorMessage = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
+      setError(t('searchError') || `Erreur lors de la recherche: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
-  }, [query, filters]);
+  }, [query, filters, t]);
 
   // Memoization de la fonction formatBytes
   const formatBytes = useCallback((bytes) => {
@@ -80,252 +84,264 @@ export default function Search() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }, []);
 
-  // Memoization des résultats filtrés
-  const filteredResults = useMemo(() => {
-    return results;
-  }, [results]);
-
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ 
-        fontSize: '28px', 
-        marginBottom: '24px',
-        fontWeight: '700',
-        color: '#333'
-      }}>🔍 {t('search')}</h1>
+    <div className="container-fluid p-3 p-md-4" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <h1 className="h2 mb-4 d-flex align-items-center gap-2">
+        <i className="bi bi-search text-primary"></i>
+        {t('search') || 'Recherche'}
+      </h1>
       
-      <div style={{ 
-        marginBottom: 24, 
-        padding: '24px', 
-        backgroundColor: '#ffffff',
-        border: '1px solid #e0e0e0', 
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('searchPlaceholder')}
-              style={{ 
-                padding: '14px 18px', 
-                flex: 1,
-                fontSize: '16px', 
-                boxSizing: 'border-box',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#2196F3'}
-              onBlur={(e) => e.target.style.borderColor = '#ddd'}
-            />
-            <button
-              onClick={() => handleSearch()}
-              disabled={loading}
-              style={{ 
-                padding: '14px 24px',
-                fontSize: '16px',
-                backgroundColor: loading ? '#ccc' : '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              {loading ? t('loading') || 'Chargement...' : t('search') || 'Rechercher'}
-            </button>
+      {/* Formulaire de recherche */}
+      <div className="card shadow-md mb-4 fade-in">
+        <div className="card-body">
+          {/* Message d'erreur */}
+          {error && (
+            <div className="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+              <i className="bi bi-exclamation-triangle-fill"></i>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Champ de recherche */}
+          <div className="mb-3">
+            <label htmlFor="search-input" className="form-label">
+              <i className="bi bi-search me-2"></i>
+              {t('searchPlaceholder') || 'Rechercher des fichiers ou dossiers...'}
+            </label>
+            <div className="input-group">
+              <input
+                type="text"
+                id="search-input"
+                className="form-control form-control-lg"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('searchPlaceholder') || 'Rechercher...'}
+                autoComplete="off"
+              />
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => handleSearch()}
+                disabled={loading}
+                style={{ minWidth: '120px' }}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    {t('loading') || 'Recherche...'}
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-search me-2"></i>
+                    {t('search') || 'Rechercher'}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Filtres */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-          marginTop: '20px'
-        }}>
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            style={{
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              outline: 'none'
-            }}
-          >
-            <option value="all">{t('allTypes') || 'Tous les types'}</option>
-            <option value="file">{t('files') || 'Fichiers'}</option>
-            <option value="folder">{t('folders') || 'Dossiers'}</option>
-          </select>
+          {/* Filtres */}
+          <div className="row g-3">
+            <div className="col-12 col-md-6 col-lg-3">
+              <label htmlFor="filter-type" className="form-label">
+                <i className="bi bi-funnel me-2"></i>
+                {t('type') || 'Type'}
+              </label>
+              <select
+                id="filter-type"
+                className="form-select"
+                value={filters.type}
+                onChange={(e) => handleFilterChange('type', e.target.value)}
+              >
+                <option value="all">{t('allTypes') || 'Tous les types'}</option>
+                <option value="file">{t('files') || 'Fichiers'}</option>
+                <option value="folder">{t('folders') || 'Dossiers'}</option>
+              </select>
+            </div>
 
-          <select
-            value={filters.mime_type}
-            onChange={(e) => handleFilterChange('mime_type', e.target.value)}
-            style={{
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              outline: 'none'
-            }}
-          >
-            <option value="">{t('allFormats') || 'Tous les formats'}</option>
-            <option value="image/">{t('images') || 'Images'}</option>
-            <option value="video/">{t('videos') || 'Vidéos'}</option>
-            <option value="audio/">{t('audio') || 'Audio'}</option>
-            <option value="application/pdf">{t('documents') || 'Documents'}</option>
-          </select>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label htmlFor="filter-format" className="form-label">
+                <i className="bi bi-file-earmark me-2"></i>
+                {t('format') || 'Format'}
+              </label>
+              <select
+                id="filter-format"
+                className="form-select"
+                value={filters.mime_type}
+                onChange={(e) => handleFilterChange('mime_type', e.target.value)}
+              >
+                <option value="">{t('allFormats') || 'Tous les formats'}</option>
+                <option value="image/">{t('images') || 'Images'}</option>
+                <option value="video/">{t('videos') || 'Vidéos'}</option>
+                <option value="audio/">{t('audio') || 'Audio'}</option>
+                <option value="application/pdf">{t('documents') || 'Documents'}</option>
+              </select>
+            </div>
 
-          <input
-            type="date"
-            value={filters.date_from}
-            onChange={(e) => handleFilterChange('date_from', e.target.value)}
-            placeholder={t('dateFrom') || 'Date début'}
-            style={{
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              outline: 'none'
-            }}
-          />
+            <div className="col-12 col-md-6 col-lg-3">
+              <label htmlFor="filter-date-from" className="form-label">
+                <i className="bi bi-calendar-event me-2"></i>
+                {t('dateFrom') || 'Date début'}
+              </label>
+              <input
+                type="date"
+                id="filter-date-from"
+                className="form-control"
+                value={filters.date_from}
+                onChange={(e) => handleFilterChange('date_from', e.target.value)}
+              />
+            </div>
 
-          <input
-            type="date"
-            value={filters.date_to}
-            onChange={(e) => handleFilterChange('date_to', e.target.value)}
-            placeholder={t('dateTo') || 'Date fin'}
-            style={{
-              padding: '12px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              outline: 'none'
-            }}
-          />
+            <div className="col-12 col-md-6 col-lg-3">
+              <label htmlFor="filter-date-to" className="form-label">
+                <i className="bi bi-calendar-event me-2"></i>
+                {t('dateTo') || 'Date fin'}
+              </label>
+              <input
+                type="date"
+                id="filter-date-to"
+                className="form-control"
+                value={filters.date_to}
+                onChange={(e) => handleFilterChange('date_to', e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Résultats */}
       {loading && (
-        <div style={{ 
-          padding: '40px', 
-          textAlign: 'center',
-          color: '#666'
-        }}>
-          {t('loading') || 'Chargement...'}
+        <div className="text-center p-5">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">{t('loading') || 'Chargement...'}</span>
+          </div>
+          <p className="text-muted">{t('loading') || 'Chargement...'}</p>
         </div>
       )}
 
-      {!loading && filteredResults.length === 0 && query && (
-        <div style={{ 
-          padding: '40px', 
-          textAlign: 'center',
-          color: '#666'
-        }}>
-          {t('noResults') || 'Aucun résultat trouvé'}
+      {!loading && !error && results.length === 0 && (query || filters.type !== 'all' || filters.mime_type || filters.date_from || filters.date_to) && (
+        <div className="card shadow-sm">
+          <div className="card-body text-center p-5">
+            <i className="bi bi-inbox text-muted" style={{ fontSize: '48px' }}></i>
+            <h3 className="h5 mt-3 text-muted">{t('noResults') || 'Aucun résultat trouvé'}</h3>
+            <p className="text-muted">
+              {t('tryDifferentSearch') || 'Essayez avec d\'autres mots-clés ou modifiez les filtres'}
+            </p>
+          </div>
         </div>
       )}
 
-      {!loading && filteredResults.length > 0 && (
-        <div style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e0e0e0',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0' }}>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#333' }}>
-                  {t('name') || 'Nom'}
-                </th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#333' }}>
-                  {t('type') || 'Type'}
-                </th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#333' }}>
-                  {t('size') || 'Taille'}
-                </th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#333' }}>
-                  {t('modified') || 'Modifié'}
-                </th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600', color: '#333' }}>
-                  {t('actions') || 'Actions'}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredResults.map((item) => (
-                <tr 
-                  key={item.id} 
-                  style={{ 
-                    borderBottom: '1px solid #f0f0f0',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9f9f9'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <td style={{ padding: '16px', color: '#333' }}>
-                    {item.item_type === 'folder' || item.type === 'folder' ? '📁 ' : ''}
-                    {item.name}
-                  </td>
-                  <td style={{ padding: '16px', color: '#666' }}>
-                    {item.item_type === 'folder' || item.type === 'folder' ? '📁 Dossier' : item.mime_type || '-'}
-                  </td>
-                  <td style={{ padding: '16px', color: '#666' }}>
-                    {item.size ? formatBytes(item.size) : '-'}
-                  </td>
-                  <td style={{ padding: '16px', color: '#666' }}>
-                    {item.updated_at ? new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : '-'}
-                  </td>
-                  <td style={{ padding: '16px' }}>
-                    <button
-                      onClick={() => {
-                        if (item.item_type === 'folder' || item.type === 'folder') {
-                          navigate(`/files?folder=${item.id}`);
-                        } else {
-                          // Pour les fichiers, naviguer vers la page de prévisualisation
-                          navigate(`/preview/${item.id}`);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 16px',
-                        fontSize: '14px',
-                        backgroundColor: '#2196F3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#1976D2'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = '#2196F3'}
-                    >
-                      {t('view') || 'Voir'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!loading && !error && results.length === 0 && !query && filters.type === 'all' && !filters.mime_type && !filters.date_from && !filters.date_to && (
+        <div className="card shadow-sm">
+          <div className="card-body text-center p-5">
+            <i className="bi bi-search text-muted" style={{ fontSize: '48px' }}></i>
+            <h3 className="h5 mt-3 text-muted">{t('startSearch') || 'Commencez votre recherche'}</h3>
+            <p className="text-muted">
+              {t('enterSearchTerms') || 'Entrez des mots-clés dans le champ de recherche ci-dessus'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && results.length > 0 && (
+        <div className="card shadow-md">
+          <div className="card-header bg-light">
+            <h5 className="mb-0">
+              <i className="bi bi-list-ul me-2"></i>
+              {t('results') || 'Résultats'} ({results.length})
+            </h5>
+          </div>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{ padding: '16px' }}>
+                      <i className="bi bi-file-earmark me-2"></i>
+                      {t('name') || 'Nom'}
+                    </th>
+                    <th style={{ padding: '16px' }}>
+                      <i className="bi bi-tag me-2"></i>
+                      {t('type') || 'Type'}
+                    </th>
+                    <th style={{ padding: '16px' }}>
+                      <i className="bi bi-hdd me-2"></i>
+                      {t('size') || 'Taille'}
+                    </th>
+                    <th style={{ padding: '16px' }}>
+                      <i className="bi bi-clock me-2"></i>
+                      {t('modified') || 'Modifié'}
+                    </th>
+                    <th style={{ padding: '16px' }}>
+                      <i className="bi bi-gear me-2"></i>
+                      {t('actions') || 'Actions'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((item) => {
+                    const isFolder = item.item_type === 'folder' || item.type === 'folder';
+                    return (
+                      <tr key={item.id}>
+                        <td style={{ padding: '16px' }}>
+                          <div className="d-flex align-items-center gap-2">
+                            {isFolder ? (
+                              <i className="bi bi-folder-fill text-warning" style={{ fontSize: '20px' }}></i>
+                            ) : (
+                              <i className="bi bi-file-earmark text-primary" style={{ fontSize: '20px' }}></i>
+                            )}
+                            <span className="fw-medium">{item.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted">
+                            {isFolder ? (
+                              <><i className="bi bi-folder me-1"></i> Dossier</>
+                            ) : (
+                              item.mime_type || '-'
+                            )}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted">{item.size ? formatBytes(item.size) : '-'}</span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <span className="text-muted">
+                            {item.updated_at ? new Date(item.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px' }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                              if (isFolder) {
+                                navigate(`/files?folder=${item.id}`);
+                              } else {
+                                navigate(`/preview/${item.id}`);
+                              }
+                            }}
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            {t('view') || 'Voir'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

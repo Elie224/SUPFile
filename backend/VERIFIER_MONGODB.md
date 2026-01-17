@@ -65,3 +65,4 @@ docker compose up -d db
 - **Avec authentification** : `mongodb://user:pass@localhost:27017/supfile?authSource=admin`
 - **MongoDB Atlas (Cloud)** : `mongodb+srv://user:pass@cluster.mongodb.net/supfile`
 
+

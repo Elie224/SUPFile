@@ -173,3 +173,4 @@ await defaultQueue.add(async () => {
 
 L'application est maintenant optimisée pour tous les types de performances ! 🚀
 
+

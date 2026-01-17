@@ -102,3 +102,4 @@ Cela signifie que les variables ne sont pas correctement définies. Vérifiez :
 - [ ] Logs vérifiés (stratégies configurées)
 - [ ] Test de connexion OAuth réussi
 
+

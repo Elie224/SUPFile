@@ -67,3 +67,4 @@ npm audit
 **Date de correction** : 18 décembre 2025
 **Statut** : ✅ VULNÉRABILITÉ CORRIGÉE
 
+

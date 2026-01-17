@@ -40,3 +40,4 @@ android/app/src/main/res/
 
 Le logo personnalisé "supfile" est déjà intégré dans l'application elle-même (écrans de connexion, etc.) via le widget `SupFileLogo`. Les icônes de lanceur Android sont uniquement pour l'affichage sur l'écran d'accueil du téléphone.
 
+

@@ -119,3 +119,4 @@ Vous avez maintenant :
 - Vérifiez que le cluster est bien démarré (status "Running")
 - Vérifiez votre connexion internet
 
+
