@@ -800,14 +800,46 @@ export default function Files() {
         </div>
       )}
 
-      {uploading && (
-        <div style={{ padding: 8, backgroundColor: '#fff3cd', marginBottom: 16, borderRadius: 4 }}>
-          <div>Upload en cours...</div>
-          {Object.keys(uploadProgress).map(fileName => (
-            <div key={fileName} style={{ marginTop: 4 }}>
-              {fileName}: {uploadProgress[fileName]}%
-            </div>
-          ))}
+      {/* Indicateurs de progression upload améliorés */}
+      {uploading && Object.keys(uploadProgress).length > 0 && (
+        <div className="card shadow-md mb-3 fade-in">
+          <div className="card-body">
+            <h6 className="mb-3 d-flex align-items-center gap-2">
+              <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
+              {t('uploading') || 'Upload en cours...'}
+            </h6>
+            {Object.keys(uploadProgress).map(fileName => {
+              const progress = uploadProgress[fileName];
+              const isComplete = progress === 100;
+              const isError = progress === -1;
+              
+              return (
+                <div key={fileName} className="mb-3">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="small text-truncate me-2" style={{ maxWidth: '70%' }}>
+                      <i className={`bi ${isError ? 'bi-x-circle text-danger' : isComplete ? 'bi-check-circle text-success' : 'bi-upload'} me-1`}></i>
+                      {fileName}
+                    </span>
+                    <span className={`small fw-semibold ${isError ? 'text-danger' : isComplete ? 'text-success' : 'text-primary'}`}>
+                      {isError ? 'Erreur' : isComplete ? 'Terminé' : `${progress}%`}
+                    </span>
+                  </div>
+                  {!isError && (
+                    <div className="progress" style={{ height: '24px' }}>
+                      <div 
+                        className={`progress-bar ${isComplete ? 'bg-success' : 'bg-primary'}`}
+                        role="progressbar" 
+                        style={{ width: `${Math.max(progress, 0)}%` }}
+                      >
+                        {progress > 5 && !isComplete && `${progress}%`}
+                        {isComplete && <i className="bi bi-check-circle me-1"></i>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -832,49 +864,49 @@ export default function Files() {
         }}
       >
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-            <div style={{ fontSize: '18px', marginBottom: '8px' }}>⏳</div>
-            <div>{t('loading') || 'Chargement...'}</div>
+          <div className="text-center p-5">
+            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+              <span className="visually-hidden">{t('loading') || 'Chargement...'}</span>
+            </div>
+            <p className="text-muted">{t('loading') || 'Chargement...'}</p>
           </div>
         ) : error ? (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px', 
-            color: '#d32f2f',
-            backgroundColor: '#ffebee',
-            borderRadius: '8px',
-            margin: '20px'
-          }}>
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⚠️</div>
-            <div style={{ fontSize: '16px', fontWeight: '500', marginBottom: '16px' }}>
-              {error}
+          <div className="card shadow-sm border-danger mb-3">
+            <div className="card-body text-center p-5">
+              <i className="bi bi-exclamation-triangle-fill text-danger" style={{ fontSize: '48px' }}></i>
+              <h5 className="mt-3 text-danger">{t('error') || 'Erreur'}</h5>
+              <p className="text-muted mb-4">{error}</p>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setError(null);
+                  loadFiles();
+                }}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                {t('retry') || 'Réessayer'}
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setError(null);
-                loadFiles();
-              }}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              Réessayer
-            </button>
           </div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
-            <p style={{ fontSize: '16px', marginBottom: '8px' }}>{t('emptyFolder') || 'Aucun fichier ou dossier'}</p>
-            <p style={{ fontSize: '14px', color: '#bbb' }}>
-              Glissez-déposez des fichiers ici ou cliquez sur "Uploader"
-            </p>
+          <div className="card shadow-sm">
+            <div className="card-body text-center p-5">
+              <i className="bi bi-folder-x text-muted" style={{ fontSize: '64px' }}></i>
+              <h5 className="mt-3 mb-2 text-muted">{t('emptyFolder') || 'Aucun fichier ou dossier'}</h5>
+              <p className="text-muted mb-4">
+                {t('emptyFolderDescription') || 'Glissez-déposez des fichiers ici ou cliquez sur "Uploader" pour commencer'}
+              </p>
+              <div className="d-flex justify-content-center gap-2 flex-wrap">
+                <label htmlFor="file-upload" className="btn btn-primary">
+                  <i className="bi bi-upload me-2"></i>
+                  {t('upload') || 'Uploader'}
+                </label>
+                <button className="btn btn-success" onClick={() => setShowNewFolder(!showNewFolder)}>
+                  <i className="bi bi-folder-plus me-2"></i>
+                  {t('newFolder') || 'Nouveau dossier'}
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <div style={{ 
