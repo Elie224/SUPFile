@@ -273,53 +273,115 @@ export default function Layout({ children }) {
               </span>
             </button>
             
-            {/* Dropdown Menu Utilisateur */}
+            {/* Dropdown Menu Utilisateur amélioré */}
             {userMenuOpen && (
-              <div className="user-menu-dropdown" style={{
+              <div className="user-menu-dropdown card shadow-lg" style={{
                 position: 'absolute',
                 top: '100%',
                 right: 0,
                 marginTop: '8px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e0e0e0',
-                borderRadius: '12px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 minWidth: '240px',
                 zIndex: 1001,
-                overflow: 'hidden'
+                border: 'none',
+                borderRadius: '12px'
               }}
               onClick={(e) => e.stopPropagation()}
               >
-                <div style={{
-                  padding: '16px',
-                  borderBottom: '1px solid #f0f0f0'
-                }}>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#333', marginBottom: '4px' }}>
-                    {user.email}
+                <div className="card-body p-0">
+                  {/* En-tête du menu */}
+                  <div className="p-3 border-bottom">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="badge bg-primary rounded-circle" style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        fontWeight: 600
+                      }}>
+                        {user.email.charAt(0).toUpperCase()}
+                      </span>
+                      <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                        <div className="fw-semibold text-truncate" style={{ fontSize: '14px' }}>
+                          {user.display_name || user.email.split('@')[0]}
+                        </div>
+                        <div className="text-muted small text-truncate" style={{ fontSize: '12px' }}>
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options du menu */}
+                  <div className="p-1">
+                    <button
+                      className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
+                      style={{ 
+                        textDecoration: 'none',
+                        color: '#333',
+                        padding: '10px 16px',
+                        fontSize: '14px',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate('/settings');
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      <i className="bi bi-gear"></i>
+                      {t('settings') || 'Paramètres'}
+                    </button>
+                    
+                    {user.is_admin && (
+                      <button
+                        className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
+                        style={{ 
+                          textDecoration: 'none',
+                          color: '#333',
+                          padding: '10px 16px',
+                          fontSize: '14px',
+                          border: 'none',
+                          borderRadius: '8px'
+                        }}
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigate('/admin');
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="bi bi-shield-check"></i>
+                        ⚙️ Administration
+                      </button>
+                    )}
+
+                    <div className="dropdown-divider my-1"></div>
+
+                    <button
+                      className="btn btn-link text-start w-100 d-flex align-items-center gap-2 text-danger"
+                      style={{ 
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        fontSize: '14px',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#fff5f5'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      <i className="bi bi-box-arrow-right"></i>
+                      {t('logout') || 'Déconnexion'}
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    handleLogout();
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#f44336',
-                    fontWeight: '500',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#fff5f5'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                >
-                  {t('logout')}
-                </button>
               </div>
             )}
           </div>
