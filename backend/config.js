@@ -85,6 +85,16 @@ module.exports = {
       }
     },
     credentials: true,
+    // Autoriser toutes les méthodes HTTP nécessaires
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    // Autoriser tous les headers de requête (y compris Authorization, Content-Type, etc.)
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    // Exposer les headers de réponse nécessaires pour les téléchargements
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges'],
+    // S'assurer que les réponses OPTIONS ont le bon code de statut
+    optionsSuccessStatus: 200,
+    // Préflight continue pendant 24 heures
+    maxAge: 86400,
   },
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || 32212254720), // 30 Go par défaut (30 * 1024 * 1024 * 1024 bytes)
