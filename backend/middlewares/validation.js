@@ -56,7 +56,7 @@ const createFolderSchema = Joi.object({
       'string.max': 'Folder name must not exceed 255 characters',
       'any.required': 'Folder name is required',
     }),
-  parent_id: Joi.number().integer().optional(),
+  parent_id: Joi.string().allow(null, '').optional(),
 }).unknown(false);
 
 // Schéma pour renommage
