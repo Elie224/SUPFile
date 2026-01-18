@@ -199,6 +199,110 @@ class _TrashScreenState extends State<TrashScreen> {
     }
   }
 
+  /// Vide complètement la corbeille en supprimant définitivement tous les fichiers et dossiers
+  Future<void> _emptyTrash() async {
+    if (_files.isEmpty && _folders.isEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Vider la corbeille'),
+        content: Text(
+          'Vous êtes sur le point de supprimer définitivement ${_files.length + _folders.length} élément(s).\n\n'
+          'Cette action est irréversible. Voulez-vous continuer ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Vider la corbeille'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    // Afficher un indicateur de progression
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Suppression en cours...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+      int successCount = 0;
+      int failCount = 0;
+
+      // Supprimer définitivement tous les fichiers
+      for (final file in _files) {
+        try {
+          await filesProvider.deleteFile(file.id);
+          successCount++;
+        } catch (e) {
+          failCount++;
+        }
+      }
+
+      // Supprimer définitivement tous les dossiers
+      for (final folder in _folders) {
+        try {
+          await filesProvider.deleteFolder(folder.id);
+          successCount++;
+        } catch (e) {
+          failCount++;
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialogue de progression
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failCount > 0
+                  ? '$successCount élément(s) supprimé(s), $failCount échec(s)'
+                  : 'Corbeille vidée avec succès',
+            ),
+            backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        _loadTrash();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialogue de progression
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du vidage de la corbeille: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -209,6 +313,12 @@ class _TrashScreenState extends State<TrashScreen> {
         ),
         title: const Text('Corbeille'),
         actions: [
+          if (_files.isNotEmpty || _folders.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.red),
+              onPressed: _emptyTrash,
+              tooltip: 'Vider la corbeille',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadTrash,
