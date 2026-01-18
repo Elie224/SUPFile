@@ -15,7 +15,14 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 
 ### Option 1 : Configuration automatique (Recommandé)
 
-Le backend a été mis à jour pour autoriser automatiquement les domaines Render (`.onrender.com`) en production. **Redéployez simplement le backend** et cela devrait fonctionner.
+Le backend a été mis à jour pour autoriser automatiquement les domaines Render (`.onrender.com`) en production. La configuration CORS inclut maintenant :
+
+- ✅ Toutes les méthodes HTTP nécessaires (GET, POST, PUT, DELETE, PATCH, OPTIONS)
+- ✅ Tous les headers de requête (Content-Type, Authorization, etc.)
+- ✅ Les headers exposés pour les téléchargements (Content-Disposition, Content-Length, etc.)
+- ✅ Gestion correcte des requêtes preflight OPTIONS
+
+**Redéployez simplement le backend** et cela devrait fonctionner.
 
 ### Option 2 : Configuration manuelle de CORS_ORIGIN
 
