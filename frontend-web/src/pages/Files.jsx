@@ -104,8 +104,27 @@ export default function Files() {
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return;
     
+    // Validation des fichiers avant upload
+    const MAX_FILE_SIZE = 30 * 1024 * 1024 * 1024; // 30 GB (quota max)
+    const invalidFiles = [];
+    
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        invalidFiles.push(`${file.name} (trop volumineux: ${(file.size / (1024 * 1024)).toFixed(2)} MB)`);
+      }
+    }
+    
+    if (invalidFiles.length > 0) {
+      setError(`Certains fichiers sont trop volumineux:\n${invalidFiles.join('\n')}\n\nTaille maximum: 30 GB`);
+      return;
+    }
+    
     setUploading(true);
+    setError(null);
     const progress = {};
+    let successCount = 0;
+    let failCount = 0;
+    
     try {
       for (const file of files) {
         progress[file.name] = 0;
@@ -122,21 +141,35 @@ export default function Files() {
           );
           progress[file.name] = 100;
           setUploadProgress({ ...progress });
+          successCount++;
         } catch (fileErr) {
           console.error(`Upload failed for ${file.name}:`, fileErr);
           const errorMsg = fileErr.response?.data?.error?.message || fileErr.message || t('uploadError');
-          alert(`${t('error')} ${file.name}: ${errorMsg}`);
+          setError(`${t('error')} ${file.name}: ${errorMsg}`);
           progress[file.name] = -1; // Marquer comme échoué
           setUploadProgress({ ...progress });
+          failCount++;
         }
       }
       
       // Recharger la liste des fichiers après tous les uploads
       await loadFiles();
-      setUploadProgress({});
+      
+      // Message de succès/erreur
+      if (successCount > 0 && failCount === 0) {
+        setError(null);
+        // Message de succès sera affiché via l'UI de progression
+      } else if (failCount > 0) {
+        setError(`${successCount} fichier(s) uploadé(s) avec succès, ${failCount} échec(s)`);
+      }
+      
+      // Effacer la progression après 3 secondes
+      setTimeout(() => {
+        setUploadProgress({});
+      }, 3000);
     } catch (err) {
       console.error('Upload failed:', err);
-      alert(t('uploadError') + ': ' + (err.response?.data?.error?.message || err.message));
+      setError(t('uploadError') + ': ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setUploading(false);
     }
@@ -237,8 +270,9 @@ export default function Files() {
       setNewFolderName('');
       setShowNewFolder(false);
       await loadFiles();
-      // Message de succès (peut être amélioré avec un toast)
+      // Message de succès
       setError(null);
+      // Le succès est confirmé par le rechargement automatique de la liste
     } catch (err) {
       console.error('Failed to create folder:', err);
       const errorMessage = err.response?.data?.error?.message || err.message || t('createFolderError');
