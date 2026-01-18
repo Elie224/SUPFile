@@ -89,7 +89,8 @@ function App() {
   return (
     <ErrorBoundary>
       <LanguageProvider>
-        <BrowserRouter
+        <ToastProvider>
+          <BrowserRouter
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true,
@@ -178,6 +179,7 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </ToastProvider>
       </LanguageProvider>
     </ErrorBoundary>
   );
