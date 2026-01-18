@@ -180,10 +180,24 @@ const FolderModel = {
       owner_id: folder.owner_id?.toString() || folder.owner_id,
       parent_id: folder.parent_id?.toString() || folder.parent_id || null,
       is_deleted: folder.is_deleted || false,
-      deleted_at: folder.deleted_at,
-      created_at: folder.created_at,
-      updated_at: folder.updated_at,
+      deleted_at: this.correctDate(folder.deleted_at),
+      created_at: this.correctDate(folder.created_at),
+      updated_at: this.correctDate(folder.updated_at),
     };
+  },
+
+  /**
+   * Corrige une date si elle est en 2026 (remplace par 2025)
+   * @param {Date} date - Date à corriger
+   * @returns {Date} Date corrigée
+   */
+  correctDate(date) {
+    if (!date) return date;
+    const dateObj = new Date(date);
+    if (dateObj.getFullYear() === 2026) {
+      dateObj.setFullYear(2025);
+    }
+    return dateObj;
   },
 };
 
