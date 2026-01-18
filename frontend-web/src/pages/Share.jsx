@@ -131,7 +131,7 @@ export default function Share() {
         setPasswordRequired(false);
       } else {
         const error = await response.json();
-        alert(error.error?.message || 'Mot de passe incorrect');
+        toast.error(error.error?.message || 'Mot de passe incorrect');
       }
     } catch (err) {
       console.error('Password verification error:', err);
