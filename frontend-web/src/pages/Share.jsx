@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { shareService } from '../services/api';
+import { useToast } from '../components/Toast';
 
 export default function Share() {
   const { token } = useParams();
+  const toast = useToast();
   const [share, setShare] = useState(null);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
