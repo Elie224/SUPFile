@@ -131,32 +131,38 @@ export default function Dashboard() {
                   </span>
                 </div>
                 {(() => {
-                  const percentageRaw = stats.quota.percentageRaw || stats.quota.percentage || 0;
-                  const barWidth = stats.quota.used > 0 ? Math.max(percentageRaw, 0.1) : 0;
+                  // Calcul cohérent du pourcentage : si used === 0, alors 0%
+                  const percentageRaw = stats.quota.used === 0 ? 0 : (stats.quota.percentageRaw || stats.quota.percentage || 0);
+                  const percentage = stats.quota.used === 0 ? 0 : (stats.quota.percentage < 1 
+                    ? stats.quota.percentage.toFixed(2) 
+                    : Math.round(stats.quota.percentage));
+                  const barWidth = percentageRaw > 0 ? Math.max(percentageRaw, 0.1) : 0;
                   const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
                   
                   return (
                     <div className="progress" style={{ height: '28px' }}>
-                      <div 
-                        className={`progress-bar bg-${barColor}`}
-                        role="progressbar" 
-                        style={{ width: `${barWidth}%` }}
-                      >
-                        {percentageRaw > 5 && (
-                          <span className="small fw-bold">
-                            {stats.quota.percentage < 1 
-                              ? stats.quota.percentage.toFixed(2) 
-                              : Math.round(stats.quota.percentage)}%
-                          </span>
-                        )}
-                      </div>
+                      {barWidth > 0 && (
+                        <div 
+                          className={`progress-bar bg-${barColor}`}
+                          role="progressbar" 
+                          style={{ width: `${barWidth}%` }}
+                        >
+                          {percentageRaw > 5 && (
+                            <span className="small fw-bold">
+                              {typeof percentage === 'string' ? percentage : percentage.toFixed(2)}%
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
                 <small className="text-muted d-block text-center mt-2">
-                  {stats.quota.percentage < 1 
-                    ? stats.quota.percentage.toFixed(2) 
-                    : Math.round(stats.quota.percentage)}% {t('usedOf')} {formatBytes(stats.quota.limit)}
+                  {stats.quota.used === 0 
+                    ? `0% ${t('usedOf')} ${formatBytes(stats.quota.limit)}`
+                    : `${stats.quota.percentage < 1 
+                      ? stats.quota.percentage.toFixed(2) 
+                      : Math.round(stats.quota.percentage)}% ${t('usedOf')} ${formatBytes(stats.quota.limit)}`}
                 </small>
               </div>
             </div>
