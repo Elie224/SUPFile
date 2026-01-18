@@ -5,10 +5,14 @@ import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/secure_logger.dart';
 import '../../models/file.dart';
+import '../../providers/files_provider.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String fileId;
@@ -24,6 +28,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool _isLoading = true;
   String? _error;
   FileItem? _file;
+  String? _folderId;
+  List<FileItem> _filesInFolder = [];
+  int _currentFileIndex = -1;
   VideoPlayerController? _videoController;
   AudioPlayer? _audioPlayer;
   bool _isPlaying = false;
@@ -43,11 +50,33 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Future<void> _loadFile() async {
     try {
+      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+      
+      // Charger tous les fichiers du dossier courant
       final response = await _apiService.listFiles();
       if (response.statusCode == 200) {
         final items = response.data['data']['items'] ?? [];
+        _filesInFolder = [];
+        
+        // Extraire les fichiers du dossier
         for (var item in items) {
-          if ((item['id']?.toString() ?? item['_id']?.toString()) == widget.fileId) {
+          if (item['type'] == 'file' || item['folder_id'] != null) {
+            final file = FileItem.fromJson(item);
+            _filesInFolder.add(file);
+            
+            // Trouver le fichier courant et son index
+            if (file.id == widget.fileId) {
+              _file = file;
+              _currentFileIndex = _filesInFolder.length - 1;
+              _folderId = file.folderId;
+            }
+          }
+        }
+        
+        // Si le fichier n'a pas été trouvé dans la liste, le charger directement
+        if (_file == null) {
+          for (var item in items) {
+            if ((item['id']?.toString() ?? item['_id']?.toString()) == widget.fileId) {
             setState(() {
               _file = FileItem.fromJson(item);
               _isLoading = false;
@@ -98,23 +127,93 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
+  /// Télécharge et sauvegarde le fichier sur l'appareil
   Future<void> _downloadFile() async {
+    if (_file == null) return;
+    
     try {
+      // Demander les permissions de stockage
+      if (Platform.isAndroid) {
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission de stockage refusée')),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Télécharger le fichier
       final response = await _apiService.downloadFile(_file!.id);
-      if (response.statusCode == 200) {
-        // TODO: Sauvegarder le fichier sur l'appareil
+      if (response.statusCode == 200 && response.data is List<int>) {
+        // Obtenir le répertoire de téléchargements
+        Directory? directory;
+        if (Platform.isAndroid) {
+          directory = await getExternalStorageDirectory();
+          directory = Directory('${directory?.path}/Download');
+        } else if (Platform.isIOS) {
+          directory = await getApplicationDocumentsDirectory();
+        }
+        
+        if (directory == null) {
+          throw Exception('Impossible d\'accéder au répertoire de téléchargement');
+        }
+        
+        // Créer le répertoire s'il n'existe pas
+        if (!await directory.exists()) {
+          await directory.create(recursive: true);
+        }
+        
+        // Sauvegarder le fichier
+        final filePath = '${directory.path}/${_file!.name}';
+        final file = File(filePath);
+        await file.writeAsBytes(response.data);
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Téléchargement démarré')),
+            SnackBar(
+              content: Text('Fichier sauvegardé: ${_file!.name}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(
+            content: Text('Erreur lors du téléchargement: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    }
+  }
+  
+  /// Navigue vers le fichier précédent dans le dossier
+  void _navigateToPrevious() {
+    if (_currentFileIndex > 0 && _filesInFolder.isNotEmpty) {
+      final previousFile = _filesInFolder[_currentFileIndex - 1];
+      context.go('/preview/${previousFile.id}');
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Premier fichier atteint')),
+      );
+    }
+  }
+  
+  /// Navigue vers le fichier suivant dans le dossier
+  void _navigateToNext() {
+    if (_currentFileIndex >= 0 && _currentFileIndex < _filesInFolder.length - 1) {
+      final nextFile = _filesInFolder[_currentFileIndex + 1];
+      context.go('/preview/${nextFile.id}');
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dernier fichier atteint')),
+      );
     }
   }
 
@@ -270,9 +369,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.skip_previous, size: 32),
-                onPressed: () {
-                  // TODO: Précédent
-                },
+                onPressed: _currentFileIndex > 0 ? _navigateToPrevious : null,
               ),
               ElevatedButton.icon(
                 onPressed: () async {
@@ -297,9 +394,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next, size: 32),
-                onPressed: () {
-                  // TODO: Suivant
-                },
+                onPressed: (_currentFileIndex >= 0 && _currentFileIndex < _filesInFolder.length - 1)
+                    ? _navigateToNext
+                    : null,
               ),
             ],
           ),

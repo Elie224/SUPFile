@@ -365,7 +365,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       title: Text(folder.name),
                       subtitle: const Text('Dossier'),
                       onTap: () {
-                        // TODO: Naviguer vers le dossier
+                        // Naviguer vers le dossier
+                        context.go('/files?folder=${folder.id}');
                       },
                     );
                   } else {
@@ -415,7 +416,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       title: Text(file.name),
                       subtitle: Text('${file.formattedSize} • ${file.mimeType ?? 'Fichier'}'),
                       onTap: () {
-                        // TODO: Naviguer vers le fichier
+                        // Naviguer vers la prévisualisation du fichier
+                        context.go('/preview/${file.id}');
                       },
                     );
                   }
