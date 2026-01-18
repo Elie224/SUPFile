@@ -59,8 +59,8 @@ const UserModel = {
       quota_used: u.quota_used,
       preferences: u.preferences,
       is_admin: u.is_admin || false,
-      created_at: u.created_at,
-      last_login_at: u.last_login_at,
+      created_at: this.correctDate(u.created_at),
+      last_login_at: this.correctDate(u.last_login_at),
     };
   },
 
@@ -84,8 +84,8 @@ const UserModel = {
       quota_used: u.quota_used,
       preferences: u.preferences,
       is_admin: u.is_admin || false,
-      created_at: u.created_at,
-      last_login_at: u.last_login_at,
+      created_at: this.correctDate(u.created_at),
+      last_login_at: this.correctDate(u.last_login_at),
     };
   },
 
@@ -134,7 +134,7 @@ const UserModel = {
       quota_limit: saved.quota_limit,
       quota_used: saved.quota_used,
       preferences: saved.preferences,
-      created_at: saved.created_at,
+      created_at: this.correctDate(saved.created_at),
     };
   },
 
@@ -148,6 +148,20 @@ const UserModel = {
 
   async updatePreferences(id, preferences) {
     await User.findByIdAndUpdate(id, { preferences });
+  },
+
+  /**
+   * Corrige une date si elle est en 2026 (remplace par 2025)
+   * @param {Date} date - Date à corriger
+   * @returns {Date} Date corrigée
+   */
+  correctDate(date) {
+    if (!date) return date;
+    const dateObj = new Date(date);
+    if (dateObj.getFullYear() === 2026) {
+      dateObj.setFullYear(2025);
+    }
+    return dateObj;
   },
 };
 

@@ -257,10 +257,24 @@ const FileModel = {
       owner_id: file.owner_id?.toString() || file.owner_id,
       file_path: file.file_path,
       is_deleted: file.is_deleted || false,
-      deleted_at: file.deleted_at,
-      created_at: file.created_at,
-      updated_at: file.updated_at,
+      deleted_at: this.correctDate(file.deleted_at),
+      created_at: this.correctDate(file.created_at),
+      updated_at: this.correctDate(file.updated_at),
     };
+  },
+
+  /**
+   * Corrige une date si elle est en 2026 (remplace par 2025)
+   * @param {Date} date - Date à corriger
+   * @returns {Date} Date corrigée
+   */
+  correctDate(date) {
+    if (!date) return date;
+    const dateObj = new Date(date);
+    if (dateObj.getFullYear() === 2026) {
+      dateObj.setFullYear(2025);
+    }
+    return dateObj;
   },
 };
 
