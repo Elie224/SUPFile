@@ -6,6 +6,13 @@ import 'dart:async';
 import '../utils/constants.dart';
 import '../utils/secure_logger.dart';
 
+// Initialiser le stream de deep links une seule fois
+Stream<Uri>? _uriLinkStream;
+Stream<Uri> get _linkStream {
+  _uriLinkStream ??= getUriLinksStream();
+  return _uriLinkStream!;
+}
+
 class TimeoutException implements Exception {
   final String message;
   TimeoutException(this.message);
@@ -55,11 +62,30 @@ class OAuthService {
       final completer = Completer<Map<String, dynamic>?>();
       StreamSubscription? linkSubscription;
 
-      linkSubscription = linkStream.listen((String link) {
+      // Vérifier d'abord si l'app a été ouverte avec un deep link
+      try {
+        final initialLink = await getInitialUri();
+        if (initialLink != null && initialLink.toString().startsWith('supfile://oauth/github/callback')) {
+          final token = initialLink.queryParameters['token'];
+          final refreshToken = initialLink.queryParameters['refresh_token'];
+          if (token != null && refreshToken != null) {
+            return {
+              'access_token': token,
+              'refresh_token': refreshToken,
+            };
+          }
+        }
+      } catch (e) {
+        // Ignorer si pas de deep link initial
+      }
+
+      // Écouter les nouveaux deep links
+      linkSubscription = _linkStream.listen((Uri uri) {
+        final link = uri?.toString() ?? '';
         if (link.startsWith('supfile://oauth/github/callback')) {
-          final uri = Uri.parse(link);
-          final token = uri.queryParameters['token'];
-          final refreshToken = uri.queryParameters['refresh_token'];
+          final callbackUri = uri ?? Uri.parse(link);
+          final token = callbackUri.queryParameters['token'];
+          final refreshToken = callbackUri.queryParameters['refresh_token'];
           
           if (token != null && refreshToken != null) {
             completer.complete({

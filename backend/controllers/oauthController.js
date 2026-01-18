@@ -102,13 +102,23 @@ const handleOAuthCallback = (provider) => {
           // Ne pas bloquer la connexion si la session échoue
         }
 
-        // Rediriger vers le frontend avec les tokens dans l'URL
+        // Vérifier si c'est un callback mobile (deep link)
+        const requestedRedirectUri = req.query.redirect_uri || req.body?.redirect_uri;
+        
+        if (requestedRedirectUri && requestedRedirectUri.startsWith('supfile://')) {
+          // C'est un callback mobile - rediriger vers le deep link avec les tokens
+          const redirectUrl = `${requestedRedirectUri}?token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}`;
+          console.log(`OAuth ${provider} success (mobile): User ${user.email} authenticated`);
+          return res.redirect(redirectUrl);
+        }
+        
+        // Sinon, rediriger vers le frontend web avec les tokens dans l'URL
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         const redirectUrl = req.session?.oauthRedirect || '/dashboard';
         
         // Encoder les tokens pour les passer dans l'URL
         const tokens = encodeURIComponent(JSON.stringify({ access_token, refresh_token }));
-        console.log(`OAuth ${provider} success: User ${user.email} authenticated`);
+        console.log(`OAuth ${provider} success (web): User ${user.email} authenticated`);
         res.redirect(`${frontendUrl}/auth/callback?tokens=${tokens}&redirect=${encodeURIComponent(redirectUrl)}`);
       } catch (error) {
         console.error(`OAuth ${provider} callback error:`, error);
