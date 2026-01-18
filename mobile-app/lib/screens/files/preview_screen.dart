@@ -77,19 +77,25 @@ class _PreviewScreenState extends State<PreviewScreen> {
         if (_file == null) {
           for (var item in items) {
             if ((item['id']?.toString() ?? item['_id']?.toString()) == widget.fileId) {
-            setState(() {
               _file = FileItem.fromJson(item);
+              _folderId = _file!.folderId;
+              break;
+            }
+          }
+          
+          if (_file == null) {
+            setState(() {
+              _error = 'Fichier non trouvé';
               _isLoading = false;
             });
-            _loadPreview();
             return;
           }
         }
+        
         setState(() {
-          _error = 'Fichier non trouvé';
           _isLoading = false;
         });
-      }
+        _loadPreview();
     } catch (e) {
       setState(() {
         _error = e.toString();
