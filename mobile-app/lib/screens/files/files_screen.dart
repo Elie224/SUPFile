@@ -10,6 +10,7 @@ import '../../services/api_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/constants.dart';
+import '../../utils/input_validator.dart';
 import 'image_gallery_screen.dart';
 
 class FilesScreen extends StatefulWidget {
@@ -24,6 +25,8 @@ class FilesScreen extends StatefulWidget {
 class _FilesScreenState extends State<FilesScreen> {
   final ApiService _apiService = ApiService();
   List<FolderItem> _breadcrumbs = [];
+  String? _sortBy; // 'name', 'size', 'modified'
+  bool _sortAscending = true;
   
   @override
   void initState() {
@@ -628,65 +631,116 @@ class _FilesScreenState extends State<FilesScreen> {
 
   void _showCreateFolderDialog(BuildContext context) {
     final nameController = TextEditingController();
+    bool isCreating = false;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nouveau dossier'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Nom du dossier',
-            border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nouveau dossier'),
+          content: TextField(
+            controller: nameController,
+            enabled: !isCreating,
+            decoration: const InputDecoration(
+              labelText: 'Nom du dossier',
+              border: OutlineInputBorder(),
+              helperText: 'Caractères interdits: / \\ ? * : | " < >',
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: isCreating ? null : () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: isCreating ? null : () async {
+                final name = InputValidator.sanitizeInput(nameController.text.trim());
+                
+                // Validation du nom
+                if (name.isEmpty) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Le nom du dossier ne peut pas être vide')),
+                    );
+                  }
+                  return;
+                }
+                
+                if (!InputValidator.isValidFolderName(name)) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nom invalide. Caractères interdits: / \\ ? * : | " < >'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                  return;
+                }
+                
+                // Vérifier les doublons
+                final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+                final duplicate = filesProvider.allItems.any((item) {
+                  if (item['type'] == 'folder') {
+                    final folder = item['item'] as FolderItem;
+                    return folder.name.toLowerCase() == name.toLowerCase();
+                  }
+                  return false;
+                });
+                
+                if (duplicate) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Un dossier avec ce nom existe déjà'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  return;
+                }
+                
+                if (!context.mounted) return;
+                
+                setDialogState(() {
+                  isCreating = true;
+                });
+                
+                final success = await filesProvider.createFolder(name);
+                
+                if (context.mounted) {
+                  if (success) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Dossier créé avec succès'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    setDialogState(() {
+                      isCreating = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(filesProvider.error ?? 'Erreur lors de la création du dossier'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: isCreating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Créer'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              if (name.isEmpty) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du dossier ne peut pas être vide')),
-                  );
-                }
-                return;
-              }
-              
-              // Validation du nom
-              if (name.length > 255) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Le nom du dossier est trop long (max 255 caractères)')),
-                  );
-                }
-                return;
-              }
-              
-              if (!context.mounted) return;
-              
-              final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-              final success = await filesProvider.createFolder(name);
-              
-              if (context.mounted) {
-                if (success) {
-                  Navigator.pop(context);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(filesProvider.error ?? 'Erreur lors de la création du dossier'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Créer'),
-          ),
-        ],
       ),
     );
   }
