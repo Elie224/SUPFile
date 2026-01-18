@@ -351,7 +351,22 @@ class _TrashScreenState extends State<TrashScreen> {
                         children: [
                           const Icon(Icons.delete_outline, size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
-                          const Text('Corbeille vide'),
+                          const Text(
+                            'Corbeille vide',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'La corbeille est vide. Les fichiers supprimés apparaîtront ici.',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
                     )

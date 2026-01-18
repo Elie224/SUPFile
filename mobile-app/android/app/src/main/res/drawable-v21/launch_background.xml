@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Splash screen personnalisé pour SUPFile - Fond violet SUPINFO sans logo Flutter (Android 5.0+) -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <!-- Fond avec couleur SUPFile Purple -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#502A88" />
+        </shape>
+    </item>
 </layer-list>
