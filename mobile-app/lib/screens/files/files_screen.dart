@@ -454,6 +454,9 @@ class _FilesScreenState extends State<FilesScreen> {
   }
 
   Widget _buildFolderItem(FolderItem folder) {
+    // Vérifier si c'est le dossier Root (parentId === null)
+    final isRootFolder = folder.parentId == null || folder.parentId == '';
+    
     // Utiliser RepaintBoundary pour isoler les repaints
     return RepaintBoundary(
       key: ValueKey('folder_${folder.id}'),
@@ -544,48 +547,81 @@ class _FilesScreenState extends State<FilesScreen> {
               ],
             ),
           ),
-          const PopupMenuItem(
-            value: 'move',
-            child: Row(
-              children: [
-                Icon(Icons.drive_file_move, size: 20),
-                SizedBox(width: 8),
-                Text('Déplacer'),
-              ],
+          if (!isRootFolder) ...[
+            const PopupMenuItem(
+              value: 'move',
+              child: Row(
+                children: [
+                  Icon(Icons.drive_file_move, size: 20),
+                  SizedBox(width: 8),
+                  Text('Déplacer'),
+                ],
+              ),
             ),
-          ),
-          const PopupMenuItem(
-            value: 'rename',
-            child: Row(
-              children: [
-                Icon(Icons.edit, size: 20),
-                SizedBox(width: 8),
-                Text('Renommer'),
-              ],
+            PopupMenuItem(
+              value: 'rename',
+              enabled: !isRootFolder,
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 20, color: isRootFolder ? Colors.grey : null),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Renommer',
+                    style: TextStyle(color: isRootFolder ? Colors.grey : null),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, size: 20, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Supprimer', style: TextStyle(color: Colors.red)),
-              ],
+            PopupMenuItem(
+              value: 'delete',
+              enabled: !isRootFolder,
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 20, color: isRootFolder ? Colors.grey : Colors.red),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Supprimer',
+                    style: TextStyle(color: isRootFolder ? Colors.grey : Colors.red),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ] else ...[
+            PopupMenuItem(
+              enabled: false,
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Actions limitées pour Root',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
         onSelected: (value) async {
           if (value == 'share') {
             context.go('/share?folder=${folder.id}');
           } else if (value == 'download') {
             await _downloadFolder(folder.id);
-          } else if (value == 'move') {
+          } else if (value == 'move' && !isRootFolder) {
             _showMoveDialog(context, folder.id, folder.name, true);
-          } else if (value == 'rename') {
+          } else if (value == 'rename' && !isRootFolder) {
             _showRenameDialog(context, folder.id, folder.name, true);
-          } else if (value == 'delete') {
+          } else if (value == 'delete' && !isRootFolder) {
             _showDeleteDialog(context, folder.id, folder.name, true);
+          } else if (isRootFolder && (value == 'rename' || value == 'delete')) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Impossible de renommer ou supprimer la racine'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
           }
         },
         ),
