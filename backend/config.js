@@ -25,20 +25,35 @@ module.exports = {
   },
   cors: {
     origin: function (origin, callback) {
-      // Liste des origines autorisées
-      const defaultOrigins = process.env.NODE_ENV === 'production' 
-        ? [] 
-        : 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:19000,exp://localhost:19000';
-      const allowedOrigins = (process.env.CORS_ORIGIN || defaultOrigins)
+      // Liste des origines autorisées par défaut
+      let defaultOrigins = '';
+      
+      if (process.env.NODE_ENV === 'production') {
+        // En production, inclure les domaines Render par défaut si CORS_ORIGIN n'est pas défini
+        defaultOrigins = 'https://supfile-frontend.onrender.com,https://supfile-frontend-1.onrender.com';
+      } else {
+        // En développement, autoriser localhost
+        defaultOrigins = 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:19000,exp://localhost:19000';
+      }
+      
+      // Construire la liste des origines autorisées
+      const envOrigins = process.env.CORS_ORIGIN || '';
+      const allOriginsString = envOrigins 
+        ? `${envOrigins},${defaultOrigins}` 
+        : defaultOrigins;
+      
+      const allowedOrigins = allOriginsString
         .split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0);
       
       // Autoriser les requêtes sans origine (comme les requêtes depuis Postman, curl, ou applications mobiles)
-      // En production, être plus strict
+      // En production, être plus strict mais permettre si l'origine est définie dans CORS_ORIGIN
       if (!origin) {
-        if (process.env.NODE_ENV === 'production') {
-          return callback(new Error('No origin provided'));
+        if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+          // Si CORS_ORIGIN n'est pas défini en production, permettre les requêtes sans origine
+          // pour la compatibilité avec les applications mobiles
+          return callback(null, true);
         }
         return callback(null, true);
       }
@@ -56,7 +71,16 @@ module.exports = {
             return callback(null, true);
           }
         }
+        
+        // En production, autoriser aussi les sous-domaines Render (.onrender.com)
+        if (process.env.NODE_ENV === 'production') {
+          if (origin.match(/^https:\/\/.*\.onrender\.com$/)) {
+            return callback(null, true);
+          }
+        }
+        
         console.warn(`CORS blocked origin: ${origin}`);
+        console.warn(`Allowed origins: ${allowedOrigins.join(', ')}`);
         callback(new Error('Not allowed by CORS'));
       }
     },

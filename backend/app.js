@@ -91,6 +91,7 @@ app.use(compressionMiddleware);
 app.use(performanceMiddleware);
 
 // Security middleware - Protection contre les vulnérabilités courantes
+// NOTE: crossOriginResourcePolicy doit être "cross-origin" pour permettre les requêtes CORS
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false, // Désactivé pour permettre les ressources externes
@@ -100,7 +101,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://*.onrender.com"], // Autoriser les connexions vers Render
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
