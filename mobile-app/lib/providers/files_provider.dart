@@ -104,7 +104,40 @@ class FilesProvider with ChangeNotifier {
         PerformanceOptimizer.cleanExpiredCache();
       }
     } catch (e) {
-      _error = e.toString();
+      // Améliorer les messages d'erreur selon le type d'erreur
+      if (e is DioException) {
+        final statusCode = e.response?.statusCode;
+        switch (statusCode) {
+          case 401:
+            _error = 'Votre session a expiré. Veuillez vous reconnecter.';
+            break;
+          case 403:
+            _error = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
+            break;
+          case 404:
+            _error = 'Dossier non trouvé.';
+            break;
+          case 429:
+            _error = 'Trop de requêtes. Veuillez patienter quelques instants.';
+            break;
+          case 500:
+          case 502:
+          case 503:
+            _error = 'Erreur serveur. Veuillez réessayer plus tard.';
+            break;
+          default:
+            if (e.type == DioExceptionType.connectionTimeout || 
+                e.type == DioExceptionType.receiveTimeout) {
+              _error = 'Délai d\'attente dépassé. Vérifiez votre connexion internet.';
+            } else if (e.type == DioExceptionType.connectionError) {
+              _error = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+            } else {
+              _error = e.response?.data?['error']?['message'] ?? e.message ?? 'Erreur lors du chargement des fichiers';
+            }
+        }
+      } else {
+        _error = e.toString();
+      }
     }
     
     _isLoading = false;

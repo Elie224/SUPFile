@@ -197,6 +197,66 @@ class _FilesScreenState extends State<FilesScreen> {
           ],
         ),
         actions: [
+          // Bouton de tri
+            PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Trier',
+            onSelected: (value) {
+              setState(() {
+                if (value == 'clear') {
+                  _sortBy = null;
+                  _sortAscending = true;
+                } else if (_sortBy == value) {
+                  _sortAscending = !_sortAscending;
+                } else {
+                  _sortBy = value;
+                  _sortAscending = true;
+                }
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'name',
+                child: Row(
+                  children: [
+                    if (_sortBy == 'name')
+                      Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 16),
+                    const SizedBox(width: 8),
+                    const Text('Nom'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'size',
+                child: Row(
+                  children: [
+                    if (_sortBy == 'size')
+                      Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 16),
+                    const SizedBox(width: 8),
+                    const Text('Taille'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'modified',
+                child: Row(
+                  children: [
+                    if (_sortBy == 'modified')
+                      Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 16),
+                    const SizedBox(width: 8),
+                    const Text('Date de modification'),
+                  ],
+                ),
+              ),
+              if (_sortBy != null) ...[
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'clear',
+                  child: const Text('Annuler le tri'),
+                ),
+              ],
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.create_new_folder),
             tooltip: 'Nouveau dossier',
@@ -211,34 +271,84 @@ class _FilesScreenState extends State<FilesScreen> {
       ),
       body: Column(
         children: [
-          // Breadcrumbs (Fil d'Ariane)
+          // Breadcrumbs (Fil d'Ariane) amélioré
           if (_breadcrumbs.isNotEmpty || widget.folderId != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+              ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
                     InkWell(
                       onTap: () => context.go('/files'),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.home, size: 16),
-                          const SizedBox(width: 4),
-                          const Text('Racine'),
-                        ],
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.home_outlined, size: 18, color: AppConstants.supinfoPurple),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Racine',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppConstants.supinfoPurple,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    ..._breadcrumbs.map((folder) => Row(
-                      children: [
-                        const Icon(Icons.chevron_right, size: 16),
-                        InkWell(
-                          onTap: () => context.go('/files?folder=${folder.id}'),
-                          child: Text(folder.name),
-                        ),
-                      ],
-                    )),
+                    ..._breadcrumbs.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final folder = entry.value;
+                      final isLast = index == _breadcrumbs.length - 1;
+                      
+                      return Row(
+                        children: [
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          InkWell(
+                            onTap: () => context.go('/files?folder=${folder.id}'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isLast)
+                                    Icon(Icons.folder, size: 18, color: Colors.amber.shade700)
+                                  else
+                                    Icon(Icons.folder_outlined, size: 18, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    folder.name,
+                                    style: TextStyle(
+                                      fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
+                                      color: isLast ? Colors.black87 : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -263,8 +373,50 @@ class _FilesScreenState extends State<FilesScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: () => filesProvider.loadFiles(folderId: widget.folderId),
-                  child: ListView.builder(
-                    itemCount: filesProvider.allItems.length,
+                  child: _buildSortedList(filesProvider),
+                ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Construire la liste triée des items
+  Widget _buildSortedList(FilesProvider filesProvider) {
+    List<dynamic> items = List.from(filesProvider.allItems);
+    
+    // Trier les items selon _sortBy et _sortAscending
+    if (_sortBy != null && items.isNotEmpty) {
+      items.sort((a, b) {
+        dynamic aItem = a['item'];
+        dynamic bItem = b['item'];
+        
+        dynamic aValue, bValue;
+        
+        if (_sortBy == 'name') {
+          aValue = aItem.name?.toLowerCase() ?? '';
+          bValue = bItem.name?.toLowerCase() ?? '';
+        } else if (_sortBy == 'size') {
+          aValue = aItem is FileItem ? (aItem.size ?? 0) : 0;
+          bValue = bItem is FileItem ? (bItem.size ?? 0) : 0;
+        } else if (_sortBy == 'modified') {
+          final aDate = aItem.updatedAt ?? aItem.createdAt;
+          final bDate = bItem.updatedAt ?? bItem.createdAt;
+          aValue = aDate != null ? DateTime.parse(aDate).millisecondsSinceEpoch : 0;
+          bValue = bDate != null ? DateTime.parse(bDate).millisecondsSinceEpoch : 0;
+        } else {
+          return 0;
+        }
+        
+        if (aValue == bValue) return 0;
+        return _sortAscending 
+            ? (aValue < bValue ? -1 : 1)
+            : (aValue > bValue ? -1 : 1);
+      });
+    }
+    
+    return ListView.builder(
+                    itemCount: items.length,
                     // Optimisations de performance
                     cacheExtent: 500, // Cache étendu pour scroll fluide
                     addAutomaticKeepAlives: false, // Ne pas garder les widgets hors écran
@@ -272,11 +424,11 @@ class _FilesScreenState extends State<FilesScreen> {
                     itemExtent: 72.0, // Hauteur fixe pour meilleure performance
                     itemBuilder: (context, index) {
                       // Validation de l'index pour éviter out of bounds
-                      if (index < 0 || index >= filesProvider.allItems.length) {
+                      if (index < 0 || index >= items.length) {
                         return const SizedBox.shrink();
                       }
                       
-                      final item = filesProvider.allItems[index];
+                      final item = items[index];
                       
                       // Validation de la structure de l'item
                       if (item is! Map<String, dynamic> || 
