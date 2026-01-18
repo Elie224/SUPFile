@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Trash() {
   const { t, language } = useLanguage();
+  const toast = useToast();
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);

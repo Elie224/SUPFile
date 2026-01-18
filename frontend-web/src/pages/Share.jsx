@@ -107,13 +107,13 @@ export default function Share() {
       }
     } catch (err) {
       console.error('Download error:', err);
-      alert(err.message || 'Erreur lors du téléchargement');
+      toast.error(err.message || 'Erreur lors du téléchargement');
     }
   };
 
   const verifyPassword = async () => {
     if (!password) {
-      alert('Veuillez entrer le mot de passe');
+      toast.warning('Veuillez entrer le mot de passe');
       return;
     }
     
@@ -133,7 +133,7 @@ export default function Share() {
       }
     } catch (err) {
       console.error('Password verification error:', err);
-      alert('Erreur lors de la vérification du mot de passe');
+      toast.error('Erreur lors de la vérification du mot de passe');
     } finally {
       setLoading(false);
     }
