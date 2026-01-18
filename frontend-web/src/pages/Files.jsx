@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../components/Toast';
 
 export default function Files() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t, language } = useLanguage(); // Inclure language pour forcer le re-render
+  const toast = useToast(); // Système de notifications
   const [items, setItems] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderHistory, setFolderHistory] = useState([]);
@@ -253,14 +255,14 @@ export default function Files() {
   const createFolder = async () => {
     const trimmedName = newFolderName.trim();
     if (!trimmedName) {
-      alert(t('folderNameRequired') || 'Veuillez entrer un nom pour le dossier');
+      toast.warning(t('folderNameRequired') || 'Veuillez entrer un nom pour le dossier');
       return;
     }
     
     // Valider le nom
     const validationErrors = validateFolderName(trimmedName);
     if (validationErrors.length > 0) {
-      alert(validationErrors.join('\n'));
+      toast.error(validationErrors.join(', '));
       return;
     }
     
@@ -272,11 +274,11 @@ export default function Files() {
       await loadFiles();
       // Message de succès
       setError(null);
-      // Le succès est confirmé par le rechargement automatique de la liste
+      toast.success(`Dossier "${trimmedName}" créé avec succès`);
     } catch (err) {
       console.error('Failed to create folder:', err);
       const errorMessage = err.response?.data?.error?.message || err.message || t('createFolderError');
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setCreatingFolder(false);
     }
@@ -292,10 +294,11 @@ export default function Files() {
       }
       setEditingItem(null);
       setEditName('');
-      loadFiles();
+      await loadFiles();
+      toast.success(`${editingItem.type === 'folder' ? 'Dossier' : 'Fichier'} renommé en "${editName.trim()}"`);
     } catch (err) {
       console.error('Failed to rename:', err);
-      alert(t('renameError'));
+      toast.error(err.response?.data?.error?.message || t('renameError'));
     }
   };
 
@@ -305,14 +308,14 @@ export default function Files() {
     
     if (!item) {
       console.error('❌ No item provided');
-      alert('Erreur: aucun élément sélectionné');
+      toast.error('Erreur: aucun élément sélectionné');
       return;
     }
     
     const itemId = item.id || item._id;
     if (!itemId) {
       console.error('❌ Item has no id:', item);
-      alert('Erreur: l\'élément n\'a pas d\'identifiant');
+      toast.error('Erreur: l\'élément n\'a pas d\'identifiant');
       return;
     }
     
@@ -375,7 +378,7 @@ export default function Files() {
       // Recharger la liste après suppression
       await loadFiles();
       
-      alert(`✅ "${itemName}" a été supprimé avec succès\n\nVous pouvez le restaurer depuis la corbeille si nécessaire.`);
+      toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
     } catch (err) {
       console.error('❌ Deletion error:', err);
       console.error('Error details:', {
@@ -384,7 +387,7 @@ export default function Files() {
       });
       
       const errorMessage = err.message || 'Erreur lors de la suppression';
-      alert(`❌ ${t('deleteError')}:\n\n${errorMessage}\n\n${t('language') === 'en' ? 'Check the console (F12) for more details.' : 'Vérifiez la console (F12) pour plus de détails.'}`);
+      toast.error(`${t('deleteError')}: ${errorMessage}`);
     }
     
     console.log('=== CONFIRM DELETE END ===');
@@ -422,8 +425,8 @@ export default function Files() {
     // Vérifier que l'utilisateur est connecté
     const token = localStorage.getItem('access_token');
     if (!token) {
-      alert(t('mustBeConnected') + '. ' + (t('language') === 'en' ? 'Redirecting to login...' : 'Redirection vers la page de connexion...'));
-      navigate('/login');
+      toast.warning(t('mustBeConnected') + '. ' + (t('language') === 'en' ? 'Redirecting to login...' : 'Redirection vers la page de connexion...'));
+      setTimeout(() => navigate('/login'), 1000);
       return;
     }
     
@@ -431,7 +434,7 @@ export default function Files() {
       // Partage interne
       if (shareType === 'internal') {
         if (!selectedShareUser) {
-          alert(t('selectUserError'));
+          toast.warning(t('selectUserError'));
           return;
         }
         
@@ -442,7 +445,7 @@ export default function Files() {
         );
         
         if (response.data) {
-          alert(`${t('share')} ${t('success')}: ${selectedShareUser.email || selectedShareUser.display_name}`);
+          toast.success(`${t('share')} réussi avec ${selectedShareUser.email || selectedShareUser.display_name}`);
           setShowShareModal(null);
           setSharePassword('');
           setShareExpiresAt('');
@@ -459,7 +462,7 @@ export default function Files() {
       // Gérer le mot de passe
       if (sharePassword && typeof sharePassword === 'string' && sharePassword.trim() !== '') {
         if (sharePassword.trim().length < 6) {
-          alert(t('passwordMinLength'));
+          toast.warning(t('passwordMinLength'));
           return;
         }
         options.password = sharePassword.trim();
@@ -506,10 +509,10 @@ export default function Files() {
       
       // Si c'est une erreur 401, rediriger vers login
       if (err.response?.status === 401) {
-        alert('Votre session a expiré. Veuillez vous reconnecter.');
-        navigate('/login');
+        toast.error('Votre session a expiré. Veuillez vous reconnecter.');
+        setTimeout(() => navigate('/login'), 1000);
       } else {
-        alert(errorMsg);
+        toast.error(errorMsg);
       }
     }
   };
@@ -575,14 +578,14 @@ export default function Files() {
         await folderService.move(itemToMove.id, selectedDestinationFolder);
       }
       
-      alert(`${t('move')} ${t('success')}`);
+      toast.success(`${t('move')} réussi`);
       setItemToMove(null);
       setSelectedDestinationFolder(null);
-      loadFiles();
+      await loadFiles();
     } catch (err) {
       console.error('Failed to move:', err);
       const errorMsg = err.response?.data?.error?.message || err.message || t('moveError');
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -965,7 +968,7 @@ export default function Files() {
                     className="btn btn-success btn-sm d-flex align-items-center gap-1"
                     onClick={() => {
                       navigator.clipboard.writeText(shareLink);
-                      alert(t('linkCopied') || 'Lien copié dans le presse-papiers !');
+                      toast.success(t('linkCopied') || 'Lien copié dans le presse-papiers !');
                     }}
                     style={{ marginTop: 8 }}
                   >
@@ -1501,7 +1504,7 @@ export default function Files() {
                           if (!isRootFolder) {
                             deleteItem({ ...item, type: itemType, id: itemId });
                           } else {
-                            alert(t('cannotDeleteRoot') || 'Impossible de supprimer la racine');
+                            toast.warning(t('cannotDeleteRoot') || 'Impossible de supprimer la racine');
                           }
                         }}
                         disabled={isRootFolder}
