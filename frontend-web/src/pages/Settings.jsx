@@ -191,11 +191,11 @@ export default function Settings() {
   };
 
 
-  // Calculer le pourcentage brut et formaté
+  // Calculer le pourcentage brut et formaté - Corriger l'incohérence : si used === 0, alors 0%
   const quotaPercentageRaw = quotaLimit > 0 && quotaUsed > 0 ? (quotaUsed / quotaLimit) * 100 : 0;
-  const quotaPercentage = quotaPercentageRaw < 1 
+  const quotaPercentage = quotaUsed === 0 ? 0 : (quotaPercentageRaw < 1 
     ? Math.max(0.01, parseFloat(quotaPercentageRaw.toFixed(2)))
-    : Math.round(quotaPercentageRaw);
+    : Math.round(quotaPercentageRaw));
   const quotaColor = quotaPercentageRaw >= 90 ? '#f44336' : quotaPercentageRaw >= 75 ? '#ff9800' : '#4caf50';
 
   if (loading) {
@@ -293,9 +293,9 @@ export default function Settings() {
                     {formatBytes(quotaUsed)} / {formatBytes(quotaLimit)}
                   </span>
                   <span style={{ color: '#666' }}>
-                    {quotaPercentageRaw < 1 
+                    {quotaUsed === 0 ? '0' : (quotaPercentageRaw < 1 
                       ? quotaPercentageRaw.toFixed(2) 
-                      : quotaPercentage}%
+                      : quotaPercentage)}%
                   </span>
                 </div>
                 <div style={{
@@ -426,7 +426,7 @@ export default function Settings() {
               }}
               required
               minLength={8}
-              placeholder={t('passwordMinLength')}
+              placeholder={t('newPassword') || 'Nouveau mot de passe'}
             />
           </div>
           <div style={{ marginBottom: 20 }}>
