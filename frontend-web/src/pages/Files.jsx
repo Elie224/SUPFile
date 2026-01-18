@@ -745,6 +745,7 @@ export default function Files() {
             </label>
             <button
               onClick={() => setShowNewFolder(!showNewFolder)}
+              aria-label={t('newFolder') || 'Nouveau dossier'}
               style={{ 
                 padding: '10px 20px', 
                 backgroundColor: '#4CAF50', 
@@ -766,7 +767,7 @@ export default function Files() {
                 e.target.style.boxShadow = '0 2px 4px rgba(76, 175, 80, 0.3)';
               }}
             >
-              <i className="bi bi-folder-plus me-2"></i>
+              <i className="bi bi-folder-plus me-2" aria-hidden="true"></i>
               {t('newFolder')}
             </button>
           </div>
@@ -1118,7 +1119,7 @@ export default function Files() {
                         (item.type === 'file' || (item.folder_id === null && item.parent_id === null ? false : true))
                       );
                       // Action à implémenter : télécharger/supprimer en masse
-                      alert(`${selectedFiles.length} élément(s) sélectionné(s)`);
+                      toast.info(`${selectedFiles.length} élément(s) sélectionné(s)`);
                     }}
                   >
                     <i className="bi bi-download me-1"></i>
@@ -1169,24 +1170,13 @@ export default function Files() {
                         title={t('selectAll') || 'Tout sélectionner'}
                       />
                     </th>
-                    <th 
-                      onClick={() => handleSort('name')}
-                      style={{ 
-                        textAlign: 'left', 
-                        padding: '16px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#333',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        cursor: 'pointer',
-                        userSelect: 'none'
-                      }}
-                    >
-                      {t('name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </th>
                   <th 
-                    onClick={() => handleSort('size')}
+                    onClick={() => handleSort('name')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSort('name')}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Trier par ${t('name')}`}
+                    aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                     style={{ 
                       textAlign: 'left', 
                       padding: '16px',
@@ -1196,13 +1186,41 @@ export default function Files() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       cursor: 'pointer',
-                      userSelect: 'none'
+                      userSelect: 'none',
+                      outline: 'none'
+                    }}
+                  >
+                    {t('name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('size')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSort('size')}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Trier par ${t('size')}`}
+                    aria-sort={sortBy === 'size' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    style={{ 
+                      textAlign: 'left', 
+                      padding: '16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      outline: 'none'
                     }}
                   >
                     {t('size')} {sortBy === 'size' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th 
                     onClick={() => handleSort('modified')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSort('modified')}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Trier par ${t('modified')}`}
+                    aria-sort={sortBy === 'modified' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                     style={{ 
                       textAlign: 'left', 
                       padding: '16px',
@@ -1212,7 +1230,8 @@ export default function Files() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       cursor: 'pointer',
-                      userSelect: 'none'
+                      userSelect: 'none',
+                      outline: 'none'
                     }}
                   >
                     {t('modified')} {sortBy === 'modified' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -1316,7 +1335,7 @@ export default function Files() {
                                 const token = localStorage.getItem('access_token');
                                 
                                 if (!token) {
-                                  alert(t('mustBeConnected'));
+                                  toast.warning(t('mustBeConnected'));
                                   return;
                                 }
                                 
@@ -1342,7 +1361,7 @@ export default function Files() {
                                 document.body.removeChild(a);
                               } catch (err) {
                                 console.error('Download failed:', err);
-                                alert(err.message || t('downloadError'));
+                                toast.error(err.message || t('downloadError'));
                               }
                             }}
                             className="btn btn-outline-primary btn-sm"
@@ -1353,8 +1372,9 @@ export default function Files() {
                               alignItems: 'center'
                             }}
                             title={t('download')}
+                            aria-label={`${t('download')} ${item.name}`}
                           >
-                            <i className="bi bi-download me-1"></i>
+                            <i className="bi bi-download me-1" aria-hidden="true"></i>
                             {t('download')}
                           </button>
                           <button
@@ -1372,8 +1392,9 @@ export default function Files() {
                               alignItems: 'center'
                             }}
                             title={t('share')}
+                            aria-label={`${t('share')} ${item.name}`}
                           >
-                            <i className="bi bi-share me-1"></i>
+                            <i className="bi bi-share me-1" aria-hidden="true"></i>
                             {t('share')}
                           </button>
                         </>
@@ -1389,7 +1410,7 @@ export default function Files() {
                                 const token = localStorage.getItem('access_token');
                                 
                                 if (!token) {
-                                  alert(t('mustBeConnected'));
+                                  toast.warning(t('mustBeConnected'));
                                   return;
                                 }
                                 
@@ -1413,9 +1434,10 @@ export default function Files() {
                                 a.click();
                                 window.URL.revokeObjectURL(url);
                                 document.body.removeChild(a);
+                                toast.success('Téléchargement réussi');
                               } catch (err) {
                                 console.error('Download failed:', err);
-                                alert(err.message || t('downloadError'));
+                                toast.error(err.message || t('downloadError'));
                               }
                             }}
                             style={{
