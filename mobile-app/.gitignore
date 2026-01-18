@@ -43,6 +43,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Keystore files (IMPORTANT: Ne jamais commiter les clés de signature)
+*.jks
+*.keystore
+android/key.properties
+supfile-release-key.jks
+
 # Environment variables
 .env
 .env.local
