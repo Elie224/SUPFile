@@ -34,6 +34,8 @@ export default function Files() {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sortBy, setSortBy] = useState(null); // 'name', 'size', 'modified'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -65,22 +67,26 @@ export default function Files() {
       const errorMessage = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
       const statusCode = err.response?.status;
       
-      let userMessage = t('loadError') || 'Erreur lors du chargement des fichiers';
+      let userMessage;
       
+      // Messages d'erreur détaillés selon le type d'erreur
       if (statusCode === 401) {
-        userMessage = 'Votre session a expiré. Veuillez vous reconnecter.';
-        // Rediriger vers login après 2 secondes
+        userMessage = t('errorSessionExpired') || 'Votre session a expiré. Veuillez vous reconnecter.';
         setTimeout(() => {
           navigate('/login');
         }, 2000);
       } else if (statusCode === 403) {
-        userMessage = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
+        userMessage = t('errorAccessDenied') || 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
       } else if (statusCode === 404) {
-        userMessage = 'Dossier non trouvé.';
+        userMessage = t('errorFolderNotFound') || 'Dossier non trouvé.';
+      } else if (statusCode === 429) {
+        userMessage = t('errorRateLimit') || 'Trop de requêtes. Veuillez patienter quelques instants.';
+      } else if (statusCode === 500 || statusCode === 502 || statusCode === 503) {
+        userMessage = t('errorServer') || 'Erreur serveur. Veuillez réessayer plus tard.';
       } else if (!err.response) {
-        userMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
+        userMessage = t('errorNetwork') || 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.';
       } else {
-        userMessage += ': ' + errorMessage;
+        userMessage = `${t('loadError') || 'Erreur lors du chargement'}: ${errorMessage}`;
       }
       
       setError(userMessage);
@@ -138,12 +144,44 @@ export default function Files() {
 
   const handleDrop = (e) => {
     e.preventDefault();
+    setIsDragOver(false);
     const files = Array.from(e.dataTransfer.files);
-    uploadFiles(files);
+    if (files.length > 0) {
+      uploadFiles(files);
+    }
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  // Gestion de la sélection multiple
+  const toggleItemSelection = (itemId) => {
+    setSelectedItems(prev => {
+      if (prev.includes(itemId)) {
+        return prev.filter(id => id !== itemId);
+      } else {
+        return [...prev, itemId];
+      }
+    });
+  };
+
+  const selectAllItems = () => {
+    if (selectedItems.length === sortedItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(sortedItems.map(item => item.id || item._id));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedItems([]);
   };
 
   // Validation du nom de dossier
@@ -959,9 +997,13 @@ export default function Files() {
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         style={{ 
           minHeight: 400, 
-          border: '2px dashed #ddd', 
+          border: isDragOver ? '2px dashed #2196F3' : '2px dashed #ddd',
+          backgroundColor: isDragOver ? '#e3f2fd' : 'transparent',
+          borderRadius: '12px',
+          transition: 'all 0.3s ease',
           borderRadius: '12px', 
           padding: '32px',
           backgroundColor: '#fafafa',
@@ -1022,40 +1064,90 @@ export default function Files() {
             </div>
           </div>
         ) : (
-          <div style={{ 
-            overflowX: 'auto', 
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e0e0e0'
-          }}>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'separate',
-              borderSpacing: 0,
-              minWidth: '600px'
+          <>
+            {/* Barre d'actions pour sélection multiple */}
+            {selectedItems.length > 0 && (
+              <div className="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+                <span>
+                  <i className="bi bi-check2-square me-2"></i>
+                  <strong>{selectedItems.length}</strong> {selectedItems.length > 1 ? 'éléments sélectionnés' : 'élément sélectionné'}
+                </span>
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => {
+                      const selectedFiles = sortedItems.filter(item => 
+                        selectedItems.includes(item.id || item._id) && 
+                        (item.type === 'file' || (item.folder_id === null && item.parent_id === null ? false : true))
+                      );
+                      // Action à implémenter : télécharger/supprimer en masse
+                      alert(`${selectedFiles.length} élément(s) sélectionné(s)`);
+                    }}
+                  >
+                    <i className="bi bi-download me-1"></i>
+                    Actions groupées
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={clearSelection}
+                  >
+                    <i className="bi bi-x-lg me-1"></i>
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <div style={{ 
+              overflowX: 'auto', 
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e0e0e0'
             }}>
-              <thead>
-                <tr style={{ 
-                  backgroundColor: '#f8f9fa',
-                  borderBottom: '2px solid #e0e0e0'
-                }}>
-                  <th 
-                    onClick={() => handleSort('name')}
-                    style={{ 
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'separate',
+                borderSpacing: 0,
+                minWidth: '600px'
+              }}>
+                <thead>
+                  <tr style={{ 
+                    backgroundColor: '#f8f9fa',
+                    borderBottom: '2px solid #e0e0e0'
+                  }}>
+                    <th style={{ 
                       textAlign: 'left', 
                       padding: '16px',
                       fontSize: '14px',
                       fontWeight: '600',
                       color: '#333',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      cursor: 'pointer',
-                      userSelect: 'none'
-                    }}
-                  >
-                    {t('name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </th>
+                      width: '40px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.length === sortedItems.length && sortedItems.length > 0}
+                        onChange={selectAllItems}
+                        style={{ cursor: 'pointer' }}
+                        title={t('selectAll') || 'Tout sélectionner'}
+                      />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('name')}
+                      style={{ 
+                        textAlign: 'left', 
+                        padding: '16px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#333',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      {t('name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    </th>
                   <th 
                     onClick={() => handleSort('size')}
                     style={{ 
@@ -1111,7 +1203,8 @@ export default function Files() {
                   <tr 
                     key={itemId} 
                     style={{ 
-                      borderBottom: index < items.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      borderBottom: index < sortedItems.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor: selectedItems.includes(itemId) ? '#e3f2fd' : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
                       backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
                       transition: 'background-color 0.2s ease'
                     }}
@@ -1122,7 +1215,15 @@ export default function Files() {
                       e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
                     }}
                   >
-                  >
+                    <td style={{ padding: '16px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(itemId)}
+                        onChange={() => toggleItemSelection(itemId)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </td>
                     <td style={{ padding: '16px' }}>
                       {itemType === 'folder' ? (
                         <span
@@ -1391,6 +1492,7 @@ export default function Files() {
               </tbody>
           </table>
           </div>
+          </>
         )}
       </div>
 
