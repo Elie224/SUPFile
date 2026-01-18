@@ -368,6 +368,15 @@ class _FilesScreenState extends State<FilesScreen> {
                         'Dossier vide',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ce dossier est vide pour le moment',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 )
@@ -953,15 +962,54 @@ class _FilesScreenState extends State<FilesScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isNotEmpty) {
-                final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-                if (isFolder) {
-                  await filesProvider.renameFolder(id, nameController.text);
-                } else {
-                  await filesProvider.renameFile(id, nameController.text);
-                }
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) {
                 if (context.mounted) {
-                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Le nom ne peut pas être vide'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+                return;
+              }
+              
+              // Validation du nom
+              if (!InputValidator.isValidFolderName(newName)) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Nom invalide. Caractères interdits: / \\ ? * : | " < >'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+                return;
+              }
+              
+              final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+              final success = isFolder
+                  ? await filesProvider.renameFolder(id, newName)
+                  : await filesProvider.renameFile(id, newName);
+              
+              if (context.mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${isFolder ? "Dossier" : "Fichier"} renommé en "$newName"'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(filesProvider.error ?? 'Erreur lors du renommage'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               }
             },
@@ -986,13 +1034,28 @@ class _FilesScreenState extends State<FilesScreen> {
           ElevatedButton(
             onPressed: () async {
               final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-              if (isFolder) {
-                await filesProvider.deleteFolder(id);
-              } else {
-                await filesProvider.deleteFile(id);
-              }
+              final success = isFolder
+                  ? await filesProvider.deleteFolder(id)
+                  : await filesProvider.deleteFile(id);
+              
               if (context.mounted) {
                 Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('"$name" a été supprimé et envoyé dans la corbeille'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(filesProvider.error ?? 'Erreur lors de la suppression'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
