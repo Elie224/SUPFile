@@ -31,6 +31,7 @@ export default function Files() {
   const [selectedDestinationFolder, setSelectedDestinationFolder] = useState(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [error, setError] = useState(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -143,16 +144,67 @@ export default function Files() {
     e.preventDefault();
   };
 
+  // Validation du nom de dossier
+  const validateFolderName = (name) => {
+    const errors = [];
+    
+    // Vide
+    if (!name.trim()) {
+      errors.push(t('folderNameRequired') || 'Le nom ne peut pas être vide');
+      return errors;
+    }
+    
+    // Trop long
+    if (name.length > 255) {
+      errors.push(t('folderNameTooLong') || 'Maximum 255 caractères');
+    }
+    
+    // Caractères interdits
+    const invalidChars = /[/\\?*:|"<>]/g;
+    if (invalidChars.test(name)) {
+      errors.push(t('folderNameInvalidChars') || 'Caractères interdits : / \\ ? * : | " < >');
+    }
+    
+    // Vérifier les doublons
+    const duplicate = items.find(item => 
+      item.type === 'folder' && 
+      item.name.toLowerCase() === name.trim().toLowerCase()
+    );
+    if (duplicate) {
+      errors.push(t('folderNameDuplicate') || 'Un dossier avec ce nom existe déjà');
+    }
+    
+    return errors;
+  };
+
   const createFolder = async () => {
-    if (!newFolderName.trim()) return;
+    const trimmedName = newFolderName.trim();
+    if (!trimmedName) {
+      alert(t('folderNameRequired') || 'Veuillez entrer un nom pour le dossier');
+      return;
+    }
+    
+    // Valider le nom
+    const validationErrors = validateFolderName(trimmedName);
+    if (validationErrors.length > 0) {
+      alert(validationErrors.join('\n'));
+      return;
+    }
+    
+    setCreatingFolder(true);
     try {
-      await folderService.create(newFolderName.trim(), currentFolder?.id || null);
+      await folderService.create(trimmedName, currentFolder?.id || null);
       setNewFolderName('');
       setShowNewFolder(false);
-      loadFiles();
+      await loadFiles();
+      // Message de succès (peut être amélioré avec un toast)
+      setError(null);
     } catch (err) {
       console.error('Failed to create folder:', err);
-      alert(t('createFolderError'));
+      const errorMessage = err.response?.data?.error?.message || err.message || t('createFolderError');
+      alert(errorMessage);
+    } finally {
+      setCreatingFolder(false);
     }
   };
 
@@ -622,8 +674,28 @@ export default function Files() {
             onKeyPress={(e) => e.key === 'Enter' && createFolder()}
             style={{ padding: 8, width: 300, marginRight: 8 }}
           />
-          <button onClick={createFolder} style={{ padding: '8px 16px', marginRight: 8 }}>{t('create')}</button>
-          <button onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}>{t('cancel')}</button>
+          <button 
+            onClick={createFolder} 
+            disabled={creatingFolder}
+            className="btn btn-primary"
+            style={{ padding: '8px 16px', marginRight: 8 }}
+          >
+            {creatingFolder ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {t('creating') || 'Création...'}
+              </>
+            ) : (
+              t('create')
+            )}
+          </button>
+          <button 
+            onClick={() => { setShowNewFolder(false); setNewFolderName(''); }} 
+            disabled={creatingFolder}
+            className="btn btn-secondary"
+          >
+            {t('cancel')}
+          </button>
         </div>
       )}
 
@@ -784,13 +856,15 @@ export default function Files() {
                     onClick={(e) => e.target.select()}
                   />
                   <button
+                    className="btn btn-success btn-sm d-flex align-items-center gap-1"
                     onClick={() => {
                       navigator.clipboard.writeText(shareLink);
-                      alert('Lien copié dans le presse-papiers !');
+                      alert(t('linkCopied') || 'Lien copié dans le presse-papiers !');
                     }}
-                    style={{ marginTop: 8, padding: '4px 8px', fontSize: '12px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                    style={{ marginTop: 8 }}
                   >
-                    Copier le lien
+                    <i className="bi bi-clipboard"></i>
+                    {t('copyLink') || 'Copier le lien'}
                   </button>
                 </div>
                 <button 
