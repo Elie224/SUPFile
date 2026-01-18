@@ -1,8 +1,10 @@
 class AppConstants {
   // API Configuration
+  // Par défaut, utiliser l'API en production sur Render
+  // Pour développement local, utiliser: flutter run --dart-define=API_URL=http://192.168.1.X:5000
   static const String apiBaseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://localhost:5000',
+    defaultValue: 'https://supfile-1.onrender.com',
   );
   
   static const String apiUrl = '$apiBaseUrl/api';

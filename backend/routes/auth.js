@@ -20,9 +20,14 @@ router.post('/logout', authController.logout);
 router.get('/google', initiateOAuth('google'));
 router.get('/github', initiateOAuth('github'));
 
-// Routes OAuth - Callbacks
+// Routes OAuth - Callbacks (GET pour web avec Passport)
 router.get('/google/callback', handleOAuthCallback('google'));
 router.get('/github/callback', handleOAuthCallback('github'));
+
+// Routes OAuth - Callbacks Mobile (POST pour mobile natif)
+const oauthMobileController = require('../controllers/oauthMobileController');
+router.post('/google/callback', oauthMobileController.handleGoogleMobileCallback);
+router.post('/github/callback', oauthMobileController.handleGitHubMobileCallback);
 
 module.exports = router;
 
