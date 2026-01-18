@@ -54,6 +54,38 @@ function App() {
     localStorage.setItem('theme', 'light');
   }, [user]);
 
+  // Enregistrer le Service Worker pour PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then((registration) => {
+          console.log('[Service Worker] Enregistré avec succès:', registration.scope);
+          
+          // Vérifier les mises à jour
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Nouveau service worker disponible
+                  console.log('[Service Worker] Nouvelle version disponible');
+                }
+              });
+            }
+          });
+        })
+        .catch((error) => {
+          console.error('[Service Worker] Erreur lors de l\'enregistrement:', error);
+        });
+
+      // Écouter les messages du service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('[Service Worker] Message reçu:', event.data);
+      });
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <LanguageProvider>

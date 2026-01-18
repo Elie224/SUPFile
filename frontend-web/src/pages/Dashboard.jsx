@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import StorageChart from '../components/StorageChart';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -168,7 +169,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Répartition par type */}
+          {/* Répartition par type avec graphique circulaire */}
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
               <div className="card-header bg-light">
@@ -178,6 +179,16 @@ export default function Dashboard() {
                 </h5>
               </div>
               <div className="card-body">
+                {/* Graphique circulaire */}
+                <div className="d-flex justify-content-center mb-4">
+                  <StorageChart 
+                    used={stats.quota.used} 
+                    total={stats.quota.limit}
+                    breakdown={stats.breakdown}
+                    formatBytes={formatBytes}
+                  />
+                </div>
+                <hr className="my-3" />
                 {[
                   { key: 'images', label: t('images'), color: '#4CAF50', icon: 'bi-image', value: stats.breakdown.images },
                   { key: 'videos', label: t('videos'), color: '#2196F3', icon: 'bi-camera-video', value: stats.breakdown.videos },
