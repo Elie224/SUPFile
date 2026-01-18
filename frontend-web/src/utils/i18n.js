@@ -178,6 +178,13 @@ const translations = {
     renameError: 'Erreur lors du renommage',
     createFolderError: 'Erreur lors de la création du dossier',
     loadError: 'Erreur lors du chargement',
+    errorSessionExpired: 'Votre session a expiré. Veuillez vous reconnecter.',
+    errorAccessDenied: 'Accès refusé. Vous n\'avez pas les permissions nécessaires.',
+    errorFolderNotFound: 'Dossier non trouvé.',
+    errorRateLimit: 'Trop de requêtes. Veuillez patienter quelques instants.',
+    errorServer: 'Erreur serveur. Veuillez réessayer plus tard.',
+    errorNetwork: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+    selectAll: 'Tout sélectionner',
   },
   en: {
     // Navigation
@@ -357,6 +364,13 @@ const translations = {
     renameError: 'Error during rename',
     createFolderError: 'Error creating folder',
     loadError: 'Error loading',
+    errorSessionExpired: 'Your session has expired. Please log in again.',
+    errorAccessDenied: 'Access denied. You do not have the necessary permissions.',
+    errorFolderNotFound: 'Folder not found.',
+    errorRateLimit: 'Too many requests. Please wait a moment.',
+    errorServer: 'Server error. Please try again later.',
+    errorNetwork: 'Unable to connect to server. Check your internet connection.',
+    selectAll: 'Select all',
   }
 };
 
