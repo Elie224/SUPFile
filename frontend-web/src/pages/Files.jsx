@@ -32,6 +32,8 @@ export default function Files() {
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [error, setError] = useState(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [sortBy, setSortBy] = useState(null); // 'name', 'size', 'modified'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -511,6 +513,38 @@ export default function Files() {
       alert(errorMsg);
     }
   };
+
+  // Fonction de tri
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  // Trier les items
+  const sortedItems = [...items].sort((a, b) => {
+    if (!sortBy) return 0;
+    
+    let aValue, bValue;
+    
+    if (sortBy === 'name') {
+      aValue = (a.name || '').toLowerCase();
+      bValue = (b.name || '').toLowerCase();
+    } else if (sortBy === 'size') {
+      aValue = a.size || 0;
+      bValue = b.size || 0;
+    } else if (sortBy === 'modified') {
+      aValue = new Date(a.updated_at || a.created_at || 0).getTime();
+      bValue = new Date(b.updated_at || b.created_at || 0).getTime();
+    }
+    
+    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const formatBytes = (bytes) => {
     if (!bytes) return '-';
@@ -1006,33 +1040,54 @@ export default function Files() {
                   backgroundColor: '#f8f9fa',
                   borderBottom: '2px solid #e0e0e0'
                 }}>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('name')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('size')}</th>
-                  <th style={{ 
-                    textAlign: 'left', 
-                    padding: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>{t('modified')}</th>
+                  <th 
+                    onClick={() => handleSort('name')}
+                    style={{ 
+                      textAlign: 'left', 
+                      padding: '16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('size')}
+                    style={{ 
+                      textAlign: 'left', 
+                      padding: '16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('size')} {sortBy === 'size' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('modified')}
+                    style={{ 
+                      textAlign: 'left', 
+                      padding: '16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#333',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {t('modified')} {sortBy === 'modified' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th style={{ 
                     textAlign: 'left', 
                     padding: '16px',
@@ -1045,10 +1100,12 @@ export default function Files() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => {
+                {sortedItems.map((item, index) => {
                   // S'assurer que le type est bien défini
                   const itemType = item.type || (item.folder_id === null && item.parent_id === null ? 'folder' : 'file');
                   const itemId = item.id || item._id;
+                  // Vérifier si c'est le dossier Root (parent_id === null pour les dossiers)
+                  const isRootFolder = itemType === 'folder' && (item.parent_id === null || item.parent_id === undefined);
                   
                   return (
                   <tr 
@@ -1064,6 +1121,7 @@ export default function Files() {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
                     }}
+                  >
                   >
                     <td style={{ padding: '16px' }}>
                       {itemType === 'folder' ? (
@@ -1268,14 +1326,17 @@ export default function Files() {
                           setEditingItem({ ...item, type: itemType, id: itemId });
                           setEditName(item.name);
                         }}
+                        disabled={isRootFolder}
                         className="btn btn-outline-secondary btn-sm"
                         style={{
                           padding: '6px 12px',
                           fontSize: '0.9em',
                           display: 'inline-flex',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          opacity: isRootFolder ? 0.5 : 1,
+                          cursor: isRootFolder ? 'not-allowed' : 'pointer'
                         }}
-                        title={t('rename')}
+                        title={isRootFolder ? (t('cannotRenameRoot') || 'Impossible de renommer la racine') : t('rename')}
                       >
                         <i className="bi bi-pencil me-1"></i>
                         {t('rename')}
@@ -1302,16 +1363,23 @@ export default function Files() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          deleteItem({ ...item, type: itemType, id: itemId });
+                          if (!isRootFolder) {
+                            deleteItem({ ...item, type: itemType, id: itemId });
+                          } else {
+                            alert(t('cannotDeleteRoot') || 'Impossible de supprimer la racine');
+                          }
                         }}
+                        disabled={isRootFolder}
                         className="btn btn-outline-danger btn-sm"
                         style={{
                           padding: '6px 12px',
                           fontSize: '0.9em',
                           display: 'inline-flex',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          opacity: isRootFolder ? 0.5 : 1,
+                          cursor: isRootFolder ? 'not-allowed' : 'pointer'
                         }}
-                        title={t('delete')}
+                        title={isRootFolder ? (t('cannotDeleteRoot') || 'Impossible de supprimer la racine') : t('delete')}
                       >
                         <i className="bi bi-trash me-1"></i>
                         {t('delete')}
@@ -1319,8 +1387,8 @@ export default function Files() {
                     </div>
                   </td>
                 </tr>
-              )})}
-            </tbody>
+                ))}
+              </tbody>
           </table>
           </div>
         )}
