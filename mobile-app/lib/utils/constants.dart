@@ -4,7 +4,7 @@ class AppConstants {
   // Pour développement local, utiliser: flutter run --dart-define=API_URL=http://192.168.1.X:5000
   static const String apiBaseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://supfile-1.onrender.com',
+    defaultValue: 'https://supfile.fly.dev',
   );
   
   static const String apiUrl = '$apiBaseUrl/api';
