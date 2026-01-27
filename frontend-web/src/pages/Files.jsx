@@ -1039,21 +1039,14 @@ export default function Files() {
         style={{ 
           minHeight: 400, 
           border: isDragOver ? '2px dashed #2196F3' : '2px dashed #ddd',
-          backgroundColor: isDragOver ? '#e3f2fd' : 'transparent',
+          backgroundColor: isDragOver ? '#e3f2fd' : '#fafafa',
           borderRadius: '12px',
-          transition: 'all 0.3s ease',
-          borderRadius: '12px', 
           padding: '32px',
-          backgroundColor: '#fafafa',
-          transition: 'all 0.3s'
+          transition: 'all 0.3s ease'
         }}
         onDragEnter={(e) => {
           e.currentTarget.style.borderColor = '#2196F3';
           e.currentTarget.style.backgroundColor = '#f0f7ff';
-        }}
-        onDragLeave={(e) => {
-          e.currentTarget.style.borderColor = '#ddd';
-          e.currentTarget.style.backgroundColor = '#fafafa';
         }}
       >
         {loading ? (
@@ -1260,8 +1253,9 @@ export default function Files() {
                     key={itemId} 
                     style={{ 
                       borderBottom: index < sortedItems.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      backgroundColor: selectedItems.includes(itemId) ? '#e3f2fd' : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
-                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
+                      backgroundColor: selectedItems.includes(itemId)
+                        ? '#e3f2fd'
+                        : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
                       transition: 'background-color 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
@@ -1547,7 +1541,8 @@ export default function Files() {
                     </div>
                   </td>
                 </tr>
-                ))}
+                );
+                })}
               </tbody>
           </table>
           </div>
