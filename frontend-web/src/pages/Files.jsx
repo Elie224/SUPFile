@@ -38,6 +38,7 @@ export default function Files() {
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
+  const [downloadingFolder, setDownloadingFolder] = useState(null); // ID du dossier en cours de téléchargement
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -1375,8 +1376,22 @@ export default function Files() {
                             onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              
+                              if (downloadingFolder === itemId) {
+                                return; // Déjà en cours de téléchargement
+                              }
+                              
+                              setDownloadingFolder(itemId);
+                              
                               try {
+                                toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
+                                
                                 const response = await folderService.downloadAsZip(itemId);
+                                
+                                if (!response.data || response.data.size === 0) {
+                                  throw new Error('Le fichier ZIP est vide ou invalide');
+                                }
+                                
                                 const blob = response.data;
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
@@ -1384,32 +1399,75 @@ export default function Files() {
                                 a.download = `${item.name}.zip`;
                                 document.body.appendChild(a);
                                 a.click();
-                                window.URL.revokeObjectURL(url);
-                                document.body.removeChild(a);
+                                
+                                // Nettoyer après un court délai
+                                setTimeout(() => {
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                }, 100);
+                                
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
                                 console.error('Download failed:', err);
-                                const errorMsg = err.response?.data?.error?.message || err.message || t('downloadError');
+                                
+                                let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
+                                
+                                if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+                                  errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps. Veuillez réessayer.';
+                                } else if (err.message?.includes('aborted') || err.message?.includes('canceled')) {
+                                  errorMsg = t('downloadAborted') || 'Le téléchargement a été annulé.';
+                                } else if (err.response?.data) {
+                                  // Si c'est un blob d'erreur, essayer de le lire
+                                  if (err.response.data instanceof Blob) {
+                                    try {
+                                      const text = await err.response.data.text();
+                                      const json = JSON.parse(text);
+                                      errorMsg = json.error?.message || errorMsg;
+                                    } catch {
+                                      errorMsg = err.response.status === 403 
+                                        ? t('accessDenied') || 'Accès refusé'
+                                        : errorMsg;
+                                    }
+                                  } else {
+                                    errorMsg = err.response.data.error?.message || errorMsg;
+                                  }
+                                } else if (err.message) {
+                                  errorMsg = err.message;
+                                }
+                                
                                 toast.error(errorMsg);
+                              } finally {
+                                setDownloadingFolder(null);
                               }
                             }}
+                            disabled={downloadingFolder === itemId}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#2196F3',
+                              backgroundColor: downloadingFolder === itemId ? '#ccc' : '#2196F3',
                               color: 'white',
                               border: 'none',
                               borderRadius: 4,
-                              cursor: 'pointer',
+                              cursor: downloadingFolder === itemId ? 'wait' : 'pointer',
                               fontSize: '0.9em',
                               fontWeight: 'bold',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 4
+                              gap: 4,
+                              opacity: downloadingFolder === itemId ? 0.7 : 1
                             }}
-                            title={t('downloadZip')}
+                            title={downloadingFolder === itemId ? (t('downloading') || 'Téléchargement en cours...') : t('downloadZip')}
                           >
-                            <i className="bi bi-download me-1"></i>
-                            {t('downloadZip')}
+                            {downloadingFolder === itemId ? (
+                              <>
+                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                {t('downloading') || 'Téléchargement...'}
+                              </>
+                            ) : (
+                              <>
+                                <i className="bi bi-download me-1"></i>
+                                {t('downloadZip')}
+                              </>
+                            )}
                           </button>
                           <button
                             onClick={(e) => {
