@@ -9,6 +9,28 @@ if (-not (Test-Path "pubspec.yaml")) {
     exit 1
 }
 
+# Arrêter les processus Gradle qui pourraient bloquer
+Write-Host "🔧 Vérification des processus Gradle..." -ForegroundColor Cyan
+$gradleProcesses = Get-Process -Name "java","gradle","gradlew" -ErrorAction SilentlyContinue
+if ($gradleProcesses) {
+    Write-Host "   Arrêt des processus Gradle bloquants..." -ForegroundColor Yellow
+    $gradleProcesses | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 2
+}
+
+# Supprimer les fichiers de verrouillage Gradle
+$gradleWrapperDir = "$env:USERPROFILE\.gradle\wrapper\dists"
+if (Test-Path $gradleWrapperDir) {
+    $lockFiles = Get-ChildItem -Path $gradleWrapperDir -Recurse -Filter "*.lock" -ErrorAction SilentlyContinue
+    if ($lockFiles) {
+        $lockFiles | ForEach-Object {
+            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 # Nettoyer
 Write-Host "🧹 Nettoyage..." -ForegroundColor Cyan
 flutter clean
