@@ -19,6 +19,12 @@ const uploadClient = axios.create({
   baseURL: `${API_URL}/api`,
 });
 
+// Instance séparée pour les téléchargements (timeout plus long pour les gros fichiers)
+const downloadClient = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 300000, // 5 minutes pour les téléchargements de dossiers
+});
+
 // Intercepteur pour ajouter le JWT à chaque requête
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
@@ -39,6 +45,17 @@ uploadClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   // Ne pas définir Content-Type - laisser le navigateur le faire pour FormData
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Intercepteur pour les téléchargements - ajouter le token
+downloadClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -137,7 +154,7 @@ export const folderService = {
   restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
   listTrash: () => apiClient.get('/folders/trash'),
   downloadAsZip: (folderId) =>
-    apiClient.get(`/folders/${folderId}/download`, { responseType: 'blob' }),
+    downloadClient.get(`/folders/${folderId}/download`, { responseType: 'blob' }),
   list: (parentId = null) =>
     apiClient.get('/folders', { params: { parent_id: parentId || null } }),
 };
