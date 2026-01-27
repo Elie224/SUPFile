@@ -1228,6 +1228,16 @@ export default function Files() {
                     (item.name === 'Root' || item.name === 'root') && 
                     (item.parent_id === null || item.parent_id === undefined);
                   
+                  // Debug: logger pour vérifier la détection
+                  if (itemType === 'folder' && process.env.NODE_ENV === 'development') {
+                    console.log('Folder debug:', {
+                      name: item.name,
+                      parent_id: item.parent_id,
+                      isRootFolder,
+                      itemType
+                    });
+                  }
+                  
                   return (
                   <tr 
                     key={itemId} 
@@ -1412,11 +1422,34 @@ export default function Files() {
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
                                 console.error('Download failed:', err);
+                                console.error('Error details:', {
+                                  code: err.code,
+                                  message: err.message,
+                                  response: err.response?.status,
+                                  responseData: err.response?.data
+                                });
                                 
                                 let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
                                 
-                                if (err.code === 'ECONNABORTED' || err.message?.includes('timeout') || err.message?.includes('timeout')) {
-                                  errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps (plus de 10 minutes). Le dossier est peut-être trop volumineux. Essayez de télécharger des fichiers individuellement ou contactez le support.';
+                                // Vérifier d'abord les erreurs réseau/connexion (503, 502, etc.)
+                                if (err.response?.status === 503) {
+                                  errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible. Les machines sont peut-être en veille. Veuillez réessayer dans quelques instants.';
+                                } else if (err.response?.status === 502) {
+                                  errorMsg = t('badGateway') || 'Erreur de passerelle. Le serveur ne répond pas correctement.';
+                                } else if (!err.response && (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'))) {
+                                  errorMsg = t('networkError') || 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
+                                } else if (err.response?.status === 404) {
+                                  errorMsg = t('folderNotFound') || 'Le dossier n\'a pas été trouvé.';
+                                } else if (err.response?.status === 403) {
+                                  errorMsg = t('accessDenied') || 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
+                                } else if (err.code === 'ECONNABORTED') {
+                                  // ECONNABORTED peut être un timeout OU une connexion interrompue
+                                  // Vérifier si c'est vraiment un timeout (plus de 10 minutes) ou une erreur réseau
+                                  if (err.message?.includes('timeout') || err.message?.includes('Timeout')) {
+                                    errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps (plus de 10 minutes). Le dossier est peut-être trop volumineux. Essayez de télécharger des fichiers individuellement.';
+                                  } else {
+                                    errorMsg = t('connectionAborted') || 'La connexion a été interrompue. Vérifiez votre connexion internet et réessayez.';
+                                  }
                                 } else if (err.message?.includes('aborted') || err.message?.includes('canceled')) {
                                   errorMsg = t('downloadAborted') || 'Le téléchargement a été annulé.';
                                 } else if (err.response?.data) {
