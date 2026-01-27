@@ -341,36 +341,10 @@ export default function Files() {
     setItemToDelete(null);
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-      const token = localStorage.getItem('access_token');
-      
-      if (!token) {
-        throw new Error('Vous devez être connecté pour supprimer');
-      }
-      
-      const endpoint = itemType === 'folder' 
-        ? `${apiUrl}/api/folders/${itemId}`
-        : `${apiUrl}/api/files/${itemId}`;
-      
-      console.log('Making DELETE request to:', endpoint);
-      
-      const response = await fetch(endpoint, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Response status:', response.status);
-      
-      const responseData = await response.json().catch(() => ({ message: 'No JSON response' }));
-      console.log('Response data:', responseData);
-      
-      if (!response.ok) {
-        const errorMsg = responseData.error?.message || responseData.message || `Erreur ${response.status}`;
-        console.error('❌ Delete failed:', errorMsg);
-        throw new Error(errorMsg);
+      if (itemType === 'folder') {
+        await folderService.delete(itemId);
+      } else {
+        await fileService.delete(itemId);
       }
       
       console.log('✅ Deletion successful!');
@@ -383,11 +357,11 @@ export default function Files() {
       console.error('❌ Deletion error:', err);
       console.error('Error details:', {
         message: err.message,
-        stack: err.stack
+        response: err.response?.data
       });
       
-      const errorMessage = err.message || 'Erreur lors de la suppression';
-      toast.error(`${t('deleteError')}: ${errorMessage}`);
+      const errorMessage = err.response?.data?.error?.message || err.message || t('deleteError') || 'Erreur lors de la suppression';
+      toast.error(errorMessage);
     }
     
     console.log('=== CONFIRM DELETE END ===');
@@ -1243,7 +1217,9 @@ export default function Files() {
               <tbody>
                 {sortedItems.map((item, index) => {
                   // S'assurer que le type est bien défini
-                  const itemType = item.type || (item.folder_id === null && item.parent_id === null ? 'folder' : 'file');
+                  // Le backend ajoute déjà 'type: folder' ou 'type: file'
+                  // Fallback: si folder_id existe, c'est un fichier, sinon c'est un dossier
+                  const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
                   const itemId = item.id || item._id;
                   // Vérifier si c'est le dossier Root (parent_id === null pour les dossiers)
                   const isRootFolder = itemType === 'folder' && (item.parent_id === null || item.parent_id === undefined);
@@ -1400,26 +1376,8 @@ export default function Files() {
                               e.preventDefault();
                               e.stopPropagation();
                               try {
-                                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-                                const token = localStorage.getItem('access_token');
-                                
-                                if (!token) {
-                                  toast.warning(t('mustBeConnected'));
-                                  return;
-                                }
-                                
-                                const response = await fetch(`${apiUrl}/api/folders/${itemId}/download`, {
-                                  headers: {
-                                    'Authorization': `Bearer ${token}`
-                                  }
-                                });
-                                
-                                if (!response.ok) {
-                                  const error = await response.json().catch(() => ({ error: { message: t('downloadError') } }));
-                                  throw new Error(error.error?.message || `${t('error')} ${response.status}`);
-                                }
-                                
-                                const blob = await response.blob();
+                                const response = await folderService.downloadAsZip(itemId);
+                                const blob = response.data;
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
@@ -1428,10 +1386,11 @@ export default function Files() {
                                 a.click();
                                 window.URL.revokeObjectURL(url);
                                 document.body.removeChild(a);
-                                toast.success('Téléchargement réussi');
+                                toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
                                 console.error('Download failed:', err);
-                                toast.error(err.message || t('downloadError'));
+                                const errorMsg = err.response?.data?.error?.message || err.message || t('downloadError');
+                                toast.error(errorMsg);
                               }
                             }}
                             style={{
