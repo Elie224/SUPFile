@@ -53,15 +53,42 @@ try {
 
 # Redemarrer l'application pour appliquer les changements
 Write-Host "`n[*] Redemarrage de l'application..." -ForegroundColor Yellow
+
+# Methode 1: Redemarrage simple
+$restartSuccess = $false
 try {
-    & $flyctlPath apps restart --app $appName 2>&1 | Out-Null
+    $result = & $flyctlPath apps restart --app $appName 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[OK] Application redemarree avec succes" -ForegroundColor Green
-    } else {
-        Write-Host "[ERREUR] Echec du redemarrage" -ForegroundColor Red
+        Write-Host "[OK] Application redemarree avec succes (methode 1)" -ForegroundColor Green
+        $restartSuccess = $true
     }
 } catch {
-    Write-Host "[ERREUR] Impossible de redemarrer: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[INFO] Methode 1 echoue, tentative methode 2..." -ForegroundColor Yellow
+}
+
+# Methode 2: Scale down puis up (si methode 1 echoue)
+if (-not $restartSuccess) {
+    try {
+        Write-Host "  - Arret de l'application (count=0)..." -ForegroundColor Gray
+        & $flyctlPath scale count 0 --app $appName 2>&1 | Out-Null
+        Start-Sleep -Seconds 5
+        
+        Write-Host "  - Redemarrage de l'application (count=1)..." -ForegroundColor Gray
+        & $flyctlPath scale count 1 --app $appName 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] Application redemarree avec succes (methode 2: scale)" -ForegroundColor Green
+            $restartSuccess = $true
+        }
+    } catch {
+        Write-Host "[ERREUR] Methode 2 echoue: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+if (-not $restartSuccess) {
+    Write-Host "[ATTENTION] Le redemarrage automatique a echoue." -ForegroundColor Yellow
+    Write-Host "            Executez manuellement: .\redemarrer-backend-fly.ps1" -ForegroundColor Yellow
+    Write-Host "            OU" -ForegroundColor Gray
+    Write-Host "            flyctl apps restart --app $appName" -ForegroundColor Cyan
 }
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
