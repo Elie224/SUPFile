@@ -22,7 +22,7 @@ const uploadClient = axios.create({
 // Instance séparée pour les téléchargements (timeout plus long pour les gros fichiers)
 const downloadClient = axios.create({
   baseURL: `${API_URL}/api`,
-  timeout: 300000, // 5 minutes pour les téléchargements de dossiers
+  timeout: 600000, // 10 minutes pour les téléchargements de dossiers volumineux
 });
 
 // Intercepteur pour ajouter le JWT à chaque requête

@@ -1222,8 +1222,11 @@ export default function Files() {
                   // Fallback: si folder_id existe, c'est un fichier, sinon c'est un dossier
                   const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
                   const itemId = item.id || item._id;
-                  // Vérifier si c'est le dossier Root (parent_id === null pour les dossiers)
-                  const isRootFolder = itemType === 'folder' && (item.parent_id === null || item.parent_id === undefined);
+                  // Vérifier si c'est le dossier Root système (nom === "Root" et parent_id === null)
+                  // Les dossiers normaux à la racine ont aussi parent_id === null, mais ne sont pas "Root"
+                  const isRootFolder = itemType === 'folder' && 
+                    (item.name === 'Root' || item.name === 'root') && 
+                    (item.parent_id === null || item.parent_id === undefined);
                   
                   return (
                   <tr 
@@ -1412,8 +1415,8 @@ export default function Files() {
                                 
                                 let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
                                 
-                                if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-                                  errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps. Veuillez réessayer.';
+                                if (err.code === 'ECONNABORTED' || err.message?.includes('timeout') || err.message?.includes('timeout')) {
+                                  errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps (plus de 10 minutes). Le dossier est peut-être trop volumineux. Essayez de télécharger des fichiers individuellement ou contactez le support.';
                                 } else if (err.message?.includes('aborted') || err.message?.includes('canceled')) {
                                   errorMsg = t('downloadAborted') || 'Le téléchargement a été annulé.';
                                 } else if (err.response?.data) {
