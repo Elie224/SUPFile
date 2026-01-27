@@ -4,7 +4,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Trash() {
   const { t, language } = useLanguage();
-  const toast = useToast();
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,19 +18,40 @@ export default function Trash() {
       setLoading(true);
       setFiles([]);
       setFolders([]);
+      setMessage({ type: '', text: '' }); // Réinitialiser les messages
       
-      const filesResponse = await fileService.listTrash();
-      if (filesResponse?.data?.data?.items) {
-        setFiles(filesResponse.data.data.items);
+      // Charger les fichiers et dossiers en parallèle
+      const [filesResponse, foldersResponse] = await Promise.allSettled([
+        fileService.listTrash(),
+        folderService.listTrash()
+      ]);
+      
+      // Traiter la réponse des fichiers
+      if (filesResponse.status === 'fulfilled' && filesResponse.value?.data?.data?.items) {
+        setFiles(filesResponse.value.data.data.items);
+      } else if (filesResponse.status === 'rejected') {
+        console.error('Failed to load trash files:', filesResponse.reason);
       }
       
-      const foldersResponse = await folderService.listTrash();
-      if (foldersResponse?.data?.data?.items) {
-        setFolders(foldersResponse.data.data.items);
+      // Traiter la réponse des dossiers
+      if (foldersResponse.status === 'fulfilled' && foldersResponse.value?.data?.data?.items) {
+        setFolders(foldersResponse.value.data.data.items);
+      } else if (foldersResponse.status === 'rejected') {
+        console.error('Failed to load trash folders:', foldersResponse.reason);
+      }
+      
+      // Afficher un message d'erreur si les deux ont échoué
+      if (filesResponse.status === 'rejected' && foldersResponse.status === 'rejected') {
+        const errorMsg = filesResponse.reason?.response?.data?.error?.message 
+          || foldersResponse.reason?.response?.data?.error?.message
+          || filesResponse.reason?.message 
+          || foldersResponse.reason?.message
+          || t('loadError') || 'Erreur lors du chargement de la corbeille';
+        setMessage({ type: 'error', text: errorMsg });
       }
     } catch (err) {
       console.error('Failed to load trash:', err);
-      const errorMsg = err.response?.data?.error?.message || err.message || t('loadError');
+      const errorMsg = err.response?.data?.error?.message || err.message || t('loadError') || 'Erreur lors du chargement de la corbeille';
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
