@@ -46,57 +46,40 @@ ensureUploadDir();
  */
 async function startServer() {
   try {
-    const MAX_WAIT_TIME = 30000; // 30 secondes maximum
-    const POLL_INTERVAL = 500; // Vérifier toutes les 500ms
+    // Démarrer le serveur rapidement - ne pas attendre MongoDB trop longtemps
+    // Fly.io vérifie rapidement si l'application écoute, donc on démarre le serveur rapidement
+    const MAX_WAIT_TIME = 5000; // 5 secondes maximum (réduit de 30s pour démarrer plus vite)
+    const POLL_INTERVAL = 200; // Vérifier toutes les 200ms (plus rapide)
     const startTime = Date.now();
     
-    // Attendre que la promesse de connexion soit résolue
+    // Vérifier rapidement l'état de MongoDB sans bloquer
     try {
-      const connectionResult = await db.connectionPromise;
+      // Utiliser Promise.race pour ne pas attendre trop longtemps
+      const connectionResult = await Promise.race([
+        db.connectionPromise,
+        new Promise(resolve => setTimeout(() => resolve(null), MAX_WAIT_TIME))
+      ]);
       
       // Vérifier si la connexion a réussi
       if (connectionResult === null) {
-        logger.logWarn('MongoDB connection failed, but starting server anyway...');
+        logger.logWarn('MongoDB connection pending or failed, starting server anyway...');
       } else {
         // Vérifier l'état de la connexion
         if (db.connection.readyState === 1) {
           logger.logInfo('MongoDB ready, starting server...');
         } else {
-          // Attendre un peu pour voir si la connexion se stabilise
-          while (db.connection.readyState !== 1 && (Date.now() - startTime) < MAX_WAIT_TIME) {
-            await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
-          }
-          
-          if (db.connection.readyState === 1) {
-            logger.logInfo('MongoDB ready, starting server...');
-          } else {
-            logger.logWarn('MongoDB connection timeout, but starting server anyway...', {
-              readyState: db.connection.readyState,
-              message: 'Server will start but database operations may fail'
-            });
-          }
+          logger.logWarn('MongoDB connection pending, starting server anyway...', {
+            readyState: db.connection.readyState,
+            message: 'Server will start but database operations may fail until MongoDB connects'
+          });
         }
       }
     } catch (connErr) {
-      // Si la connexion échoue, attendre un peu et vérifier l'état
-      logger.logWarn('MongoDB connection error, checking status...', { error: connErr.message });
-      
-      // On vérifie périodiquement si la connexion est établie
-      while (db.connection.readyState !== 1 && (Date.now() - startTime) < MAX_WAIT_TIME) {
-        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
-      }
-      
-      if (db.connection.readyState === 1) {
-        logger.logInfo('MongoDB ready, starting server...');
-      } else {
-        logger.logWarn('MongoDB connection timeout, but starting server anyway...', {
-          readyState: db.connection.readyState,
-          message: 'Server will start but database operations may fail'
-        });
-      }
+      // Si la connexion échoue, démarrer le serveur quand même
+      logger.logWarn('MongoDB connection error, starting server anyway...', { error: connErr.message });
     }
     
-    // Toujours démarrer le serveur, même si MongoDB n'est pas connecté
+    // Toujours démarrer le serveur rapidement, même si MongoDB n'est pas connecté
     logger.logInfo('Starting HTTP server...');
   } catch (err) {
     logger.logError(err, { context: 'startServer' });
