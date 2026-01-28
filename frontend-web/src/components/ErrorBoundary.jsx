@@ -36,7 +36,10 @@ class ErrorBoundary extends React.Component {
   };
 
   render() {
-    if (this.state.hasError) {
+    // En production, on évite d'afficher l'écran d'erreur pleine page
+    // pour des erreurs non critiques afin de ne pas bloquer l'utilisateur.
+    // On loggue toujours l'erreur dans componentDidCatch.
+    if (this.state.hasError && process.env.NODE_ENV === 'development') {
       return (
         <div style={{
           display: 'flex',
