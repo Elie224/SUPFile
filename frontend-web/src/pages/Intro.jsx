@@ -6,6 +6,10 @@ export default function Intro() {
   const navigate = useNavigate();
   const { user, accessToken } = useAuthStore();
   const [step, setStep] = useState(0);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+  });
 
   useEffect(() => {
     // Si déjà connecté, on ne reste pas sur l'intro
@@ -13,6 +17,13 @@ export default function Intro() {
       navigate('/dashboard', { replace: true });
     }
   }, [user, accessToken, navigate]);
+
+  // Appliquer le thème choisi dès l'introduction, pour tout le site
+  useEffect(() => {
+    const applied = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', applied);
+    localStorage.setItem('theme', applied);
+  }, [theme]);
 
   const slides = [
     {
@@ -214,6 +225,69 @@ export default function Intro() {
               professionnel et commercial&nbsp;: centralisez vos fichiers, collaborez avec vos
               équipes et accédez à vos données partout, en toute sécurité.
             </p>
+
+            {/* Sélecteur de thème global (clair / sombre) */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                marginBottom: 18,
+              }}
+            >
+              <span style={{ fontSize: 13, color: 'rgba(209,213,219,0.9)' }}>
+                Choisissez votre thème :
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    border: theme === 'light'
+                      ? '2px solid #38bdf8'
+                      : '1px solid rgba(148,163,184,0.6)',
+                    backgroundColor: theme === 'light'
+                      ? 'rgba(248,250,252,0.95)'
+                      : 'rgba(15,23,42,0.7)',
+                    color: theme === 'light' ? '#0f172a' : '#e5e7eb',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>🌞</span>
+                  <span>Clair</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    border: theme === 'dark'
+                      ? '2px solid #38bdf8'
+                      : '1px solid rgba(148,163,184,0.6)',
+                    backgroundColor: theme === 'dark'
+                      ? 'rgba(15,23,42,0.95)'
+                      : 'rgba(15,23,42,0.7)',
+                    color: '#e5e7eb',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>🌙</span>
+                  <span>Sombre</span>
+                </button>
+              </div>
+            </div>
 
             {/* 3 points clés très synthétiques */}
             <div
