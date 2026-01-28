@@ -166,17 +166,17 @@ export default function Admin() {
         fontSize: '28px',
         marginBottom: '24px',
         fontWeight: '700',
-        color: '#333'
+        color: 'var(--text-color)'
       }}>⚙️ Administration</h1>
 
       {message.text && (
         <div style={{
           padding: '12px 16px',
           marginBottom: '24px',
-          backgroundColor: message.type === 'error' ? '#ffebee' : '#e8f5e9',
-          color: message.type === 'error' ? '#c62828' : '#2e7d32',
+          backgroundColor: 'var(--bg-secondary)',
+          color: message.type === 'error' ? '#fca5a5' : '#bbf7d0',
           borderRadius: '8px',
-          border: `1px solid ${message.type === 'error' ? '#ef5350' : '#66bb6a'}`
+          border: `1px solid ${message.type === 'error' ? '#b91c1c' : '#15803d'}`
         }}>
           {message.text}
         </div>
@@ -192,12 +192,12 @@ export default function Admin() {
         }}>
           <div style={{
             padding: '20px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-color)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            border: '1px solid #e0e0e0'
+            border: '1px solid var(--border-color)'
           }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Utilisateurs totaux</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Utilisateurs totaux</div>
             <div style={{ fontSize: '32px', fontWeight: '700', color: '#2196F3' }}>{stats.users.total}</div>
             <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
               {stats.users.active} actifs, {stats.users.inactive} inactifs
@@ -206,34 +206,34 @@ export default function Admin() {
 
           <div style={{
             padding: '20px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-color)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            border: '1px solid #e0e0e0'
+            border: '1px solid var(--border-color)'
           }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Fichiers</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Fichiers</div>
             <div style={{ fontSize: '32px', fontWeight: '700', color: '#4CAF50' }}>{stats.files.total}</div>
           </div>
 
           <div style={{
             padding: '20px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-color)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            border: '1px solid #e0e0e0'
+            border: '1px solid var(--border-color)'
           }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Dossiers</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Dossiers</div>
             <div style={{ fontSize: '32px', fontWeight: '700', color: '#FF9800' }}>{stats.folders.total}</div>
           </div>
 
           <div style={{
             padding: '20px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-color)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            border: '1px solid #e0e0e0'
+            border: '1px solid var(--border-color)'
           }}>
-            <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Stockage utilisé</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Stockage utilisé</div>
             <div style={{ fontSize: '32px', fontWeight: '700', color: '#9C27B0' }}>{formatBytes(stats.storage.total_used)}</div>
           </div>
         </div>
@@ -241,10 +241,10 @@ export default function Admin() {
 
       {/* Liste des utilisateurs */}
       <div style={{
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--bg-color)',
         borderRadius: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        border: '1px solid #e0e0e0',
+        border: '1px solid var(--border-color)',
         padding: '24px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
