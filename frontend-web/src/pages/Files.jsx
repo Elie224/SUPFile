@@ -705,10 +705,10 @@ export default function Files() {
       <div style={{ 
         marginBottom: '24px',
         padding: '20px',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--bg-color)',
         borderRadius: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        border: '1px solid #e0e0e0'
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -717,7 +717,7 @@ export default function Files() {
               marginBottom: '8px',
               fontSize: '28px',
               fontWeight: '700',
-              color: '#333'
+              color: 'var(--text-color)'
             }}>
               <i className="bi bi-folder-fill me-2"></i>
               {t('myFiles')}
@@ -729,7 +729,7 @@ export default function Files() {
                 gap: '8px',
                 flexWrap: 'wrap',
                 fontSize: '14px',
-                color: '#666'
+                color: 'var(--text-secondary)'
               }}>
                 <button 
                   onClick={goBack} 
@@ -752,17 +752,17 @@ export default function Files() {
                 >
                   ← {t('back')}
                 </button>
-                <span style={{ color: '#999' }}>|</span>
+                <span style={{ color: 'var(--text-muted)' }}>|</span>
                 <span 
                   onClick={() => { setCurrentFolder(null); setFolderHistory([]); }} 
                   style={{ 
                     cursor: 'pointer', 
-                    color: '#2196F3',
+                    color: 'var(--primary-color)',
                     fontWeight: '500',
                     transition: 'color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = '#1976D2'}
-                  onMouseLeave={(e) => e.target.style.color = '#2196F3'}
+                  onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
+                  onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
                 >
                   {t('root')}
                 </span>
@@ -841,7 +841,7 @@ export default function Files() {
       </div>
 
       {showNewFolder && (
-        <div style={{ marginBottom: 16, padding: 16, border: '1px solid #ddd', borderRadius: 4 }}>
+        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 4, backgroundColor: 'var(--bg-color)' }}>
           <input
             type="text"
             value={newFolderName}
@@ -876,7 +876,7 @@ export default function Files() {
       )}
 
       {editingItem && (
-        <div style={{ marginBottom: 16, padding: 16, border: '1px solid #ddd', borderRadius: 4, backgroundColor: '#fff9c4' }}>
+        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 4, backgroundColor: 'var(--bg-secondary)' }}>
           <input
             type="text"
             value={editName}
@@ -893,7 +893,7 @@ export default function Files() {
 
       {showShareModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 8, maxWidth: 500, width: '90%', maxHeight: '90vh', overflow: 'auto' }}>
+          <div style={{ backgroundColor: 'var(--bg-color)', padding: 24, borderRadius: 8, maxWidth: 500, width: '90%', maxHeight: '90vh', overflow: 'auto' }}>
             <h2>{t('shareModal')} {showShareModal.name}</h2>
             {!shareLink ? (
               <>
@@ -1022,13 +1022,13 @@ export default function Files() {
               </>
             ) : (
               <>
-                <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+                <div style={{ marginBottom: 16, padding: 12, backgroundColor: 'var(--bg-secondary)', borderRadius: 4 }}>
                   <label style={{ display: 'block', marginBottom: 4 }}>Lien de partage :</label>
                   <input
                     type="text"
                     value={shareLink}
                     readOnly
-                    style={{ padding: 8, width: '100%', backgroundColor: 'white' }}
+                    style={{ padding: 8, width: '100%', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
                     onClick={(e) => e.target.select()}
                   />
                   <button

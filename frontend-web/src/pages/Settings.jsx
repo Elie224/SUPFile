@@ -244,24 +244,24 @@ export default function Settings() {
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ marginBottom: 32, fontSize: '2em', color: '#333' }}>⚙️ {t('settings')}</h1>
+      <h1 style={{ marginBottom: 32, fontSize: '2em', color: 'var(--text-color)' }}>⚙️ {t('settings')}</h1>
 
       {message.text && (
         <div style={{
           padding: 12,
           marginBottom: 24,
-          backgroundColor: message.type === 'error' ? '#ffebee' : '#e8f5e9',
-          color: message.type === 'error' ? '#c62828' : '#2e7d32',
+          backgroundColor: 'var(--bg-secondary)',
+          color: message.type === 'error' ? '#fca5a5' : '#bbf7d0',
           borderRadius: 8,
-          border: `1px solid ${message.type === 'error' ? '#ef5350' : '#66bb6a'}`
+          border: `1px solid ${message.type === 'error' ? '#b91c1c' : '#15803d'}`
         }}>
           {message.text}
         </div>
       )}
 
       {/* Informations du compte */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: '#f5f5f5', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>
           <i className="bi bi-graph-up me-2"></i>
           {t('accountInfo')}
         </h2>
@@ -322,13 +322,13 @@ export default function Settings() {
           
           <div style={{ flex: 1 }}>
             <div style={{ marginBottom: 8 }}>
-              <strong style={{ color: '#666', fontSize: '0.9em' }}>{t('spaceUsed')}</strong>
+            <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9em' }}>{t('spaceUsed')}</strong>
               <div style={{ marginTop: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
                     {formatBytes(quotaUsed)} / {formatBytes(quotaLimit)}
                   </span>
-                  <span style={{ color: '#666' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>
                     {quotaUsed === 0 ? '0' : (quotaPercentageRaw < 1 
                       ? quotaPercentageRaw.toFixed(2) 
                       : quotaPercentage)}%
@@ -337,7 +337,7 @@ export default function Settings() {
                 <div style={{
                   width: '100%',
                   height: 12,
-                  backgroundColor: '#e0e0e0',
+                  backgroundColor: 'var(--bg-hover)',
                   borderRadius: 6,
                   overflow: 'hidden',
                   position: 'relative'
@@ -368,8 +368,8 @@ export default function Settings() {
       </section>
 
       {/* Profil */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>👤 {t('profile')}</h2>
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>👤 {t('profile')}</h2>
         <form onSubmit={handleUpdateProfile}>
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('email')}</label>
@@ -426,8 +426,8 @@ export default function Settings() {
       </section>
 
       {/* Préférences d'interface */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>🎨 {t('interfacePreferences') || 'Préférences d’interface'}</h2>
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🎨 {t('interfacePreferences') || 'Préférences d’interface'}</h2>
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>
             {t('theme') || 'Thème'}
@@ -495,8 +495,8 @@ export default function Settings() {
       </section>
 
       {/* Mot de passe */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>🔒 {t('security')}</h2>
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🔒 {t('security')}</h2>
         <form onSubmit={handleChangePassword}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('currentPassword')}</label>
@@ -574,9 +574,9 @@ export default function Settings() {
 
 
       {/* Déconnexion */}
-      <section style={{ padding: 24, backgroundColor: '#fff3e0', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: '#333' }}>🚪 {t('logout')}</h2>
-        <p style={{ marginBottom: 16, color: '#666' }}>
+      <section style={{ padding: 24, backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🚪 {t('logout')}</h2>
+        <p style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
           Vous pouvez vous déconnecter de votre compte à tout moment.
         </p>
         <button
