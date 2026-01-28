@@ -39,6 +39,7 @@ export default function Files() {
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
   const [downloadingFolder, setDownloadingFolder] = useState(null); // ID du dossier en cours de téléchargement
+  const [draggedItem, setDraggedItem] = useState(null); // Élément en cours de drag & drop (déplacement)
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -241,6 +242,73 @@ export default function Files() {
 
   const clearSelection = () => {
     setSelectedItems([]);
+  };
+
+  // Déplacement par drag & drop : démarrage du drag sur un fichier/dossier
+  const handleItemDragStart = (item) => (event) => {
+    // Empêcher de drag si pas d'id
+    const rawId = item.id || item._id;
+    if (!rawId) return;
+
+    const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
+    const itemId = typeof rawId === 'string' ? rawId : String(rawId);
+
+    setDraggedItem({
+      id: itemId,
+      type: itemType,
+      name: item.name || '',
+    });
+
+    try {
+      event.dataTransfer.setData('text/plain', itemId);
+      event.dataTransfer.effectAllowed = 'move';
+    } catch {
+      // Certains navigateurs peuvent bloquer dataTransfer sur certains éléments, on ignore
+    }
+  };
+
+  const handleItemDragEnd = () => {
+    setDraggedItem(null);
+  };
+
+  // Autoriser le drop sur un dossier cible (pour déplacer dedans)
+  const handleFolderDragOver = (folderId) => (event) => {
+    if (!draggedItem) return;
+    // Ne pas permettre de déplacer un dossier dans lui-même
+    if (draggedItem.type === 'folder' && draggedItem.id === folderId) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  };
+
+  // Drop sur un dossier cible : effectuer le déplacement
+  const handleFolderDrop = (folderId) => async (event) => {
+    if (!draggedItem) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Ne pas permettre de déplacer un dossier dans lui-même
+    if (draggedItem.type === 'folder' && draggedItem.id === folderId) {
+      setDraggedItem(null);
+      return;
+    }
+
+    try {
+      if (draggedItem.type === 'file') {
+        await fileService.move(draggedItem.id, folderId);
+      } else if (draggedItem.type === 'folder') {
+        await folderService.move(draggedItem.id, folderId);
+      }
+
+      toast.success(t('move') || 'Déplacement réussi');
+      await loadFiles();
+    } catch (err) {
+      console.error('Failed to move via drag & drop:', err);
+      const errorMsg = err.response?.data?.error?.message || err.message || t('moveError');
+      toast.error(errorMsg);
+    } finally {
+      setDraggedItem(null);
+    }
   };
 
   // Validation du nom de dossier
@@ -1307,6 +1375,13 @@ export default function Files() {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
                     }}
+                    // Drag & drop: on peut toujours drag un fichier ou dossier
+                    draggable
+                    onDragStart={handleItemDragStart({ ...item, type: itemType, id: itemId })}
+                    onDragEnd={handleItemDragEnd}
+                    // Si cette ligne est un dossier, on autorise le drop d'autres éléments dedans
+                    onDragOver={itemType === 'folder' ? handleFolderDragOver(itemId) : undefined}
+                    onDrop={itemType === 'folder' ? handleFolderDrop(itemId) : undefined}
                   >
                     <td style={{ padding: '16px' }}>
                       <input
