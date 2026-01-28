@@ -1222,19 +1222,27 @@ export default function Files() {
                   // Fallback: si folder_id existe, c'est un fichier, sinon c'est un dossier
                   const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
                   const itemId = item.id || item._id;
-                  // Vérifier si c'est le dossier Root système (nom === "Root" et parent_id === null)
+                  
+                  // Vérifier si c'est le dossier Root système
+                  // Le backend retourne les dossiers avec type: 'folder' et peut avoir parent_id ou parentId
+                  const parentId = item.parent_id !== undefined ? item.parent_id : (item.parentId !== undefined ? item.parentId : null);
+                  const folderName = item.name || '';
+                  
+                  // Le dossier Root système a le nom exact "Root" (case-insensitive) et parent_id === null
                   // Les dossiers normaux à la racine ont aussi parent_id === null, mais ne sont pas "Root"
                   const isRootFolder = itemType === 'folder' && 
-                    (item.name === 'Root' || item.name === 'root') && 
-                    (item.parent_id === null || item.parent_id === undefined);
+                    (folderName.toLowerCase() === 'root') && 
+                    (parentId === null || parentId === undefined);
                   
-                  // Debug: logger pour vérifier la détection
-                  if (itemType === 'folder' && process.env.NODE_ENV === 'development') {
+                  // Debug: logger pour vérifier la détection (toujours actif pour diagnostiquer)
+                  if (itemType === 'folder') {
                     console.log('Folder debug:', {
-                      name: item.name,
-                      parent_id: item.parent_id,
+                      name: folderName,
+                      parent_id: parentId,
+                      parentId: item.parentId,
                       isRootFolder,
-                      itemType
+                      itemType,
+                      item: item
                     });
                   }
                   
