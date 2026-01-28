@@ -444,13 +444,19 @@ process.on('unhandledRejection', (reason, promise) => {
 // Démarrer le serveur - ne pas bloquer même si MongoDB échoue
 startServer().then(() => {
   try {
-    server = app.listen(PORT, HOST, () => {
-      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
+    // Forcer 0.0.0.0 pour Fly.io (doit écouter sur toutes les interfaces)
+    const listenHost = HOST === 'localhost' ? '0.0.0.0' : HOST;
+    console.log(`[SERVER] Starting server on ${listenHost}:${PORT} (HOST=${HOST}, PORT=${PORT})`);
+    
+    server = app.listen(PORT, listenHost, () => {
+      logger.logInfo(`SUPFile API listening on http://${listenHost}:${PORT}`, {
         environment: config.server.nodeEnv,
         port: PORT,
-        host: HOST,
+        host: listenHost,
+        originalHost: HOST,
       });
-      console.log(`✓ Server started successfully on ${HOST}:${PORT}`);
+      console.log(`✓ Server started successfully on ${listenHost}:${PORT}`);
+      console.log(`✓ Server is listening on all interfaces (0.0.0.0)`);
     });
     
     // Gérer les erreurs d'écoute
@@ -474,13 +480,19 @@ startServer().then(() => {
   console.error(`✗ Failed to start server: ${err.message}`);
   // Essayer quand même de démarrer le serveur
   try {
-    server = app.listen(PORT, HOST, () => {
-      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT} (started despite errors)`, {
+    // Forcer 0.0.0.0 pour Fly.io (doit écouter sur toutes les interfaces)
+    const listenHost = HOST === 'localhost' ? '0.0.0.0' : HOST;
+    console.log(`[SERVER] Fallback: Starting server on ${listenHost}:${PORT} (HOST=${HOST}, PORT=${PORT})`);
+    
+    server = app.listen(PORT, listenHost, () => {
+      logger.logInfo(`SUPFile API listening on http://${listenHost}:${PORT} (started despite errors)`, {
         environment: config.server.nodeEnv,
         port: PORT,
-        host: HOST,
+        host: listenHost,
+        originalHost: HOST,
       });
-      console.log(`✓ Server started on ${HOST}:${PORT} (despite startup errors)`);
+      console.log(`✓ Server started on ${listenHost}:${PORT} (despite startup errors)`);
+      console.log(`✓ Server is listening on all interfaces (0.0.0.0)`);
     });
   } catch (listenErr) {
     logger.logError(listenErr, { context: 'server listen fallback' });
