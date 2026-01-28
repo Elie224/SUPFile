@@ -220,14 +220,22 @@ export default function Signup() {
             </button>
           </div>
 
-          {/* Lien de connexion */}
+          {/* Liens bas de page */}
           <div className="text-center">
-            <p className="text-muted mb-0">
+            <p className="text-muted mb-1">
               {t('alreadyHaveAccount') || 'Vous avez déjà un compte ?'}{' '}
               <Link to="/login" className="text-primary text-decoration-none fw-semibold">
                 {t('loginLink') || 'Se connecter'}
               </Link>
             </p>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="btn btn-link p-0 mt-1"
+              style={{ fontSize: '14px' }}
+            >
+              ← Retour à la présentation de SUPFile
+            </button>
           </div>
         </div>
       </div>
