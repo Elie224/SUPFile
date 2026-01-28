@@ -137,10 +137,31 @@ async function downloadFolder(req, res, next) {
     const { id } = req.params;
     const { token, password } = req.query;
 
+    console.log('[downloadFolder] Request received:', {
+      id,
+      idType: typeof id,
+      idLength: id?.length,
+      userId: userId?.toString(),
+      hasToken: !!token
+    });
+
+    // Vérifier que l'ID est valide (ObjectId MongoDB = 24 caractères hex)
+    if (!id || typeof id !== 'string' || id.length !== 24) {
+      console.error('[downloadFolder] Invalid folder ID format:', { id, type: typeof id, length: id?.length });
+      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
+    }
+
     const folder = await FolderModel.findById(id);
     if (!folder) {
+      console.error('[downloadFolder] Folder not found:', { id, idLength: id.length });
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
+
+    console.log('[downloadFolder] Folder found:', {
+      id: folder.id,
+      name: folder.name,
+      owner_id: folder.owner_id?.toString()
+    });
 
     // Vérifier la propriété ou le partage public
     let hasAccess = false;
