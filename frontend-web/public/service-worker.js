@@ -49,6 +49,13 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Laisser passer directement les téléchargements ZIP de dossiers (sans SW)
+  if (url.pathname.startsWith('/api/folders/') && url.pathname.endsWith('/download')) {
+    // Ne pas utiliser event.respondWith ici : le navigateur gère la requête directement,
+    // ce qui évite les erreurs "connectionAborted" sur les gros téléchargements.
+    return;
+  }
+
   // Ne pas mettre en cache les requêtes API (toujours aller sur le réseau)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(

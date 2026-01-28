@@ -1539,7 +1539,30 @@ export default function Files() {
                                 } else if (!err.response && (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'))) {
                                   errorMsg = t('networkError') || 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
                                 } else if (err.response?.status === 404) {
-                                  errorMsg = t('folderNotFound') || 'Le dossier n\'a pas été trouvé.';
+                                  // Vérifier si c'est un dossier vide/orphelin
+                                  let responseData = null;
+                                  try {
+                                    if (err.response.data instanceof Blob) {
+                                      const text = await err.response.data.text();
+                                      responseData = JSON.parse(text);
+                                    } else {
+                                      responseData = err.response.data;
+                                    }
+                                  } catch {
+                                    // Ignorer si on ne peut pas parser
+                                  }
+                                  
+                                  if (responseData?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
+                                    errorMsg = responseData.error.message || 
+                                      'Ce dossier ne contient aucun fichier accessible. Les fichiers ont probablement été perdus après un déploiement. Veuillez ré-uploader les fichiers ou supprimer ce dossier.';
+                                    
+                                    // Afficher aussi les détails si disponibles
+                                    if (responseData.error.details?.suggestion) {
+                                      errorMsg += '\n\n' + responseData.error.details.suggestion;
+                                    }
+                                  } else {
+                                    errorMsg = responseData?.error?.message || t('folderNotFound') || 'Le dossier n\'a pas été trouvé.';
+                                  }
                                 } else if (err.response?.status === 403) {
                                   errorMsg = t('accessDenied') || 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
                                 } else if (err.code === 'ECONNABORTED') {

@@ -373,8 +373,8 @@ async function downloadFolder(req, res, next) {
     if (filesAdded === 0) {
       archive.abort();
       const errorMessage = filesSkipped > 0
-        ? `No accessible files found in folder. ${filesSkipped} file(s) were found in database but are missing on the server (likely lost after deployment).`
-        : 'No accessible files found in folder';
+        ? `Le dossier ne contient aucun fichier accessible. ${filesSkipped} fichier(s) trouvé(s) en base de données mais manquant(s) sur le serveur (probablement perdus après un déploiement). Veuillez ré-uploader les fichiers ou utiliser le script de nettoyage pour supprimer les entrées orphelines.`
+        : 'Le dossier ne contient aucun fichier accessible';
       console.error('[downloadFolder] No files added to archive:', {
         totalFiles: allFiles.length,
         skippedFiles: skippedFiles.length,
@@ -383,7 +383,11 @@ async function downloadFolder(req, res, next) {
       return res.status(404).json({ 
         error: { 
           message: errorMessage,
-          details: filesSkipped > 0 ? { skippedFiles } : undefined
+          code: 'FOLDER_EMPTY_OR_ORPHANED',
+          details: filesSkipped > 0 ? { 
+            skippedFiles: skippedFiles.map(f => ({ name: f.name, path: f.path })),
+            suggestion: 'Les fichiers ont probablement été perdus après un déploiement. Veuillez ré-uploader les fichiers ou supprimer ce dossier.'
+          } : undefined
         } 
       });
     }
