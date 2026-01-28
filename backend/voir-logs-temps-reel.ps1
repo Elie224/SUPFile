@@ -12,5 +12,5 @@ Write-Host "`n[*] Appuyez sur Ctrl+C pour arreter" -ForegroundColor Yellow
 Write-Host "[*] Les logs vont s'afficher en temps reel..." -ForegroundColor Yellow
 Write-Host "`n============================================================" -ForegroundColor Gray
 
-# Lancer flyctl logs avec --follow pour voir en temps réel
-& $flyctlPath logs --app $appName --follow
+# Lancer flyctl logs (stream par défaut, pas besoin de --follow)
+& $flyctlPath logs --app $appName
