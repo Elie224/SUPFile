@@ -164,14 +164,13 @@ export default function Intro() {
         <div
           style={{
             width: '100%',
-            maxWidth: 1120,
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)',
-            gap: 40,
-            alignItems: 'center',
+            maxWidth: 880,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 32,
           }}
         >
-          {/* Colonne gauche : discours commercial */}
+          {/* Bloc principal : discours commercial + étapes */}
           <section>
             <div
               style={{
@@ -355,143 +354,6 @@ export default function Intro() {
                 >
                   {isLast ? 'Commencer avec SUPFile' : 'Suivant →'}
                 </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Colonne droite : visuel conceptuel (sans données) */}
-          <section
-            style={{
-              background:
-                'linear-gradient(145deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85))',
-              borderRadius: 28,
-              padding: 22,
-              border: '1px solid rgba(30,64,175,0.8)',
-              boxShadow: '0 24px 60px rgba(15,23,42,0.9)',
-            }}
-          >
-            <div
-              style={{
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'rgba(148,163,184,0.9)',
-                  marginBottom: 4,
-                }}
-              >
-                Un aperçu de l’interface SUPFile
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#e5e7eb' }}>
-                Organisation claire, interface moderne
-              </div>
-            </div>
-
-            {/* Aperçu conceptuel (sans chiffres ni fichiers réels) */}
-            <div
-              style={{
-                borderRadius: 18,
-                background:
-                  'radial-gradient(circle at top, rgba(37,99,235,0.4), transparent 55%), rgba(15,23,42,0.98)',
-                padding: 16,
-                marginBottom: 16,
-                border: '1px solid rgba(30,64,175,0.8)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  marginBottom: 14,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(15,23,42,0.9)',
-                    border: '1px solid rgba(56,189,248,0.6)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'rgba(148,163,184,0.95)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    Stockage sécurisé
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
-                    Vos fichiers sont centralisés et protégés dans un espace dédié.
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(15,23,42,0.9)',
-                    border: '1px solid rgba(251,191,36,0.6)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'rgba(148,163,184,0.95)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    Partage contrôlé
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
-                    Liens de partage publics ou internes, avec expiration et protection.
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(15,23,42,0.9)',
-                    border: '1px solid rgba(52,211,153,0.6)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'rgba(148,163,184,0.95)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    Pilotage de l’activité
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
-                    Une vue d’ensemble de l’utilisation, des derniers fichiers et des quotas.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Points clés */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: 10,
-                marginTop: 4,
-              }}
-            >
-              <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
-                ✅ Sauvegarde sur infrastructure cloud performante
-                <br />
-                ✅ Rôles administrateurs & quotas par utilisateur
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
-                ✅ Accès depuis le web et l’application mobile
-                <br />
-                ✅ Conçu pour un usage professionnel et commercial
               </div>
             </div>
           </section>
