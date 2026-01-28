@@ -151,9 +151,49 @@ async function downloadFolder(req, res, next) {
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
 
-    const folder = await FolderModel.findById(id);
+    // Vérifier que l'ID est bien un ObjectId valide avant la requête MongoDB
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('[downloadFolder] Invalid ObjectId format before MongoDB query:', { 
+        id, 
+        type: typeof id, 
+        length: id?.length,
+        isValid: mongoose.Types.ObjectId.isValid(id)
+      });
+      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
+    }
+    
+    // Convertir l'ID en ObjectId pour la requête
+    let folderId;
+    try {
+      folderId = new mongoose.Types.ObjectId(id);
+    } catch (err) {
+      console.error('[downloadFolder] Failed to convert ID to ObjectId:', { id, error: err.message });
+      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
+    }
+    
+    console.log('[downloadFolder] Searching folder with ObjectId:', { 
+      originalId: id, 
+      objectId: folderId.toString(),
+      objectIdType: folderId.constructor.name
+    });
+    
+    const folder = await FolderModel.findById(folderId);
     if (!folder) {
-      console.error('[downloadFolder] Folder not found:', { id, idLength: id.length });
+      console.error('[downloadFolder] Folder not found in database:', { 
+        id, 
+        idLength: id.length,
+        objectId: folderId.toString(),
+        searchQuery: { _id: folderId }
+      });
+      
+      // Vérifier si c'est un problème de connexion MongoDB
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState !== 1) {
+        console.error('[downloadFolder] MongoDB not connected!', { readyState: mongoose.connection.readyState });
+        return res.status(503).json({ error: { message: 'Database connection error' } });
+      }
+      
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
 
