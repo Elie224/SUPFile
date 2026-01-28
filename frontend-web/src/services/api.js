@@ -354,8 +354,9 @@ export const userService = {
       current_password: currentPassword,
       new_password: newPassword,
     }),
+  // Le backend attend un objet { preferences: {...} }
   updatePreferences: (preferences) =>
-    apiClient.patch('/users/me/preferences', preferences),
+    apiClient.patch('/users/me/preferences', { preferences }),
 };
 
 // Services dashboard
