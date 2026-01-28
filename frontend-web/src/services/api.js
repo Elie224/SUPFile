@@ -53,13 +53,32 @@ uploadClient.interceptors.request.use((config) => {
 // Intercepteur pour les téléchargements - ajouter le token
 downloadClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
+  
+  // Logs très visibles pour debug
+  console.log('========================================');
+  console.log('🔑 DOWNLOAD CLIENT INTERCEPTOR');
+  console.log('========================================');
+  console.log('URL:', config.url);
+  console.log('Method:', config.method);
+  console.log('Token exists:', !!token);
+  console.log('Token length:', token?.length || 0);
+  console.log('Token preview:', token ? `${token.substring(0, 20)}...` : 'NONE');
+  console.log('Headers before:', JSON.stringify(config.headers, null, 2));
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('✅ Token added to headers');
   } else {
-    console.warn('No access token found in localStorage for download request:', config.url);
+    console.error('❌ No access token found in localStorage for download request:', config.url);
+    console.error('localStorage keys:', Object.keys(localStorage));
   }
+  
+  console.log('Headers after:', JSON.stringify(config.headers, null, 2));
+  console.log('========================================');
+  
   return config;
 }, (error) => {
+  console.error('❌ Download client interceptor error:', error);
   return Promise.reject(error);
 });
 
