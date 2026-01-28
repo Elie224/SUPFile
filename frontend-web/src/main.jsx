@@ -39,20 +39,22 @@ const LoadingFallback = () => (
 function App() {
   const { user, accessToken, initialize } = useAuthStore();
 
-  // Forcer le thème clair
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('theme', 'light');
-  }, []);
-
   useEffect(() => {
     initialize();
   }, [initialize]);
 
   useEffect(() => {
-    // Toujours forcer le thème clair
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('theme', 'light');
+    // Appliquer le thème stocké (ou clair par défaut)
+    const storedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', storedTheme);
+  }, []);
+
+  useEffect(() => {
+    // Quand l'utilisateur change (login / chargement), appliquer sa préférence si disponible
+    if (!user) return;
+    const preferredTheme = user.preferences?.theme || localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', preferredTheme);
+    localStorage.setItem('theme', preferredTheme);
   }, [user]);
 
   // Enregistrer le Service Worker pour PWA
