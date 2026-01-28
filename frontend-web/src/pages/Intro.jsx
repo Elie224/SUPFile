@@ -359,7 +359,7 @@ export default function Intro() {
             </div>
           </section>
 
-          {/* Colonne droite : visuel produit / points clés */}
+          {/* Colonne droite : visuel conceptuel (sans données) */}
           <section
             style={{
               background:
@@ -372,41 +372,24 @@ export default function Intro() {
           >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
                 marginBottom: 14,
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: 'rgba(148,163,184,0.9)',
-                    marginBottom: 4,
-                  }}
-                >
-                  Vue d’ensemble (exemple de démonstration)
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: '#e5e7eb' }}>
-                  Exemple de dashboard SUPFile
-                </div>
-              </div>
-              <span
+              <div
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  fontSize: 11,
-                  backgroundColor: 'rgba(16,185,129,0.16)',
-                  color: '#6ee7b7',
-                  border: '1px solid rgba(16,185,129,0.5)',
+                  fontSize: 13,
+                  color: 'rgba(148,163,184,0.9)',
+                  marginBottom: 4,
                 }}
               >
-                Données fictives • Sécurisé • Haute dispo
-              </span>
+                Un aperçu de l’interface SUPFile
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#e5e7eb' }}>
+                Organisation claire, interface moderne
+              </div>
             </div>
 
-            {/* Faux aperçu de dashboard */}
+            {/* Aperçu conceptuel (sans chiffres ni fichiers réels) */}
             <div
               style={{
                 borderRadius: 18,
@@ -419,10 +402,10 @@ export default function Intro() {
             >
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  display: 'flex',
                   gap: 10,
                   marginBottom: 14,
+                  flexWrap: 'wrap',
                 }}
               >
                 <div
@@ -440,13 +423,10 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Espace utilisé (exemple)
+                    Stockage sécurisé
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: '#e0f2fe' }}>
-                    120,4 Go
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
-                    sur 500 Go alloués (démonstration)
+                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
+                    Vos fichiers sont centralisés et protégés dans un espace dédié.
                   </div>
                 </div>
                 <div
@@ -464,13 +444,10 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Fichiers partagés (exemple)
+                    Partage contrôlé
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: '#facc15' }}>
-                    243
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
-                    liens actifs & internes (démo)
+                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
+                    Liens de partage publics ou internes, avec expiration et protection.
                   </div>
                 </div>
                 <div
@@ -488,68 +465,12 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Activité récente (exemple)
+                    Pilotage de l’activité
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: '#6ee7b7' }}>
-                    +37
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
-                    fichiers ajoutés cette semaine
+                  <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
+                    Une vue d’ensemble de l’utilisation, des derniers fichiers et des quotas.
                   </div>
                 </div>
-              </div>
-
-              {/* Lignes de fichiers */}
-              <div
-                style={{
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(15,23,42,0.9)',
-                  padding: 10,
-                  border: '1px solid rgba(30,64,175,0.7)',
-                }}
-              >
-                {['Contrat_client.pdf', 'Présentation_commerciale.pptx', 'Rapport_financier.xlsx'].map(
-                  (file, idx) => (
-                    <div
-                      key={file}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '6px 8px',
-                        borderRadius: 8,
-                        backgroundColor:
-                          idx === 0 ? 'rgba(30,64,175,0.7)' : 'transparent',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          fontSize: 12,
-                          color: '#e5e7eb',
-                        }}
-                      >
-                        <span>📄</span>
-                        <span>{file}</span>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          fontSize: 11,
-                          color: 'rgba(148,163,184,0.9)',
-                        }}
-                      >
-                        <span>{idx === 0 ? '2,4 Mo' : idx === 1 ? '18,9 Mo' : '4,1 Mo'}</span>
-                        <span>•</span>
-                        <span>{idx === 0 ? 'Modifié il y a 2 h' : 'Hier'}</span>
-                      </div>
-                    </div>
-                  ),
-                )}
               </div>
             </div>
 
