@@ -55,13 +55,15 @@ downloadClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('No access token found in localStorage for download request:', config.url);
   }
   return config;
 }, (error) => {
   return Promise.reject(error);
 });
 
-// Intercepteur pour gérer les erreurs (notamment 401)
+// Intercepteur pour gérer les erreurs (notamment 401) - pour apiClient
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -78,6 +80,40 @@ apiClient.interceptors.response.use(
           // Réessayer la requête originale
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return apiClient.request(error.config);
+        } catch (refreshError) {
+          // Refresh échoué - rediriger vers login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+        }
+      } else {
+        // Pas de refresh token - rediriger vers login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
+// Intercepteur pour gérer les erreurs (notamment 401) - pour downloadClient
+downloadClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expiré - essayer de rafraîchir
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const response = await authService.refresh(refreshToken);
+          const { access_token, refresh_token } = response.data.data;
+          localStorage.setItem('access_token', access_token);
+          localStorage.setItem('refresh_token', refresh_token);
+          
+          // Réessayer la requête originale
+          error.config.headers.Authorization = `Bearer ${access_token}`;
+          return downloadClient.request(error.config);
         } catch (refreshError) {
           // Refresh échoué - rediriger vers login
           localStorage.removeItem('access_token');

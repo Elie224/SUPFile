@@ -215,25 +215,73 @@ async function downloadFolder(req, res, next) {
 
     const allFiles = await getAllFiles(id, folder.name);
 
+    // Vérifier qu'il y a des fichiers à télécharger
+    if (allFiles.length === 0) {
+      return res.status(400).json({ error: { message: 'Folder is empty' } });
+    }
+
     // Créer l'archive ZIP
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${folder.name}.zip"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    const archive = archiver('zip', { 
+      zlib: { level: 9 },
+      store: false // Compression activée
+    });
+
+    // Gérer les erreurs d'archivage
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: { message: 'Failed to create archive' } });
+      }
+    });
+
+    // Gérer les warnings d'archivage
+    archive.on('warning', (err) => {
+      if (err.code === 'ENOENT') {
+        console.warn('Archive warning:', err);
+      } else {
+        console.error('Archive warning:', err);
+        throw err;
+      }
+    });
+
     archive.pipe(res);
 
+    // Ajouter les fichiers à l'archive
+    let filesAdded = 0;
     for (const file of allFiles) {
       try {
+        // Vérifier que le fichier existe
         await fs.access(file.file_path);
+        // Ajouter le fichier à l'archive
         archive.file(file.file_path, { name: file.path });
+        filesAdded++;
       } catch (err) {
-        console.error(`File not found: ${file.file_path}`);
+        console.error(`File not found or inaccessible: ${file.file_path}`, err);
+        // Continuer avec les autres fichiers
       }
     }
 
+    // Vérifier qu'au moins un fichier a été ajouté
+    if (filesAdded === 0) {
+      archive.abort();
+      return res.status(404).json({ error: { message: 'No accessible files found in folder' } });
+    }
+
+    // Finaliser l'archive
     await archive.finalize();
   } catch (err) {
-    next(err);
+    console.error('Download folder error:', err);
+    // Si la réponse n'a pas encore été envoyée, envoyer une erreur
+    if (!res.headersSent) {
+      next(err);
+    } else {
+      // Si les en-têtes ont déjà été envoyés, on ne peut plus envoyer de réponse JSON
+      // La connexion sera fermée, ce qui causera une erreur côté client
+      console.error('Cannot send error response, headers already sent');
+    }
   }
 }
 
