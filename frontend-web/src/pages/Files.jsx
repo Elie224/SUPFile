@@ -1405,6 +1405,13 @@ export default function Files() {
                               setDownloadingFolder(itemId);
                               
                               try {
+                                // Vérifier que l'ID est valide
+                                if (!itemId) {
+                                  throw new Error('ID du dossier invalide');
+                                }
+                                
+                                console.log('Downloading folder:', { itemId, itemName: item.name });
+                                
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 
                                 const response = await folderService.downloadAsZip(itemId);
