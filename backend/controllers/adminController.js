@@ -183,7 +183,7 @@ async function updateUser(req, res, next) {
       req.user?.email !== SUPER_ADMIN_EMAIL
     ) {
       return res.status(403).json({
-        error: { message: 'Vous ne pouvez pas modifier le rôle ou les paramètres de l’admin principal.' }
+        error: { message: "Vous n'avez ce privilège" }
       });
     }
 
