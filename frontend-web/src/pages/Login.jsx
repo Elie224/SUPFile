@@ -66,15 +66,15 @@ export default function Login() {
   };
 
   return (
-    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <div className="card shadow-lg fade-in" style={{ width: '100%', maxWidth: '450px', border: 'none', borderRadius: '16px' }}>
+    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="card shadow-lg fade-in" style={{ width: '100%', maxWidth: '450px', border: 'none', borderRadius: '16px', backgroundColor: 'var(--bg-color)' }}>
         <div className="card-body p-4 p-md-5">
           {/* Logo / Titre */}
           <div className="text-center mb-4">
-            <h1 className="h2 mb-2" style={{ fontWeight: 700, color: '#2C3E50' }}>
+            <h1 className="h2 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
               SUPFile
             </h1>
-            <p className="text-muted mb-0">{t('login')}</p>
+            <p className="text-muted mb-0" style={{ color: 'var(--text-secondary)' }}>{t('login')}</p>
           </div>
 
           {/* Message d'erreur */}
@@ -145,9 +145,9 @@ export default function Login() {
 
           {/* Séparateur */}
           <div className="d-flex align-items-center my-4">
-            <div className="flex-grow-1" style={{ height: '1px', backgroundColor: '#E0E6ED' }}></div>
-            <span className="px-3 text-muted small">{t('or')}</span>
-            <div className="flex-grow-1" style={{ height: '1px', backgroundColor: '#E0E6ED' }}></div>
+            <div className="flex-grow-1" style={{ height: '1px', backgroundColor: 'var(--border-color)' }}></div>
+            <span className="px-3 text-muted small" style={{ color: 'var(--text-muted)' }}>{t('or')}</span>
+            <div className="flex-grow-1" style={{ height: '1px', backgroundColor: 'var(--border-color)' }}></div>
           </div>
 
           {/* Boutons OAuth */}
