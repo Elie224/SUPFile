@@ -378,13 +378,27 @@ const gracefulShutdown = async (signal) => {
 // ============================================================
 
 // Écouter les signaux de fermeture du système
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  gracefulShutdown('SIGTERM').catch((err) => {
+    logger.logError(err, { context: 'gracefulShutdown error' });
+    process.exit(1);
+  });
+});
+process.on('SIGINT', () => {
+  gracefulShutdown('SIGINT').catch((err) => {
+    logger.logError(err, { context: 'gracefulShutdown error' });
+    process.exit(1);
+  });
+});
 
 // Gestion des erreurs non capturées - Logger et arrêt propre
 process.on('uncaughtException', (err) => {
   logger.logError(err, { context: 'uncaughtException' });
-  gracefulShutdown('uncaughtException');
+  // Gérer la promesse retournée par gracefulShutdown
+  gracefulShutdown('uncaughtException').catch((shutdownErr) => {
+    logger.logError(shutdownErr, { context: 'gracefulShutdown error' });
+    process.exit(1);
+  });
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -392,7 +406,11 @@ process.on('unhandledRejection', (reason, promise) => {
     context: 'unhandledRejection',
     promise
   });
-  gracefulShutdown('unhandledRejection');
+  // Gérer la promesse retournée par gracefulShutdown
+  gracefulShutdown('unhandledRejection').catch((shutdownErr) => {
+    logger.logError(shutdownErr, { context: 'gracefulShutdown error' });
+    process.exit(1);
+  });
 });
 
 // ============================================================
