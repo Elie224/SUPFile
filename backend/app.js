@@ -52,26 +52,56 @@ async function startServer() {
     
     // Attendre que la promesse de connexion soit résolue
     try {
-      await db.connectionPromise;
-      logger.logInfo('MongoDB ready, starting server...');
+      const connectionResult = await db.connectionPromise;
+      
+      // Vérifier si la connexion a réussi
+      if (connectionResult === null) {
+        logger.logWarn('MongoDB connection failed, but starting server anyway...');
+      } else {
+        // Vérifier l'état de la connexion
+        if (db.connection.readyState === 1) {
+          logger.logInfo('MongoDB ready, starting server...');
+        } else {
+          // Attendre un peu pour voir si la connexion se stabilise
+          while (db.connection.readyState !== 1 && (Date.now() - startTime) < MAX_WAIT_TIME) {
+            await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+          }
+          
+          if (db.connection.readyState === 1) {
+            logger.logInfo('MongoDB ready, starting server...');
+          } else {
+            logger.logWarn('MongoDB connection timeout, but starting server anyway...', {
+              readyState: db.connection.readyState,
+              message: 'Server will start but database operations may fail'
+            });
+          }
+        }
+      }
     } catch (connErr) {
       // Si la connexion échoue, attendre un peu et vérifier l'état
+      logger.logWarn('MongoDB connection error, checking status...', { error: connErr.message });
+      
       // On vérifie périodiquement si la connexion est établie
       while (db.connection.readyState !== 1 && (Date.now() - startTime) < MAX_WAIT_TIME) {
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       }
       
-      if (db.connection.readyState !== 1) {
-        logger.logWarn('MongoDB connection timeout', {
+      if (db.connection.readyState === 1) {
+        logger.logInfo('MongoDB ready, starting server...');
+      } else {
+        logger.logWarn('MongoDB connection timeout, but starting server anyway...', {
           readyState: db.connection.readyState,
           message: 'Server will start but database operations may fail'
         });
-      } else {
-        logger.logInfo('MongoDB ready, starting server...');
       }
     }
+    
+    // Toujours démarrer le serveur, même si MongoDB n'est pas connecté
+    logger.logInfo('Starting HTTP server...');
   } catch (err) {
     logger.logError(err, { context: 'startServer' });
+    // Ne pas bloquer le démarrage du serveur même en cas d'erreur
+    logger.logWarn('Error in startServer, but continuing with server startup...');
   }
 }
 
@@ -377,16 +407,51 @@ process.on('unhandledRejection', (reason, promise) => {
  * Démarre le serveur HTTP après vérification de la connexion MongoDB
  * Attend que MongoDB soit prêt avant de démarrer le serveur Express
  */
+// Démarrer le serveur - ne pas bloquer même si MongoDB échoue
 startServer().then(() => {
-  server = app.listen(PORT, HOST, () => {
-    logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
-      environment: config.server.nodeEnv,
-      port: PORT,
+  try {
+    server = app.listen(PORT, HOST, () => {
+      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
+        environment: config.server.nodeEnv,
+        port: PORT,
+        host: HOST,
+      });
+      console.log(`✓ Server started successfully on ${HOST}:${PORT}`);
     });
-  });
+    
+    // Gérer les erreurs d'écoute
+    server.on('error', (err) => {
+      logger.logError(err, { context: 'server listen error' });
+      if (err.code === 'EADDRINUSE') {
+        console.error(`✗ Port ${PORT} is already in use`);
+        process.exit(1);
+      } else {
+        console.error(`✗ Server error: ${err.message}`);
+        process.exit(1);
+      }
+    });
+  } catch (err) {
+    logger.logError(err, { context: 'server startup' });
+    console.error(`✗ Failed to start server: ${err.message}`);
+    process.exit(1);
+  }
 }).catch((err) => {
   logger.logError(err, { context: 'server startup' });
-  process.exit(1);
+  console.error(`✗ Failed to start server: ${err.message}`);
+  // Essayer quand même de démarrer le serveur
+  try {
+    server = app.listen(PORT, HOST, () => {
+      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT} (started despite errors)`, {
+        environment: config.server.nodeEnv,
+        port: PORT,
+        host: HOST,
+      });
+      console.log(`✓ Server started on ${HOST}:${PORT} (despite startup errors)`);
+    });
+  } catch (listenErr) {
+    logger.logError(listenErr, { context: 'server listen fallback' });
+    process.exit(1);
+  }
 });
 
 // ============================================================
