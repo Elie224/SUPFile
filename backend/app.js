@@ -286,7 +286,19 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/files', require('./routes/files'));
 
 // Dossiers - Création, modification, suppression de dossiers
-app.use('/api/folders', validateName, require('./routes/folders'));
+// Log middleware pour tracer toutes les requêtes vers /api/folders
+app.use('/api/folders', (req, res, next) => {
+  console.log('[APP] Request to /api/folders:', {
+    method: req.method,
+    path: req.path,
+    originalUrl: req.originalUrl,
+    params: req.params,
+    query: req.query,
+    hasAuth: !!req.headers.authorization,
+    timestamp: new Date().toISOString()
+  });
+  next();
+}, validateName, require('./routes/folders'));
 
 // Partage - Gestion des liens de partage (rate limiting pour éviter les abus)
 app.use('/api/share', shareLimiter, require('./routes/share'));
@@ -309,6 +321,14 @@ app.use('/api/admin', require('./routes/admin'));
  * DOIT être avant errorHandler pour intercepter les routes non définies
  */
 app.use((req, res) => {
+  console.log('[APP] 404 Handler triggered:', {
+    method: req.method,
+    url: req.originalUrl,
+    path: req.path,
+    params: req.params,
+    query: req.query,
+    timestamp: new Date().toISOString()
+  });
   res.status(404).json({ error: { message: 'Route not found', status: 404 } });
 });
 

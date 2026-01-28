@@ -204,10 +204,24 @@ function validateFileName(name) {
 
 /**
  * Middleware pour valider les noms de fichiers/dossiers
+ * NOTE: Ne bloque PAS les requêtes GET (pas de body.name)
  */
 function validateName(req, res, next) {
+  // Log pour debug (uniquement pour les routes de téléchargement)
+  if (req.path && req.path.includes('/download')) {
+    console.log('[validateName] Checking request:', {
+      method: req.method,
+      path: req.path,
+      hasBody: !!req.body,
+      bodyName: req.body?.name,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  // Valider uniquement si c'est une requête avec body.name (POST, PATCH, etc.)
   if (req.body && req.body.name) {
     if (!validateFileName(req.body.name)) {
+      console.error('[validateName] Invalid name:', { name: req.body.name, path: req.path });
       return res.status(400).json({
         error: {
           message: 'Invalid file or folder name',
