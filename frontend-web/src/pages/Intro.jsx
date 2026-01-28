@@ -125,40 +125,96 @@ export default function Intro() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            type="button"
-            onClick={handleSkip}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Sélecteur de thème compact */}
+          <div
             style={{
-              padding: '8px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px',
               borderRadius: 999,
               border: '1px solid rgba(148,163,184,0.6)',
-              backgroundColor: 'transparent',
-              color: '#e5e7eb',
-              fontSize: 13,
-              cursor: 'pointer',
+              backgroundColor: 'rgba(15,23,42,0.7)',
+              fontSize: 12,
+              gap: 2,
             }}
           >
-            Se connecter
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/signup')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 999,
-              border: 'none',
-              background:
-                'linear-gradient(135deg, #22c55e, #16a34a)',
-              color: 'white',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 10px 25px rgba(34,197,94,0.5)',
-            }}
-          >
-            Créer un compte
-          </button>
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                border: 'none',
+                backgroundColor: theme === 'light' ? '#f9fafb' : 'transparent',
+                color: theme === 'light' ? '#0f172a' : 'rgba(209,213,219,0.9)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 12,
+              }}
+            >
+              <span>🌞</span>
+              <span>Clair</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                border: 'none',
+                backgroundColor: theme === 'dark' ? '#020617' : 'transparent',
+                color: 'rgba(209,213,219,0.9)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 12,
+              }}
+            >
+              <span>🌙</span>
+              <span>Sombre</span>
+            </button>
+          </div>
+
+          {/* Actions auth */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              onClick={handleSkip}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 999,
+                border: '1px solid rgba(148,163,184,0.6)',
+                backgroundColor: 'transparent',
+                color: '#e5e7eb',
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Se connecter
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/signup')}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 999,
+                border: 'none',
+                background:
+                  'linear-gradient(135deg, #22c55e, #16a34a)',
+                color: 'white',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 10px 25px rgba(34,197,94,0.5)',
+              }}
+            >
+              Créer un compte
+            </button>
+          </div>
         </div>
       </header>
 
@@ -226,68 +282,6 @@ export default function Intro() {
               équipes et accédez à vos données partout, en toute sécurité.
             </p>
 
-            {/* Sélecteur de thème global (clair / sombre) */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 12,
-                alignItems: 'center',
-                marginBottom: 18,
-              }}
-            >
-              <span style={{ fontSize: 13, color: 'rgba(209,213,219,0.9)' }}>
-                Choisissez votre thème :
-              </span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setTheme('light')}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 999,
-                    border: theme === 'light'
-                      ? '2px solid #38bdf8'
-                      : '1px solid rgba(148,163,184,0.6)',
-                    backgroundColor: theme === 'light'
-                      ? 'rgba(248,250,252,0.95)'
-                      : 'rgba(15,23,42,0.7)',
-                    color: theme === 'light' ? '#0f172a' : '#e5e7eb',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span>🌞</span>
-                  <span>Clair</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTheme('dark')}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 999,
-                    border: theme === 'dark'
-                      ? '2px solid #38bdf8'
-                      : '1px solid rgba(148,163,184,0.6)',
-                    backgroundColor: theme === 'dark'
-                      ? 'rgba(15,23,42,0.95)'
-                      : 'rgba(15,23,42,0.7)',
-                    color: '#e5e7eb',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span>🌙</span>
-                  <span>Sombre</span>
-                </button>
-              </div>
-            </div>
 
             {/* 3 points clés très synthétiques */}
             <div
