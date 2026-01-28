@@ -45,18 +45,11 @@ function App() {
   }, [initialize]);
 
   useEffect(() => {
-    // Appliquer le thème stocké (ou clair par défaut)
+    // Appliquer le thème stocké (ou clair par défaut) une seule fois au démarrage.
+    // Ensuite, le thème est contrôlé par la page d'introduction et les préférences globales.
     const storedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', storedTheme);
   }, []);
-
-  useEffect(() => {
-    // Quand l'utilisateur change (login / chargement), appliquer sa préférence si disponible
-    if (!user) return;
-    const preferredTheme = user.preferences?.theme || localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', preferredTheme);
-    localStorage.setItem('theme', preferredTheme);
-  }, [user]);
 
   // Enregistrer le Service Worker pour PWA
   useEffect(() => {
