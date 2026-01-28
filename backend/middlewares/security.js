@@ -11,7 +11,28 @@ function validateObjectId(req, res, next) {
   
   for (const param of idParams) {
     if (req.params[param]) {
-      if (!mongoose.Types.ObjectId.isValid(req.params[param])) {
+      const paramValue = req.params[param];
+      const isValid = mongoose.Types.ObjectId.isValid(paramValue);
+      
+      // Log pour debug (uniquement pour les routes de téléchargement)
+      if (req.path && req.path.includes('/download')) {
+        console.log(`[validateObjectId] Checking ${param}:`, {
+          value: paramValue,
+          type: typeof paramValue,
+          length: paramValue?.length,
+          isValid: isValid,
+          path: req.path,
+          method: req.method
+        });
+      }
+      
+      if (!isValid) {
+        console.error(`[validateObjectId] Invalid ${param} format:`, {
+          value: paramValue,
+          type: typeof paramValue,
+          length: paramValue?.length,
+          path: req.path
+        });
         return res.status(400).json({
           error: {
             message: `Invalid ${param} format`,
