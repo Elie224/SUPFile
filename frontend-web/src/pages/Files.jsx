@@ -64,7 +64,30 @@ export default function Files() {
       setLoading(true);
       setError(null);
       const response = await fileService.list(currentFolder?.id || null);
-      setItems(response.data.data.items || []);
+      const items = response.data.data.items || [];
+      
+      // Logs pour diagnostiquer la structure des items
+      console.log('========================================');
+      console.log('📁 LOADED FILES AND FOLDERS');
+      console.log('========================================');
+      console.log('Total items:', items.length);
+      items.forEach((item, index) => {
+        if (item.type === 'folder' || (!item.type && !item.folder_id)) {
+          console.log(`Folder ${index}:`, {
+            id: item.id,
+            _id: item._id,
+            name: item.name,
+            type: item.type,
+            hasId: !!item.id,
+            has_id: !!item._id,
+            idLength: item.id?.length,
+            _idLength: item._id?.length
+          });
+        }
+      });
+      console.log('========================================');
+      
+      setItems(items);
     } catch (err) {
       console.error('Failed to load files:', err);
       const errorMessage = err.response?.data?.error?.message || err.message || 'Erreur inconnue';
@@ -1221,7 +1244,29 @@ export default function Files() {
                   // Le backend ajoute déjà 'type: folder' ou 'type: file'
                   // Fallback: si folder_id existe, c'est un fichier, sinon c'est un dossier
                   const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
-                  const itemId = item.id || item._id;
+                  
+                  // Extraire l'ID avec vérification
+                  let itemId = item.id || item._id;
+                  
+                  // Si l'ID n'est pas une string, le convertir
+                  if (itemId && typeof itemId !== 'string') {
+                    itemId = String(itemId);
+                  }
+                  
+                  // Log si l'ID est manquant ou invalide pour un dossier
+                  if (itemType === 'folder' && (!itemId || itemId.length !== 24)) {
+                    console.error('❌ Invalid folder ID in map:', {
+                      item,
+                      itemId,
+                      itemIdType: typeof itemId,
+                      itemIdLength: itemId?.length,
+                      itemIdValue: itemId,
+                      hasId: !!item.id,
+                      has_id: !!item._id,
+                      idValue: item.id,
+                      _idValue: item._id
+                    });
+                  }
                   
                   // Vérifier si c'est le dossier Root système
                   // Le backend retourne les dossiers avec type: 'folder' et peut avoir parent_id ou parentId
