@@ -48,6 +48,7 @@ export default function Intro() {
   ];
 
   const current = slides[step];
+  const isFirst = step === 0;
   const isLast = step === slides.length - 1;
 
   const handleNext = () => {
@@ -56,6 +57,11 @@ export default function Intro() {
     } else {
       setStep((s) => s + 1);
     }
+  };
+
+  const handlePrev = () => {
+    if (isFirst) return;
+    setStep((s) => Math.max(0, s - 1));
   };
 
   const handleSkip = () => {
@@ -157,7 +163,25 @@ export default function Intro() {
           </div>
 
           {/* Boutons d’action */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={isFirst}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 999,
+                border: '1px solid rgba(148,163,184,0.7)',
+                backgroundColor: isFirst ? 'rgba(248,250,252,0.8)' : 'transparent',
+                color: isFirst ? 'var(--text-muted)' : 'var(--text-secondary)',
+                fontWeight: 500,
+                fontSize: 14,
+                cursor: isFirst ? 'not-allowed' : 'pointer',
+                opacity: isFirst ? 0.7 : 1,
+              }}
+            >
+              ← Précédent
+            </button>
             <button
               type="button"
               onClick={handleNext}
@@ -173,20 +197,21 @@ export default function Intro() {
                 boxShadow: '0 10px 20px rgba(37,99,235,0.25)',
               }}
             >
-              {isLast ? "Créer mon compte" : 'Continuer'}
+              {isLast ? 'Créer mon compte' : 'Suivant →'}
             </button>
             <button
               type="button"
               onClick={handleSkip}
               style={{
-                padding: '10px 22px',
+                padding: '6px 12px',
                 borderRadius: 999,
-                border: '1px solid rgba(148,163,184,0.7)',
+                border: 'none',
                 backgroundColor: 'transparent',
                 color: 'var(--text-secondary)',
                 fontWeight: 500,
-                fontSize: 14,
+                fontSize: 13,
                 cursor: 'pointer',
+                textDecoration: 'underline',
               }}
             >
               J’ai déjà un compte
