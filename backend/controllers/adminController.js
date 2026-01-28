@@ -1,6 +1,9 @@
 const UserModel = require('../models/userModel');
 const mongoose = require('mongoose');
 
+// Email de l'admin principal qui ne peut pas être dégradé par les autres
+const SUPER_ADMIN_EMAIL = '<SUPER_ADMIN_EMAIL>';
+
 // Statistiques générales
 async function getStats(req, res, next) {
   try {
@@ -164,10 +167,30 @@ async function updateUser(req, res, next) {
     const { display_name, quota_limit, is_active, is_admin } = req.body;
 
     const User = mongoose.models.User || mongoose.model('User');
+
+    // Récupérer d'abord l'utilisateur cible pour appliquer les règles de sécurité
+    const targetUser = await User.findById(userId).select('-password_hash').lean();
+
+    if (!targetUser) {
+      return res.status(404).json({
+        error: { message: 'Utilisateur non trouvé' }
+      });
+    }
+
+    // Empêcher toute modification de l'admin principal par un autre utilisateur
+    if (
+      targetUser.email === SUPER_ADMIN_EMAIL &&
+      req.user?.email !== SUPER_ADMIN_EMAIL
+    ) {
+      return res.status(403).json({
+        error: { message: 'Vous ne pouvez pas modifier le rôle ou les paramètres de l’admin principal.' }
+      });
+    }
+
     const updateData = {};
 
     if (display_name !== undefined) updateData.display_name = display_name;
-    if (quota_limit !== undefined) updateData.quota_limit = parseInt(quota_limit);
+    if (quota_limit !== undefined) updateData.quota_limit = parseInt(quota_limit, 10);
     if (is_active !== undefined) updateData.is_active = Boolean(is_active);
     if (is_admin !== undefined) updateData.is_admin = Boolean(is_admin);
 
@@ -176,12 +199,6 @@ async function updateUser(req, res, next) {
       { $set: updateData },
       { new: true }
     ).select('-password_hash').lean();
-
-    if (!user) {
-      return res.status(404).json({
-        error: { message: 'Utilisateur non trouvé' }
-      });
-    }
 
     res.status(200).json({
       data: {
@@ -203,21 +220,30 @@ async function deleteUser(req, res, next) {
   try {
     const userId = req.params.id;
 
+    const User = mongoose.models.User || mongoose.model('User');
+    const targetUser = await User.findById(userId);
+
+    if (!targetUser) {
+      return res.status(404).json({
+        error: { message: 'Utilisateur non trouvé' }
+      });
+    }
+
     // Ne pas permettre de supprimer son propre compte
-    if (userId === req.user.id) {
+    if (targetUser._id.toString() === req.user.id) {
       return res.status(400).json({
         error: { message: 'Vous ne pouvez pas supprimer votre propre compte' }
       });
     }
 
-    const User = mongoose.models.User || mongoose.model('User');
-    const user = await User.findByIdAndDelete(userId);
-
-    if (!user) {
-      return res.status(404).json({
-        error: { message: 'Utilisateur non trouvé' }
+    // Interdire la suppression de l'admin principal pour tout le monde
+    if (targetUser.email === SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({
+        error: { message: 'Vous ne pouvez pas supprimer le compte de l’admin principal.' }
       });
     }
+
+    await User.findByIdAndDelete(userId);
 
     res.status(200).json({
       data: { message: 'Utilisateur supprimé avec succès' }
