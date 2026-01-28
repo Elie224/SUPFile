@@ -386,10 +386,10 @@ export default function Intro() {
                     marginBottom: 4,
                   }}
                 >
-                  Vue d’ensemble de votre espace
+                  Vue d’ensemble (exemple de démonstration)
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 600, color: '#e5e7eb' }}>
-                  Dashboard SUPFile
+                  Exemple de dashboard SUPFile
                 </div>
               </div>
               <span
@@ -402,7 +402,7 @@ export default function Intro() {
                   border: '1px solid rgba(16,185,129,0.5)',
                 }}
               >
-                Sécurisé • Chiffré • Haute dispo
+                Données fictives • Sécurisé • Haute dispo
               </span>
             </div>
 
@@ -440,13 +440,13 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Espace utilisé
+                    Espace utilisé (exemple)
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 600, color: '#e0f2fe' }}>
-                    128,4 Go
+                    120,4 Go
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
-                    sur 500 Go alloués
+                    sur 500 Go alloués (démonstration)
                   </div>
                 </div>
                 <div
@@ -464,13 +464,13 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Fichiers partagés
+                    Fichiers partagés (exemple)
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 600, color: '#facc15' }}>
                     243
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
-                    liens actifs & internes
+                    liens actifs & internes (démo)
                   </div>
                 </div>
                 <div
@@ -488,7 +488,7 @@ export default function Intro() {
                       marginBottom: 4,
                     }}
                   >
-                    Activité récente
+                    Activité récente (exemple)
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 600, color: '#6ee7b7' }}>
                     +37
