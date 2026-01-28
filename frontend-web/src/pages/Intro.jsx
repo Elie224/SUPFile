@@ -191,29 +191,73 @@ export default function Intro() {
 
             <h1
               style={{
-                fontSize: 36,
+                fontSize: 34,
                 lineHeight: 1.15,
-                marginBottom: 10,
+                marginBottom: 12,
                 color: '#f9fafb',
               }}
             >
-              Centralisez, sécurisez et partagez
+              La plateforme simple et sûre
               <br />
-              <span style={{ color: '#38bdf8' }}>tous vos documents</span>.
+              pour gérer tous vos documents.
             </h1>
 
             <p
               style={{
                 fontSize: 15,
                 color: 'rgba(209,213,219,0.9)',
-                maxWidth: 540,
-                marginBottom: 20,
+                maxWidth: 580,
+                marginBottom: 18,
               }}
             >
-              SUPFile est une plateforme professionnelle de gestion de fichiers pour les équipes
-              modernes&nbsp;: stockage sécurisé, collaboration fluide et accès unifié depuis le web
-              et le mobile.
+              SUPFile est une solution de stockage et de partage conçue pour un usage
+              professionnel et commercial&nbsp;: centralisez vos fichiers, collaborez avec vos
+              équipes et accédez à vos données partout, en toute sécurité.
             </p>
+
+            {/* 3 points clés très synthétiques */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 999,
+                  border: '1px solid rgba(148,163,184,0.5)',
+                  fontSize: 12,
+                  color: 'rgba(209,213,219,0.95)',
+                }}
+              >
+                🔐 Stockage sécurisé dans le cloud
+              </div>
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 999,
+                  border: '1px solid rgba(148,163,184,0.5)',
+                  fontSize: 12,
+                  color: 'rgba(209,213,219,0.95)',
+                }}
+              >
+                🤝 Partage maîtrisé avec vos collaborateurs
+              </div>
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 999,
+                  border: '1px solid rgba(148,163,184,0.5)',
+                  fontSize: 12,
+                  color: 'rgba(209,213,219,0.95)',
+                }}
+              >
+                📊 Vue claire sur votre activité et vos quotas
+              </div>
+            </div>
 
             {/* Étape actuelle en avant */}
             <div
