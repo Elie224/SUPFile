@@ -216,11 +216,32 @@ export const folderService = {
     console.log('========================================');
     console.log('folderId:', folderIdStr);
     console.log('folderId length:', folderIdStr.length);
+    console.log('folderId charCodes:', Array.from(folderIdStr).map(c => c.charCodeAt(0)).join(','));
     console.log('url:', url);
+    console.log('url length:', url.length);
     console.log('fullUrl:', fullUrl);
+    console.log('fullUrl length:', fullUrl.length);
     console.log('baseURL:', downloadClient.defaults.baseURL);
     console.log('========================================');
     
+    // Vérifier que l'URL est correcte avant l'appel
+    if (!url.includes(folderIdStr)) {
+      console.error('❌ CRITICAL: folderId not in URL!', { folderIdStr, url });
+      return Promise.reject(new Error('URL construction failed: folderId not in URL'));
+    }
+    
+    // Vérifier que l'URL fait la bonne longueur (base + /folders/ + 24 chars + /download)
+    const expectedUrlLength = `/folders/`.length + 24 + `/download`.length;
+    if (url.length !== expectedUrlLength) {
+      console.error('❌ CRITICAL: URL length incorrect!', { 
+        url, 
+        urlLength: url.length, 
+        expectedLength: expectedUrlLength 
+      });
+      return Promise.reject(new Error(`URL length incorrect: ${url.length} instead of ${expectedUrlLength}`));
+    }
+    
+    console.log('✅ URL validation passed, making request...');
     return downloadClient.get(url, { responseType: 'blob' });
   },
   list: (parentId = null) =>
