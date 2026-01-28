@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fileService } from '../services/api';
 
 export default function Preview() {
   const { id } = useParams();
@@ -8,6 +7,8 @@ export default function Preview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [previewType, setPreviewType] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]); // images dans le même dossier
+  const [currentIndex, setCurrentIndex] = useState(0); // index de l'image actuelle dans la galerie
 
   useEffect(() => {
     loadFile();
@@ -34,7 +35,8 @@ export default function Preview() {
       }
       
       const fileListData = await fileInfoResponse.json();
-      const fileInfo = fileListData.data?.items?.find(f => f.id === id || f._id === id);
+      const allItems = fileListData.data?.items || [];
+      const fileInfo = allItems.find(f => f.id === id || f._id === id);
       
       if (!fileInfo) {
         // Essayer de récupérer directement via l'ID
@@ -78,22 +80,53 @@ export default function Preview() {
           streamUrl, 
           contentType: mimeType, 
           name: fileInfo.name, 
-          size: fileInfo.size 
+          size: fileInfo.size,
+          folder_id: fileInfo.folder_id,
         });
         
         // Déterminer le type de prévisualisation basé sur le MIME type
         if (mimeType.startsWith('image/')) {
           setPreviewType('image');
+
+          // Construire une galerie d'images pour le même dossier
+          const currentFolderId = fileInfo.folder_id;
+          const imagesInFolder = allItems.filter(
+            (f) =>
+              (f.mime_type || '').startsWith('image/') &&
+              String(f.folder_id) === String(currentFolderId)
+          );
+
+          if (imagesInFolder.length > 0) {
+            const gallery = imagesInFolder.map((img) => ({
+              id: img.id || img._id,
+              name: img.name,
+              mime_type: img.mime_type,
+            }));
+            setGalleryImages(gallery);
+
+            const index = gallery.findIndex(
+              (img) => String(img.id) === String(fileInfo.id || fileInfo._id)
+            );
+            setCurrentIndex(index >= 0 ? index : 0);
+          } else {
+            setGalleryImages([]);
+            setCurrentIndex(0);
+          }
         } else if (mimeType === 'application/pdf') {
           setPreviewType('pdf');
+          setGalleryImages([]);
         } else if (mimeType.startsWith('text/') || mimeType.includes('markdown')) {
           setPreviewType('text');
+          setGalleryImages([]);
         } else if (mimeType.startsWith('video/')) {
           setPreviewType('video');
+          setGalleryImages([]);
         } else if (mimeType.startsWith('audio/')) {
           setPreviewType('audio');
+          setGalleryImages([]);
         } else {
           setPreviewType('download');
+          setGalleryImages([]);
         }
       }
     } catch (err) {
@@ -136,6 +169,9 @@ export default function Preview() {
   const downloadUrl = `${apiUrl}/api/files/${id}/download`;
   const token = localStorage.getItem('access_token');
 
+  const hasGallery = previewType === 'image' && galleryImages.length > 1;
+  const currentImage = hasGallery ? galleryImages[currentIndex] : null;
+
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -158,7 +194,72 @@ export default function Preview() {
       <div style={{ border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
         {previewType === 'image' && (
           <div style={{ textAlign: 'center', padding: 24 }}>
-            <ImagePreview url={file.previewUrl} token={token} />
+            {/* Image principale */}
+            <ImagePreview
+              url={file.previewUrl}
+              token={token}
+              key={currentImage ? currentImage.id : file.previewUrl}
+            />
+
+            {/* Galerie (vignettes) si plusieurs images dans le dossier */}
+            {hasGallery && (
+              <div style={{ marginTop: 24 }}>
+                <h3 style={{ marginBottom: 12, fontSize: 16 }}>Autres images du dossier</h3>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {galleryImages.map((img, index) => (
+                    <button
+                      key={img.id}
+                      onClick={() => {
+                        setCurrentIndex(index);
+                        // Mettre à jour l'URL de prévisualisation du fichier courant
+                        const imgPreviewUrl = `${apiUrl}/api/files/${img.id}/preview`;
+                        const imgStreamUrl = `${apiUrl}/api/files/${img.id}/stream`;
+                        setFile((prev) => ({
+                          ...(prev || {}),
+                          previewUrl: imgPreviewUrl,
+                          streamUrl: imgStreamUrl,
+                          name: img.name,
+                          contentType: img.mime_type,
+                        }));
+                      }}
+                      style={{
+                        borderRadius: 6,
+                        padding: 4,
+                        border: index === currentIndex ? '2px solid #2196F3' : '1px solid #ddd',
+                        backgroundColor: index === currentIndex ? '#e3f2fd' : '#fff',
+                        cursor: 'pointer',
+                        minWidth: 80,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 80,
+                          height: 60,
+                          backgroundColor: '#f0f0f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          borderRadius: 4,
+                          marginBottom: 4,
+                          fontSize: 11,
+                          color: '#555',
+                        }}
+                      >
+                        {img.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
