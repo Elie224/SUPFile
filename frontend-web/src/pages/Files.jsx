@@ -1484,6 +1484,16 @@ export default function Files() {
                                 
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 
+                                // Vérification finale avant l'appel
+                                console.log('========================================');
+                                console.log('🚀 ABOUT TO CALL downloadAsZip');
+                                console.log('========================================');
+                                console.log('itemId FINAL:', itemId);
+                                console.log('itemId FINAL type:', typeof itemId);
+                                console.log('itemId FINAL length:', itemId?.length);
+                                console.log('itemId FINAL value:', JSON.stringify(itemId));
+                                console.log('========================================');
+                                
                                 const response = await folderService.downloadAsZip(itemId);
                                 
                                 if (!response.data || response.data.size === 0) {
