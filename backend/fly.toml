@@ -27,3 +27,7 @@ primary_region = 'cdg'
   memory = '1gb'
   cpus = 1
   memory_mb = 1024
+
+[[mounts]]
+  source = "uploads_data"
+  destination = "/usr/src/app/uploads"
