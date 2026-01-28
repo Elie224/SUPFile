@@ -189,8 +189,13 @@ export const folderService = {
   delete: (folderId) => apiClient.delete(`/folders/${folderId}`),
   restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
   listTrash: () => apiClient.get('/folders/trash'),
-  downloadAsZip: (folderId) =>
-    downloadClient.get(`/folders/${folderId}/download`, { responseType: 'blob' }),
+  downloadAsZip: (folderId) => {
+    if (!folderId) {
+      return Promise.reject(new Error('Folder ID is required'));
+    }
+    console.log('Calling downloadAsZip with folderId:', folderId);
+    return downloadClient.get(`/folders/${folderId}/download`, { responseType: 'blob' });
+  },
   list: (parentId = null) =>
     apiClient.get('/folders', { params: { parent_id: parentId || null } }),
 };
