@@ -23,6 +23,7 @@ const Share = lazy(() => import('./pages/Share'));
 const Search = lazy(() => import('./pages/Search'));
 const Trash = lazy(() => import('./pages/Trash'));
 const Admin = lazy(() => import('./pages/Admin'));
+const Intro = lazy(() => import('./pages/Intro'));
 
 // Composant de chargement
 const LoadingFallback = () => (
@@ -101,6 +102,7 @@ function App() {
         >
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
+        <Route path="/" element={<Intro />} />
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
@@ -178,7 +180,6 @@ function App() {
             </Layout>
           }
         />
-        <Route path="/" element={<Navigate to={user && accessToken ? '/dashboard' : '/login'} replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
