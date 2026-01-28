@@ -190,25 +190,71 @@ export const folderService = {
   restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
   listTrash: () => apiClient.get('/folders/trash'),
   downloadAsZip: (folderId) => {
-    if (!folderId) {
-      console.error('❌ downloadAsZip: folderId is missing');
+    // Validation stricte de l'ID
+    if (folderId === null || folderId === undefined || folderId === '') {
+      console.error('❌ downloadAsZip: folderId is null/undefined/empty');
+      console.error('folderId value:', folderId);
+      console.error('folderId type:', typeof folderId);
       return Promise.reject(new Error('Folder ID is required'));
     }
     
     // Vérifier que l'ID est une string valide
     const folderIdStr = String(folderId).trim();
-    if (!folderIdStr || folderIdStr.length !== 24) {
-      console.error('❌ downloadAsZip: Invalid folderId format:', { 
-        folderId, 
-        folderIdStr, 
-        length: folderIdStr?.length,
+    
+    // Vérifier que la conversion a fonctionné
+    if (folderIdStr === 'null' || folderIdStr === 'undefined' || folderIdStr === '') {
+      console.error('❌ downloadAsZip: folderId converted to invalid string:', { 
+        original: folderId,
+        converted: folderIdStr,
         type: typeof folderId 
       });
-      return Promise.reject(new Error(`Invalid folder ID format: ${folderIdStr} (length: ${folderIdStr?.length})`));
+      return Promise.reject(new Error(`Invalid folder ID: ${folderIdStr}`));
     }
     
-    const url = `/folders/${folderIdStr}/download`;
+    // Vérifier la longueur (ObjectId MongoDB = 24 caractères hex)
+    if (folderIdStr.length !== 24) {
+      console.error('❌ downloadAsZip: Invalid folderId length:', { 
+        folderId, 
+        folderIdStr, 
+        length: folderIdStr.length,
+        expectedLength: 24,
+        type: typeof folderId 
+      });
+      return Promise.reject(new Error(`Invalid folder ID format: length ${folderIdStr.length} instead of 24`));
+    }
+    
+    // Vérifier que l'ID ne contient que des caractères hexadécimaux
+    if (!/^[0-9a-fA-F]{24}$/.test(folderIdStr)) {
+      console.error('❌ downloadAsZip: folderId contains invalid characters:', { 
+        folderId, 
+        folderIdStr,
+        regexTest: /^[0-9a-fA-F]{24}$/.test(folderIdStr)
+      });
+      return Promise.reject(new Error(`Invalid folder ID format: contains non-hexadecimal characters`));
+    }
+    
+    // Vérifier que baseURL est défini et valide
+    if (!downloadClient.defaults.baseURL) {
+      console.error('❌ downloadAsZip: baseURL is not defined!');
+      return Promise.reject(new Error('API baseURL is not configured'));
+    }
+    
+    // Construire l'URL de manière sécurisée
+    const url = `/folders/${encodeURIComponent(folderIdStr)}/download`;
     const fullUrl = `${downloadClient.defaults.baseURL}${url}`;
+    
+    // Vérifier que l'URL est valide
+    try {
+      new URL(fullUrl);
+    } catch (urlError) {
+      console.error('❌ downloadAsZip: Invalid URL constructed:', { 
+        fullUrl, 
+        baseURL: downloadClient.defaults.baseURL,
+        url,
+        error: urlError.message
+      });
+      return Promise.reject(new Error(`Invalid URL: ${fullUrl}`));
+    }
     
     // Logs très visibles pour debug
     console.log('========================================');
