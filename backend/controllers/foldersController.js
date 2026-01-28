@@ -170,13 +170,22 @@ async function downloadFolder(req, res, next) {
     if (userId) {
       const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
       const userOwnerId = userId?.toString ? userId.toString() : userId;
+      console.log('[downloadFolder] Checking ownership:', {
+        folderOwnerId,
+        userOwnerId,
+        match: folderOwnerId === userOwnerId
+      });
       if (folderOwnerId === userOwnerId) {
         hasAccess = true;
+        console.log('[downloadFolder] Access granted: user is owner');
       }
+    } else {
+      console.log('[downloadFolder] No userId provided');
     }
     
     // Si pas propriétaire, vérifier le partage public
     if (!hasAccess && token) {
+      console.log('[downloadFolder] Checking public share with token');
       const ShareModel = require('../models/shareModel');
       const share = await ShareModel.findByToken(token);
       
@@ -209,8 +218,15 @@ async function downloadFolder(req, res, next) {
     }
     
     if (!hasAccess) {
+      console.error('[downloadFolder] Access denied:', {
+        userId: userId?.toString(),
+        folderOwnerId: folder.owner_id?.toString(),
+        hasToken: !!token
+      });
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
+
+    console.log('[downloadFolder] Access granted, proceeding with download');
 
     // Utiliser le owner_id du dossier pour récupérer les fichiers (même pour les partages)
     const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
@@ -234,14 +250,18 @@ async function downloadFolder(req, res, next) {
       return result;
     }
 
+    console.log('[downloadFolder] Getting all files recursively...');
     const allFiles = await getAllFiles(id, folder.name);
+    console.log('[downloadFolder] Files found:', { count: allFiles.length });
 
     // Vérifier qu'il y a des fichiers à télécharger
     if (allFiles.length === 0) {
+      console.log('[downloadFolder] Folder is empty');
       return res.status(400).json({ error: { message: 'Folder is empty' } });
     }
 
     // Créer l'archive ZIP
+    console.log('[downloadFolder] Creating ZIP archive...');
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 
@@ -249,6 +269,8 @@ async function downloadFolder(req, res, next) {
       zlib: { level: 9 },
       store: false // Compression activée
     });
+    
+    console.log('[downloadFolder] Archive created, starting to add files...');
 
     // Gérer les erreurs d'archivage
     archive.on('error', (err) => {
@@ -292,9 +314,11 @@ async function downloadFolder(req, res, next) {
     }
 
     // Finaliser l'archive
+    console.log('[downloadFolder] Finalizing archive...');
     await archive.finalize();
+    console.log('[downloadFolder] Archive finalized successfully');
   } catch (err) {
-    console.error('Download folder error:', err);
+    console.error('[downloadFolder] Error:', err);
     // Si la réponse n'a pas encore été envoyée, envoyer une erreur
     if (!res.headersSent) {
       next(err);
