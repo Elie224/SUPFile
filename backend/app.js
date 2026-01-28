@@ -352,19 +352,25 @@ let server;
  * Ferme les connexions HTTP et MongoDB de manière propre
  * @param {string} signal - Signal reçu (SIGTERM, SIGINT, etc.)
  */
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.logInfo(`Received ${signal}, shutting down gracefully...`);
   
   if (server) {
     // Fermer le serveur HTTP
-    server.close(() => {
+    server.close(async () => {
       logger.logInfo('HTTP server closed');
       
       // Fermer la connexion MongoDB
-      mongoose.connection.close(false, () => {
+      // Mongoose 6+ : close() retourne une promesse, ne prend plus de callback
+      try {
+        await mongoose.connection.close(false);
         logger.logInfo('MongoDB connection closed');
         process.exit(0);
-      });
+      } catch (err) {
+        logger.logError(err, { context: 'MongoDB close' });
+        // Sortir quand même même si la fermeture MongoDB échoue
+        process.exit(0);
+      }
     });
     
     // Forcer la fermeture après le timeout si nécessaire
@@ -373,6 +379,13 @@ const gracefulShutdown = (signal) => {
       process.exit(1);
     }, SHUTDOWN_TIMEOUT);
   } else {
+    // Si pas de serveur, fermer MongoDB directement
+    try {
+      await mongoose.connection.close(false);
+      logger.logInfo('MongoDB connection closed');
+    } catch (err) {
+      logger.logError(err, { context: 'MongoDB close' });
+    }
     process.exit(0);
   }
 };
