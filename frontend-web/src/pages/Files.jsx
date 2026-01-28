@@ -1407,10 +1407,27 @@ export default function Files() {
                               try {
                                 // Vérifier que l'ID est valide
                                 if (!itemId) {
+                                  console.error('❌ Item ID is missing:', { item, itemId, itemType });
                                   throw new Error('ID du dossier invalide');
                                 }
                                 
-                                console.log('Downloading folder:', { itemId, itemName: item.name });
+                                // Vérifier que l'ID est une string complète (ObjectId MongoDB = 24 caractères hex)
+                                if (typeof itemId !== 'string' || itemId.length !== 24) {
+                                  console.error('❌ Item ID format invalid:', { 
+                                    itemId, 
+                                    type: typeof itemId, 
+                                    length: itemId?.length,
+                                    item 
+                                  });
+                                  throw new Error(`ID du dossier invalide (format: ${typeof itemId}, longueur: ${itemId?.length})`);
+                                }
+                                
+                                console.log('✅ Downloading folder:', { 
+                                  itemId, 
+                                  itemName: item.name,
+                                  itemType,
+                                  item: { id: item.id, _id: item._id, type: item.type }
+                                });
                                 
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 
