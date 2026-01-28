@@ -1422,12 +1422,20 @@ export default function Files() {
                                   throw new Error(`ID du dossier invalide (format: ${typeof itemId}, longueur: ${itemId?.length})`);
                                 }
                                 
-                                console.log('✅ Downloading folder:', { 
-                                  itemId, 
-                                  itemName: item.name,
-                                  itemType,
-                                  item: { id: item.id, _id: item._id, type: item.type }
-                                });
+                                // Logs très visibles pour debug
+                                console.log('========================================');
+                                console.log('✅ DOWNLOADING FOLDER');
+                                console.log('========================================');
+                                console.log('itemId:', itemId);
+                                console.log('itemId type:', typeof itemId);
+                                console.log('itemId length:', itemId?.length);
+                                console.log('itemName:', item.name);
+                                console.log('itemType:', itemType);
+                                console.log('item.id:', item.id);
+                                console.log('item._id:', item._id);
+                                console.log('item.type:', item.type);
+                                console.log('Full item:', item);
+                                console.log('========================================');
                                 
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 
@@ -1453,13 +1461,18 @@ export default function Files() {
                                 
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
-                                console.error('Download failed:', err);
-                                console.error('Error details:', {
-                                  code: err.code,
-                                  message: err.message,
-                                  response: err.response?.status,
-                                  responseData: err.response?.data
-                                });
+                                // Logs très visibles pour debug
+                                console.error('========================================');
+                                console.error('❌ DOWNLOAD FAILED');
+                                console.error('========================================');
+                                console.error('Error:', err);
+                                console.error('Error code:', err.code);
+                                console.error('Error message:', err.message);
+                                console.error('Response status:', err.response?.status);
+                                console.error('Response data:', err.response?.data);
+                                console.error('Request URL:', err.config?.url);
+                                console.error('Full error:', JSON.stringify(err, null, 2));
+                                console.error('========================================');
                                 
                                 let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
                                 
