@@ -73,270 +73,509 @@ export default function Intro() {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
+        flexDirection: 'column',
         background:
-          'radial-gradient(circle at top, rgba(37,99,235,0.14), transparent 55%), radial-gradient(circle at bottom, rgba(16,185,129,0.12), transparent 55%)',
+          'radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 50%), radial-gradient(circle at bottom right, rgba(37,99,235,0.22), #020617)',
+        color: '#e5e7eb',
       }}
     >
-      <div
+      {/* Barre de navigation simple */}
+      <header
         style={{
-          width: '100%',
-          maxWidth: 960,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)',
-          gap: 40,
+          display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 32px',
         }}
       >
-        {/* Colonne gauche : texte */}
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             style={{
-              display: 'inline-flex',
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #38bdf8, #6366f1)',
+              display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '4px 10px',
-              borderRadius: 999,
-              backgroundColor: 'rgba(37,99,235,0.08)',
-              color: '#1D4ED8',
-              fontSize: 12,
-              fontWeight: 600,
-              marginBottom: 16,
-            }}
-          >
-            <span style={{ fontSize: 16 }}>📁</span>
-            <span>Plateforme cloud sécurisée</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: 32,
-              lineHeight: 1.2,
-              marginBottom: 12,
-              color: 'var(--text-color)',
-            }}
-          >
-            {current.title}
-          </h1>
-          <h2
-            style={{
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 700,
               fontSize: 18,
-              fontWeight: 600,
-              marginBottom: 12,
-              color: 'var(--text-secondary)',
+              boxShadow: '0 10px 25px rgba(59,130,246,0.45)',
             }}
           >
-            {current.subtitle}
-          </h2>
-          <p
-            style={{
-              fontSize: 15,
-              color: 'var(--text-secondary)',
-              marginBottom: 24,
-              maxWidth: 520,
-            }}
-          >
-            {current.description}
-          </p>
-
-          {/* Indicateurs de progression */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {slides.map((_, index) => (
-                <div
-                  key={index}
-                  style={{
-                    width: index === step ? 32 : 10,
-                    height: 10,
-                    borderRadius: 999,
-                    backgroundColor: index === step ? '#2563EB' : 'rgba(148,163,184,0.5)',
-                    transition: 'all 0.25s ease',
-                  }}
-                />
-              ))}
-            </div>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              Étape {step + 1} sur {slides.length}
-            </span>
+            S
           </div>
-
-          {/* Boutons d’action */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={handlePrev}
-              disabled={isFirst}
-              style={{
-                padding: '10px 22px',
-                borderRadius: 999,
-                border: '1px solid rgba(148,163,184,0.7)',
-                backgroundColor: isFirst ? 'rgba(248,250,252,0.8)' : 'transparent',
-                color: isFirst ? 'var(--text-muted)' : 'var(--text-secondary)',
-                fontWeight: 500,
-                fontSize: 14,
-                cursor: isFirst ? 'not-allowed' : 'pointer',
-                opacity: isFirst ? 0.7 : 1,
-              }}
-            >
-              ← Précédent
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              style={{
-                padding: '10px 22px',
-                borderRadius: 999,
-                border: 'none',
-                backgroundColor: '#2563EB',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-                boxShadow: '0 10px 20px rgba(37,99,235,0.25)',
-              }}
-            >
-              {isLast ? 'Créer mon compte' : 'Suivant →'}
-            </button>
-            <button
-              type="button"
-              onClick={handleSkip}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 999,
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: 'var(--text-secondary)',
-                fontWeight: 500,
-                fontSize: 13,
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              J’ai déjà un compte
-            </button>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: 0.5 }}>SUPFile</div>
+            <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
+              Plateforme de stockage professionnel
+            </div>
           </div>
         </div>
 
-        {/* Colonne droite : illustration simple */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            type="button"
+            onClick={handleSkip}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 999,
+              border: '1px solid rgba(148,163,184,0.6)',
+              backgroundColor: 'transparent',
+              color: '#e5e7eb',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Se connecter
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/signup')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 999,
+              border: 'none',
+              background:
+                'linear-gradient(135deg, #22c55e, #16a34a)',
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 10px 25px rgba(34,197,94,0.5)',
+            }}
+          >
+            Créer un compte
+          </button>
+        </div>
+      </header>
+
+      {/* Contenu principal */}
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px 24px 32px',
+        }}
+      >
         <div
           style={{
-            borderRadius: 24,
-            backgroundColor: 'var(--bg-color)',
-            boxShadow: '0 18px 45px rgba(15,23,42,0.16)',
-            padding: 24,
-            border: '1px solid rgba(148,163,184,0.35)',
+            width: '100%',
+            maxWidth: 1120,
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)',
+            gap: 40,
+            alignItems: 'center',
           }}
         >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
+          {/* Colonne gauche : discours commercial */}
+          <section>
             <div
               style={{
-                padding: 12,
-                borderRadius: 16,
-                background:
-                  'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(59,130,246,0.18))',
-                color: '#1D4ED8',
-                fontSize: 12,
-                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '4px 10px',
+                borderRadius: 999,
+                backgroundColor: 'rgba(15,23,42,0.7)',
+                border: '1px solid rgba(148,163,184,0.4)',
+                fontSize: 11,
+                marginBottom: 16,
               }}
             >
-              📂 Organisation
-              <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(15,23,42,0.8)' }}>
-                Dossiers, sous-dossiers, corbeille
-              </div>
+              <span style={{ fontSize: 14 }}>✨</span>
+              <span>Solution clé en main pour vos fichiers d’entreprise</span>
             </div>
-            <div
-              style={{
-                padding: 12,
-                borderRadius: 16,
-                background:
-                  'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(45,212,191,0.18))',
-                color: '#059669',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              🔒 Sécurité
-              <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(15,23,42,0.8)' }}>
-                Authentification & quotas
-              </div>
-            </div>
-            <div
-              style={{
-                padding: 12,
-                borderRadius: 16,
-                background:
-                  'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(251,146,60,0.18))',
-                color: '#C05621',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              🤝 Partage
-              <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(15,23,42,0.8)' }}>
-                Liens publics & internes
-              </div>
-            </div>
-          </div>
 
-          <div
+            <h1
+              style={{
+                fontSize: 36,
+                lineHeight: 1.15,
+                marginBottom: 10,
+                color: '#f9fafb',
+              }}
+            >
+              Centralisez, sécurisez et partagez
+              <br />
+              <span style={{ color: '#38bdf8' }}>tous vos documents</span>.
+            </h1>
+
+            <p
+              style={{
+                fontSize: 15,
+                color: 'rgba(209,213,219,0.9)',
+                maxWidth: 540,
+                marginBottom: 20,
+              }}
+            >
+              SUPFile est une plateforme professionnelle de gestion de fichiers pour les équipes
+              modernes&nbsp;: stockage sécurisé, collaboration fluide et accès unifié depuis le web
+              et le mobile.
+            </p>
+
+            {/* Étape actuelle en avant */}
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                backgroundColor: 'rgba(15,23,42,0.85)',
+                border: '1px solid rgba(148,163,184,0.4)',
+                marginBottom: 18,
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <span
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 999,
+                    backgroundColor: '#1d4ed8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {step + 1}
+                </span>
+                <span style={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>
+                  Étape {step + 1} sur {slides.length}
+                </span>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: 18,
+                  color: '#e5e7eb',
+                  marginBottom: 6,
+                }}
+              >
+                {current.title}
+              </h2>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: 'rgba(209,213,219,0.9)',
+                  marginBottom: 4,
+                }}
+              >
+                <strong style={{ color: '#a5b4fc' }}>{current.subtitle}</strong>
+              </p>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: 'rgba(156,163,175,0.95)',
+                  marginBottom: 0,
+                }}
+              >
+                {current.description}
+              </p>
+            </div>
+
+            {/* Indicateurs de progression + boutons */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 16,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 6 }}>
+                {slides.map((s, index) => (
+                  <button
+                    key={s.title}
+                    type="button"
+                    onClick={() => setStep(index)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: 'none',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      backgroundColor:
+                        index === step ? 'rgba(56,189,248,0.22)' : 'rgba(15,23,42,0.7)',
+                      color: index === step ? '#e0f2fe' : 'rgba(148,163,184,0.9)',
+                      borderWidth: 1,
+                      borderStyle: 'solid',
+                      borderColor:
+                        index === step ? 'rgba(56,189,248,0.8)' : 'rgba(30,64,175,0.6)',
+                    }}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  disabled={isFirst}
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(148,163,184,0.6)',
+                    backgroundColor: isFirst ? 'rgba(15,23,42,0.7)' : 'transparent',
+                    color: isFirst ? 'rgba(75,85,99,0.9)' : '#e5e7eb',
+                    fontSize: 13,
+                    cursor: isFirst ? 'not-allowed' : 'pointer',
+                    opacity: isFirst ? 0.7 : 1,
+                  }}
+                >
+                  ← Précédent
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  style={{
+                    padding: '9px 20px',
+                    borderRadius: 999,
+                    border: 'none',
+                    background:
+                      'linear-gradient(135deg, #3b82f6, #6366f1)',
+                    color: 'white',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 14px 30px rgba(37,99,235,0.6)',
+                  }}
+                >
+                  {isLast ? 'Commencer avec SUPFile' : 'Suivant →'}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Colonne droite : visuel produit / points clés */}
+          <section
             style={{
-              borderRadius: 18,
-              border: '1px dashed rgba(148,163,184,0.8)',
-              padding: 16,
-              marginBottom: 12,
-              backgroundColor: 'rgba(15,23,42,0.02)',
+              background:
+                'linear-gradient(145deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85))',
+              borderRadius: 28,
+              padding: 22,
+              border: '1px solid rgba(30,64,175,0.8)',
+              boxShadow: '0 24px 60px rgba(15,23,42,0.9)',
             }}
           >
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 4,
-                color: 'var(--text-color)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 14,
               }}
             >
-              Ce que vous allez pouvoir faire :
+              <div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: 'rgba(148,163,184,0.9)',
+                    marginBottom: 4,
+                  }}
+                >
+                  Vue d’ensemble de votre espace
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: '#e5e7eb' }}>
+                  Dashboard SUPFile
+                </div>
+              </div>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  backgroundColor: 'rgba(16,185,129,0.16)',
+                  color: '#6ee7b7',
+                  border: '1px solid rgba(16,185,129,0.5)',
+                }}
+              >
+                Sécurisé • Chiffré • Haute dispo
+              </span>
             </div>
-            <ul
+
+            {/* Faux aperçu de dashboard */}
+            <div
               style={{
-                paddingLeft: 18,
-                margin: 0,
-                fontSize: 12,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6,
+                borderRadius: 18,
+                background:
+                  'radial-gradient(circle at top, rgba(37,99,235,0.4), transparent 55%), rgba(15,23,42,0.98)',
+                padding: 16,
+                marginBottom: 16,
+                border: '1px solid rgba(30,64,175,0.8)',
               }}
             >
-              <li>Téléverser et organiser vos fichiers</li>
-              <li>Prévisualiser sans télécharger</li>
-              <li>Partager avec vos collaborateurs ou en public</li>
-              <li>Suivre votre activité et votre espace disque</li>
-            </ul>
-          </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 10,
+                  marginBottom: 14,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    border: '1px solid rgba(56,189,248,0.6)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'rgba(148,163,184,0.95)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    Espace utilisé
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#e0f2fe' }}>
+                    128,4 Go
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
+                    sur 500 Go alloués
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    border: '1px solid rgba(251,191,36,0.6)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'rgba(148,163,184,0.95)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    Fichiers partagés
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#facc15' }}>
+                    243
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
+                    liens actifs & internes
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    border: '1px solid rgba(52,211,153,0.6)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'rgba(148,163,184,0.95)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    Activité récente
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#6ee7b7' }}>
+                    +37
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)' }}>
+                    fichiers ajoutés cette semaine
+                  </div>
+                </div>
+              </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 12,
-              fontSize: 11,
-              color: 'var(--text-muted)',
-            }}
-          >
-            <span>Conçu pour le web et le mobile 📱💻</span>
-            <span>SUPFile • Stockage sécurisé</span>
-          </div>
+              {/* Lignes de fichiers */}
+              <div
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(15,23,42,0.9)',
+                  padding: 10,
+                  border: '1px solid rgba(30,64,175,0.7)',
+                }}
+              >
+                {['Contrat_client.pdf', 'Présentation_commerciale.pptx', 'Rapport_financier.xlsx'].map(
+                  (file, idx) => (
+                    <div
+                      key={file}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '6px 8px',
+                        borderRadius: 8,
+                        backgroundColor:
+                          idx === 0 ? 'rgba(30,64,175,0.7)' : 'transparent',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          fontSize: 12,
+                          color: '#e5e7eb',
+                        }}
+                      >
+                        <span>📄</span>
+                        <span>{file}</span>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          fontSize: 11,
+                          color: 'rgba(148,163,184,0.9)',
+                        }}
+                      >
+                        <span>{idx === 0 ? '2,4 Mo' : idx === 1 ? '18,9 Mo' : '4,1 Mo'}</span>
+                        <span>•</span>
+                        <span>{idx === 0 ? 'Modifié il y a 2 h' : 'Hier'}</span>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            {/* Points clés */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 10,
+                marginTop: 4,
+              }}
+            >
+              <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
+                ✅ Sauvegarde sur infrastructure cloud performante
+                <br />
+                ✅ Rôles administrateurs & quotas par utilisateur
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(209,213,219,0.9)' }}>
+                ✅ Accès depuis le web et l’application mobile
+                <br />
+                ✅ Conçu pour un usage professionnel et commercial
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
