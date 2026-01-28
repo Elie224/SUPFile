@@ -208,7 +208,18 @@ export const folderService = {
     }
     
     const url = `/folders/${folderIdStr}/download`;
-    console.log('✅ Calling downloadAsZip:', { folderId: folderIdStr, url, fullUrl: `${downloadClient.defaults.baseURL}${url}` });
+    const fullUrl = `${downloadClient.defaults.baseURL}${url}`;
+    
+    // Logs très visibles pour debug
+    console.log('========================================');
+    console.log('✅ CALLING downloadAsZip');
+    console.log('========================================');
+    console.log('folderId:', folderIdStr);
+    console.log('folderId length:', folderIdStr.length);
+    console.log('url:', url);
+    console.log('fullUrl:', fullUrl);
+    console.log('baseURL:', downloadClient.defaults.baseURL);
+    console.log('========================================');
     
     return downloadClient.get(url, { responseType: 'blob' });
   },
