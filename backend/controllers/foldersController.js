@@ -334,6 +334,9 @@ async function downloadFolder(req, res, next) {
 
     // Ajouter les fichiers à l'archive
     let filesAdded = 0;
+    let filesSkipped = 0;
+    const skippedFiles = [];
+    
     for (const file of allFiles) {
       try {
         // Vérifier que le fichier existe
@@ -342,15 +345,52 @@ async function downloadFolder(req, res, next) {
         archive.file(file.file_path, { name: file.path });
         filesAdded++;
       } catch (err) {
-        console.error(`File not found or inaccessible: ${file.file_path}`, err);
+        // Fichier non trouvé (probablement perdu après redéploiement sur Fly.io)
+        console.warn(`[downloadFolder] File not found (skipping): ${file.file_path}`, {
+          fileName: file.name,
+          filePath: file.path,
+          error: err.code || err.message
+        });
+        filesSkipped++;
+        skippedFiles.push({
+          name: file.name,
+          path: file.path,
+          reason: 'File not found on server (may have been lost after deployment)'
+        });
         // Continuer avec les autres fichiers
       }
     }
 
+    // Log du résultat
+    console.log('[downloadFolder] Files processing result:', {
+      total: allFiles.length,
+      added: filesAdded,
+      skipped: filesSkipped,
+      skippedFiles: skippedFiles.map(f => f.name)
+    });
+
     // Vérifier qu'au moins un fichier a été ajouté
     if (filesAdded === 0) {
       archive.abort();
-      return res.status(404).json({ error: { message: 'No accessible files found in folder' } });
+      const errorMessage = filesSkipped > 0
+        ? `No accessible files found in folder. ${filesSkipped} file(s) were found in database but are missing on the server (likely lost after deployment).`
+        : 'No accessible files found in folder';
+      console.error('[downloadFolder] No files added to archive:', {
+        totalFiles: allFiles.length,
+        skippedFiles: skippedFiles.length,
+        errorMessage
+      });
+      return res.status(404).json({ 
+        error: { 
+          message: errorMessage,
+          details: filesSkipped > 0 ? { skippedFiles } : undefined
+        } 
+      });
+    }
+    
+    // Si certains fichiers ont été ignorés, ajouter un avertissement dans les logs
+    if (filesSkipped > 0) {
+      console.warn(`[downloadFolder] Warning: ${filesSkipped} file(s) were skipped because they are missing on the server. The ZIP will contain only ${filesAdded} accessible file(s).`);
     }
 
     // Finaliser l'archive
