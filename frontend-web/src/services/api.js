@@ -191,10 +191,26 @@ export const folderService = {
   listTrash: () => apiClient.get('/folders/trash'),
   downloadAsZip: (folderId) => {
     if (!folderId) {
+      console.error('❌ downloadAsZip: folderId is missing');
       return Promise.reject(new Error('Folder ID is required'));
     }
-    console.log('Calling downloadAsZip with folderId:', folderId);
-    return downloadClient.get(`/folders/${folderId}/download`, { responseType: 'blob' });
+    
+    // Vérifier que l'ID est une string valide
+    const folderIdStr = String(folderId).trim();
+    if (!folderIdStr || folderIdStr.length !== 24) {
+      console.error('❌ downloadAsZip: Invalid folderId format:', { 
+        folderId, 
+        folderIdStr, 
+        length: folderIdStr?.length,
+        type: typeof folderId 
+      });
+      return Promise.reject(new Error(`Invalid folder ID format: ${folderIdStr} (length: ${folderIdStr?.length})`));
+    }
+    
+    const url = `/folders/${folderIdStr}/download`;
+    console.log('✅ Calling downloadAsZip:', { folderId: folderIdStr, url, fullUrl: `${downloadClient.defaults.baseURL}${url}` });
+    
+    return downloadClient.get(url, { responseType: 'blob' });
   },
   list: (parentId = null) =>
     apiClient.get('/folders', { params: { parent_id: parentId || null } }),
