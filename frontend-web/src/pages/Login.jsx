@@ -11,6 +11,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
   
+  // 2FA
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [userId2FA, setUserId2FA] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  
   const { login } = useAuthStore();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
@@ -59,11 +64,62 @@ export default function Login() {
     
     if (result.success) {
       navigate('/dashboard');
+    } else if (result.requires_2fa) {
+      // Le 2FA est requis
+      setRequires2FA(true);
+      setUserId2FA(result.user_id);
+      setError('');
     } else {
       setError(result.error || t('loginFailed'));
     }
     
     setLoading(false);
+  };
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (!twoFactorCode) {
+      setError('Veuillez entrer le code de vérification');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const response = await fetch(`${API_URL}/api/auth/verify-2fa-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: userId2FA,
+          token: twoFactorCode
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.data && data.data.access_token) {
+        // Stocker les tokens
+        localStorage.setItem('access_token', data.data.access_token);
+        localStorage.setItem('refresh_token', data.data.refresh_token);
+        
+        // Mettre à jour le store
+        const { setUser } = useAuthStore.getState();
+        setUser(data.data.user);
+        
+        navigate('/dashboard');
+      } else {
+        setError(data.error?.message || 'Code 2FA invalide');
+      }
+    } catch (err) {
+      setError('Erreur lors de la vérification du code 2FA');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,8 +144,83 @@ export default function Login() {
             </div>
           )}
 
-          {/* Formulaire de connexion */}
-          <form onSubmit={handleSubmit}>
+          {/* Vérification 2FA */}
+          {requires2FA ? (
+            <div>
+              <div className="text-center mb-3">
+                <i className="bi bi-shield-lock" style={{ fontSize: '48px', color: 'var(--primary-color)' }}></i>
+                <h2 className="h6 mt-2 mb-1" style={{ color: 'var(--text-color)' }}>Vérification en deux étapes</h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Entrez le code à 6 chiffres de votre application d'authentification
+                </p>
+              </div>
+
+              <form onSubmit={handleVerify2FA}>
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    maxLength="6"
+                    autoFocus
+                    style={{
+                      padding: 12,
+                      width: '100%',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 8,
+                      fontSize: '1.5em',
+                      textAlign: 'center',
+                      letterSpacing: '0.5em',
+                      fontFamily: 'monospace',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
+                    }}
+                    required
+                  />
+                  <small style={{ display: 'block', marginTop: 8, fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    Vous pouvez aussi utiliser un code de secours
+                  </small>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100 mb-2"
+                  disabled={loading || twoFactorCode.length < 6}
+                  style={{ minHeight: '40px', fontSize: '14px', fontWeight: 600 }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Vérification...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-circle me-2"></i>
+                      Vérifier
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequires2FA(false);
+                    setTwoFactorCode('');
+                    setUserId2FA('');
+                  }}
+                  className="btn btn-outline-secondary w-100"
+                  style={{ minHeight: '40px', fontSize: '14px' }}
+                >
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Retour
+                </button>
+              </form>
+            </div>
+          ) : (
+            <>
+              {/* Formulaire de connexion */}
+              <form onSubmit={handleSubmit}>
             <div className="mb-2">
               <label htmlFor="email" className="form-label small mb-1">{t('email')}</label>
               <input
@@ -237,6 +368,8 @@ export default function Login() {
               ← Retour à la présentation
             </button>
           </div>
+          </>
+          )}
         </div>
         </div>
       </div>

@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/sync_service.dart';
+import '../../services/offline_storage_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/offline_banner.dart';
+import '../../widgets/sync_indicator.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
+  bool _fromCache = false;
 
   @override
   void initState() {
@@ -24,21 +29,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboard() async {
+    final syncService = SyncService();
+    if (!syncService.isOnline) {
+      try {
+        await OfflineStorageService.init();
+        final cached = OfflineStorageService.getUserMeta('dashboardStats');
+        if (cached is Map<String, dynamic> && mounted) {
+          setState(() {
+            _stats = cached;
+            _isLoading = false;
+            _fromCache = true;
+          });
+          return;
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
     try {
-      // Le cache est géré dans ApiService
       final response = await _apiService.getDashboard();
-      if (response.statusCode == 200 && mounted) {
+      if (response.statusCode == 200 && response.data['data'] != null && mounted) {
+        final data = response.data['data'] as Map<String, dynamic>;
         setState(() {
-          _stats = response.data['data'];
+          _stats = data;
           _isLoading = false;
+          _fromCache = false;
         });
+        await OfflineStorageService.setUserMeta('dashboardStats', data);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      try {
+        final cached = OfflineStorageService.getUserMeta('dashboardStats');
+        if (cached is Map<String, dynamic> && mounted) {
+          setState(() {
+            _stats = cached;
+            _fromCache = true;
+          });
+        }
+      } catch (_) {}
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -204,6 +234,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 context.go('/settings');
               },
             ),
+            if (authProvider.user?.isAdmin == true) ...[
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: AppConstants.supinfoWhite),
+                title: const Text(
+                  'Administration',
+                  style: TextStyle(color: AppConstants.supinfoWhite),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/admin');
+                },
+              ),
+            ],
             Divider(color: AppConstants.supinfoWhite.withOpacity(0.3)),
             ListTile(
               leading: const Icon(Icons.logout, color: AppConstants.errorColor),
@@ -221,15 +264,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _stats == null
-              ? const Center(child: Text('Erreur de chargement'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+      body: Column(
+        children: [
+          Consumer<SyncService>(
+            builder: (_, sync, __) =>
+                sync.isOnline ? const SizedBox.shrink() : const OfflineBanner(),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _stats == null
+                    ? const Center(child: Text('Erreur de chargement'))
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_fromCache)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppConstants.warningColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppConstants.warningColor.withOpacity(0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Données en cache (mode hors ligne). Les chiffres peuvent ne pas être à jour.',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       // Quota - Carte moderne avec gradient
                       Container(
                         decoration: BoxDecoration(
@@ -471,6 +543,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
+          ),
+          Consumer<SyncService>(
+            builder: (_, sync, __) =>
+                sync.pendingCount > 0 ? const SyncIndicator() : const SizedBox.shrink(),
+          ),
+        ],
+      ),
     );
   }
 

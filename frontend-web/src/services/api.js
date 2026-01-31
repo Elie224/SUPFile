@@ -82,10 +82,21 @@ downloadClient.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Intercepteur pour gérer les erreurs (notamment 401) - pour apiClient
+// Intercepteur pour gérer les erreurs (notamment 401) et mode hors ligne - pour apiClient
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Détection mode hors ligne : message explicite pour l'utilisateur
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const offlineError = new Error('Vous êtes hors ligne. Les données ne sont pas disponibles sans connexion Internet.');
+      offlineError.isOffline = true;
+      return Promise.reject(offlineError);
+    }
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      const networkError = new Error('Connexion impossible. Vérifiez votre connexion Internet.');
+      networkError.isOffline = true;
+      return Promise.reject(networkError);
+    }
     if (error.response?.status === 401) {
       // Token expiré - essayer de rafraîchir
       const refreshToken = localStorage.getItem('refresh_token');

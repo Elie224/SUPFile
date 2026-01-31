@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +28,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _obscureConfirmPassword = true;
   bool _isChangingPassword = false;
   bool _isUpdatingProfile = false;
-  
+  bool _twoFactorEnabled = false;
+  int _twoFactorBackupCodesCount = 0;
+  bool _loading2FA = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +40,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (user != null) {
       _emailController.text = user.email;
       _displayNameController.text = user.displayName ?? '';
+      _twoFactorEnabled = user.twoFactorEnabled;
     }
+    _load2FAStatus();
+  }
+
+  Future<void> _load2FAStatus() async {
+    try {
+      final response = await _apiService.get2FAStatus();
+      if (response.statusCode == 200 && response.data['data'] != null) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _twoFactorEnabled = data['two_factor_enabled'] == true;
+            _twoFactorBackupCodesCount = data['backup_codes_count'] is int
+                ? data['backup_codes_count'] as int
+                : 0;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -375,6 +398,238 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _show2FASetupDialog() async {
+    setState(() => _loading2FA = true);
+    try {
+      final response = await _apiService.setup2FA();
+      if (!mounted) return;
+      setState(() => _loading2FA = false);
+      if (response.statusCode != 200 || response.data['data'] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de démarrer la configuration 2FA'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      final data = response.data['data'] as Map<String, dynamic>;
+      final secret = data['secret'] as String?;
+      final backupCodes = (data['backupCodes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [];
+      final qrCodeDataUrl = data['qrCode'] as String?;
+      if (secret == null) return;
+      _show2FAVerifyDialog(
+        secret: secret,
+        backupCodes: backupCodes,
+        qrCodeDataUrl: qrCodeDataUrl,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading2FA = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur configuration 2FA: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _show2FAVerifyDialog({
+    required String secret,
+    required List<String> backupCodes,
+    String? qrCodeDataUrl,
+  }) {
+    final codeController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Activer la double authentification'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Scannez le QR code avec votre application d\'authentification (Google Authenticator, etc.) :',
+                  style: TextStyle(fontSize: 13),
+                ),
+                if (qrCodeDataUrl != null && qrCodeDataUrl.contains(',')) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        base64Decode(qrCodeDataUrl.split(',').last),
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Ou saisissez ce code manuellement :',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  secret,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  decoration: const InputDecoration(
+                    labelText: 'Code à 6 chiffres pour confirmer',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final code = codeController.text.trim();
+                if (code.isEmpty) return;
+                try {
+                  final response = await _apiService.verify2FA(
+                    code,
+                    secret,
+                    backupCodes,
+                  );
+                  if (!ctx.mounted) return;
+                  if (response.statusCode == 200) {
+                    Navigator.pop(ctx);
+                    setState(() => _twoFactorEnabled = true);
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    await authProvider.refreshUser();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Double authentification activée'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    final msg = response.data['error']?['message'] ?? 'Code invalide';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                    );
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Activer'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _show2FADisableDialog() {
+    final passwordController = TextEditingController();
+    var loading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Désactiver le 2FA'),
+            content: TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Mot de passe',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        final password = passwordController.text;
+                        if (password.isEmpty) return;
+                        setDialogState(() => loading = true);
+                        try {
+                          await _apiService.disable2FA(password);
+                          if (mounted) {
+                            Navigator.pop(ctx);
+                            setState(() {
+                              _twoFactorEnabled = false;
+                              _twoFactorBackupCodesCount = 0;
+                            });
+                            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                            await authProvider.refreshUser();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Double authentification désactivée'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().contains('401')
+                                      ? 'Mot de passe incorrect'
+                                      : e.toString(),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setDialogState(() => loading = false);
+                        }
+                      },
+                child: loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Désactiver'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -445,7 +700,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           
-          // Thème
+          // Thème (persisté côté API pour synchronisation multi-appareils)
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return SwitchListTile(
@@ -456,6 +711,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   themeProvider.setThemeMode(
                     value ? ThemeMode.dark : ThemeMode.light,
                   );
+                  _apiService.updatePreferences({
+                    'theme': value ? 'dark' : 'light',
+                  }).catchError((_) {});
                 },
               );
             },
@@ -481,16 +739,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           
           const Divider(),
-          
+
+          ListTile(
+            leading: const Icon(Icons.cloud_off),
+            title: const Text('À propos du mode hors ligne'),
+            subtitle: const Text('Utilisation et synchronisation'),
+            onTap: () => context.go('/offline'),
+          ),
+
+          const Divider(),
+
           // Changer le mot de passe
           ListTile(
             leading: const Icon(Icons.lock),
             title: const Text('Changer le mot de passe'),
             onTap: _showChangePasswordDialog,
           ),
-          
+
           const Divider(),
-          
+
+          // Double authentification (2FA)
+          ListTile(
+            leading: const Icon(Icons.security),
+            title: const Text('Double authentification (2FA)'),
+            subtitle: Text(
+              _twoFactorEnabled
+                  ? 'Activée${_twoFactorBackupCodesCount > 0 ? " · $_twoFactorBackupCodesCount codes de secours" : ""}'
+                  : 'Désactivée',
+            ),
+            trailing: _loading2FA
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+            onTap: _loading2FA
+                ? null
+                : () {
+                    if (_twoFactorEnabled) {
+                      _show2FADisableDialog();
+                    } else {
+                      _show2FASetupDialog();
+                    }
+                  },
+          ),
+
+          const Divider(),
+
           // Déconnexion
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),

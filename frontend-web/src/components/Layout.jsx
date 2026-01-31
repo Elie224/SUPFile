@@ -4,6 +4,7 @@ import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import Logo from './Logo';
 import Footer from './Footer';
+import SyncIndicator from './SyncIndicator';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuthStore();
@@ -625,6 +626,9 @@ style={{
       <main style={{ flex: 1 }}>
         {children}
       </main>
+
+      {/* Indicateur de synchronisation */}
+      <SyncIndicator />
 
       {/* Footer */}
       <Footer />

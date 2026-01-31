@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/api_service.dart';
+import '../../services/sync_service.dart';
+import '../../services/offline_storage_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/performance_optimizer.dart';
@@ -63,6 +65,51 @@ class _SearchScreenState extends State<SearchScreen> {
       _isLoading = true;
       _error = null;
     });
+
+    final syncService = SyncService();
+    if (!syncService.isOnline) {
+      try {
+        await OfflineStorageService.init();
+        final query = _searchController.text.trim().toLowerCase();
+        final allFiles = OfflineStorageService.getAllFiles();
+        final allFolders = OfflineStorageService.getAllFolders();
+        final filteredFiles = allFiles.where((f) => f.name.toLowerCase().contains(query)).toList();
+        final filteredFolders = allFolders.where((f) => f.name.toLowerCase().contains(query)).toList();
+        if (_selectedType == 'file') {
+          if (mounted) {
+            setState(() {
+              _files = filteredFiles;
+              _folders = [];
+              _isLoading = false;
+            });
+          }
+        } else if (_selectedType == 'folder') {
+          if (mounted) {
+            setState(() {
+              _files = [];
+              _folders = filteredFolders;
+              _isLoading = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _files = filteredFiles;
+              _folders = filteredFolders;
+              _isLoading = false;
+            });
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _error = 'Hors ligne. La recherche utilise le cache local.';
+            _isLoading = false;
+          });
+        }
+      }
+      return;
+    }
 
     try {
       final response = await _apiService.search(

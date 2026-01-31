@@ -312,6 +312,9 @@ app.use('/api/dashboard', cacheMiddleware(300000), require('./routes/dashboard')
 // Administration - Endpoints réservés aux administrateurs
 app.use('/api/admin', require('./routes/admin'));
 
+// Double authentification (2FA) - Sécurité renforcée
+app.use('/api/2fa', require('./routes/twoFactor'));
+
 // ============================================================
 // GESTION DES ERREURS
 // ============================================================

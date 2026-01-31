@@ -18,6 +18,10 @@ const UserSchema = new Schema({
   // Champs pour réinitialisation de mot de passe
   reset_password_token: { type: String },
   reset_password_expires: { type: Date },
+  // Champs pour double authentification (2FA)
+  two_factor_enabled: { type: Boolean, default: false },
+  two_factor_secret: { type: String }, // Secret TOTP (Time-based One-Time Password)
+  two_factor_backup_codes: [{ type: String }], // Codes de secours
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -88,6 +92,9 @@ const UserModel = {
       quota_used: u.quota_used,
       preferences: u.preferences,
       is_admin: u.is_admin || false,
+      two_factor_enabled: u.two_factor_enabled || false,
+      two_factor_secret: u.two_factor_secret,
+      two_factor_backup_codes: u.two_factor_backup_codes || [],
       created_at: this.correctDate(u.created_at),
       last_login_at: this.correctDate(u.last_login_at),
     };
@@ -242,6 +249,51 @@ const UserModel = {
       reset_password_token: undefined,
       reset_password_expires: undefined,
     });
+  },
+
+  /**
+   * Active le 2FA pour un utilisateur
+   * @param {string} id - ID de l'utilisateur
+   * @param {string} secret - Secret TOTP
+   * @param {Array} backupCodes - Codes de secours
+   */
+  async enable2FA(id, secret, backupCodes) {
+    await User.findByIdAndUpdate(id, {
+      two_factor_enabled: true,
+      two_factor_secret: secret,
+      two_factor_backup_codes: backupCodes,
+    });
+  },
+
+  /**
+   * Désactive le 2FA pour un utilisateur
+   * @param {string} id - ID de l'utilisateur
+   */
+  async disable2FA(id) {
+    await User.findByIdAndUpdate(id, {
+      two_factor_enabled: false,
+      two_factor_secret: undefined,
+      two_factor_backup_codes: [],
+    });
+  },
+
+  /**
+   * Utilise un code de secours 2FA
+   * @param {string} id - ID de l'utilisateur
+   * @param {string} code - Code de secours utilisé
+   */
+  async useBackupCode(id, code) {
+    const user = await User.findById(id);
+    if (!user) return false;
+
+    const codeIndex = user.two_factor_backup_codes.indexOf(code);
+    if (codeIndex === -1) return false;
+
+    // Retirer le code utilisé
+    user.two_factor_backup_codes.splice(codeIndex, 1);
+    await user.save();
+
+    return true;
   },
 
   /**

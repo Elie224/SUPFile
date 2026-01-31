@@ -200,7 +200,54 @@ class ApiService {
       'refresh_token': refreshToken,
     });
   }
-  
+
+  /// Mot de passe oublié : envoie un email avec lien de réinitialisation
+  Future<Response> forgotPassword(String email) {
+    return _dio.post('/auth/forgot-password', data: {'email': email.trim().toLowerCase()});
+  }
+
+  /// Vérifie si un token de réinitialisation est valide (GET)
+  Future<Response> verifyResetToken(String token) {
+    return _dio.get('/auth/verify-reset-token/$token');
+  }
+
+  /// Réinitialise le mot de passe avec le token reçu par email
+  Future<Response> resetPassword(String token, String newPassword) {
+    return _dio.post('/auth/reset-password', data: {
+      'token': token,
+      'password': newPassword,
+    });
+  }
+
+  /// Vérification 2FA après login (retourne user + tokens)
+  Future<Response> verify2FALogin(String userId, String token) {
+    return _dio.post('/auth/verify-2fa-login', data: {
+      'userId': userId,
+      'token': token.trim(),
+    });
+  }
+
+  // 2FA (configuration dans paramètres)
+  Future<Response> get2FAStatus() {
+    return _dio.get('/2fa/status');
+  }
+
+  Future<Response> setup2FA() {
+    return _dio.post('/2fa/setup');
+  }
+
+  Future<Response> verify2FA(String token, String secret, List<String> backupCodes) {
+    return _dio.post('/2fa/verify', data: {
+      'token': token.trim(),
+      'secret': secret,
+      'backupCodes': backupCodes,
+    });
+  }
+
+  Future<Response> disable2FA(String password) {
+    return _dio.post('/2fa/disable', data: {'password': password});
+  }
+
   // OAuth
   Future<Response> oauthLogin(String provider, Map<String, dynamic> oauthData) {
     return _dio.post('/auth/$provider/callback', data: oauthData);
@@ -456,6 +503,43 @@ class ApiService {
   
   Future<Response> restoreFolder(String folderId) {
     return _dio.post('/folders/$folderId/restore');
+  }
+
+  // Admin (nécessite is_admin)
+  Future<Response> getAdminStats() {
+    return _dio.get('/admin/stats');
+  }
+
+  Future<Response> getAdminUsers({int page = 1, int limit = 20, String? search}) {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+    return _dio.get('/admin/users', queryParameters: queryParams);
+  }
+
+  Future<Response> getAdminUser(String userId) {
+    return _dio.get('/admin/users/$userId');
+  }
+
+  Future<Response> updateAdminUser(
+    String userId, {
+    String? displayName,
+    int? quotaLimit,
+    bool? isActive,
+    bool? isAdmin,
+  }) {
+    return _dio.put('/admin/users/$userId', data: {
+      if (displayName != null) 'display_name': displayName,
+      if (quotaLimit != null) 'quota_limit': quotaLimit,
+      if (isActive != null) 'is_active': isActive,
+      if (isAdmin != null) 'is_admin': isAdmin,
+    });
+  }
+
+  Future<Response> deleteAdminUser(String userId) {
+    return _dio.delete('/admin/users/$userId');
   }
 }
 
