@@ -193,6 +193,7 @@ const UserModel = {
     // Hash le token reçu pour comparaison
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
+    // Token valide uniquement si non expiré : après 15 minutes, plus aucun accès
     const user = await User.findOne({
       reset_password_token: hashedToken,
       reset_password_expires: { $gt: new Date() },

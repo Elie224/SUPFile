@@ -4,9 +4,29 @@
  */
 
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 
 // Configuration du transporteur email
 let transporter = null;
+
+const LOGO_CID = 'logo@supfile';
+
+/**
+ * Charge le logo pour l'email (buffer pour pièce jointe cid – affichage fiable dans tous les clients)
+ */
+function getLogoAttachment() {
+  try {
+    const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
+    if (fs.existsSync(logoPath)) {
+      const content = fs.readFileSync(logoPath);
+      return { filename: 'logo.png', content, cid: LOGO_CID };
+    }
+  } catch (e) {
+    console.warn('Logo non trouvé pour l\'email:', e.message);
+  }
+  return null;
+}
 
 /**
  * Initialise le transporteur email
@@ -44,116 +64,51 @@ async function sendPasswordResetEmail(to, resetUrl) {
     initTransporter();
   }
 
-  // Si toujours pas de transporteur, on log l'URL pour le dev
   if (!transporter) {
     console.log('📧 [DEV MODE] Email de réinitialisation pour:', to);
     console.log('📧 [DEV MODE] URL de réinitialisation:', resetUrl);
-    return true; // Retourne true en mode dev pour ne pas bloquer
+    return true;
   }
 
   const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
   const appName = 'SUPFile';
-  const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000';
-  const logoUrl = `${frontendUrl}/logo.png`;
+  const logoAttachment = getLogoAttachment();
+  const attachments = logoAttachment ? [logoAttachment] : [];
+  const logoImg = logoAttachment
+    ? `<img src="cid:${LOGO_CID}" alt="SUPFile" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;" />`
+    : '';
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;">
+  <div style="max-width:520px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#fff;border-radius:16px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <h1 style="color:#1e293b;font-size:22px;text-align:center;margin:0 0 16px 0;font-weight:700;">Réinitialisation du mot de passe</h1>
+      <p style="color:#64748b;font-size:15px;line-height:1.6;text-align:center;margin:0 0 28px 0;">Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.</p>
+      <div style="text-align:center;margin:0 0 24px 0;">
+        <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#fff!important;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;">Réinitialiser mon mot de passe</a>
+      </div>
+      <p style="color:#94a3b8;font-size:13px;text-align:center;margin:0;">Ce lien expire dans 15 minutes et ne fonctionnera plus après.</p>
+      <p style="color:#94a3b8;font-size:12px;text-align:center;margin:16px 0 0 0;">Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+    </div>
+    <div style="text-align:center;margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0;">
+      ${logoImg}
+      <p style="color:#64748b;font-size:14px;font-weight:600;margin:12px 0 4px 0;">SUPFile</p>
+      <p style="color:#94a3b8;font-size:11px;margin:0;">© ${new Date().getFullYear()} SUPFile</p>
+    </div>
+  </div>
+</body>
+</html>`;
 
   const mailOptions = {
     from: `"${appName}" <${fromEmail}>`,
     to,
     subject: `${appName} - Réinitialisation de votre mot de passe`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Réinitialisation de mot de passe</title>
-      </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-          <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-            
-            <!-- Titre -->
-            <h1 style="color: #1e293b; font-size: 26px; text-align: center; margin-bottom: 16px; font-weight: 700;">
-              🔐 Réinitialisation de votre mot de passe
-            </h1>
-
-            <!-- Message principal -->
-            <p style="color: #64748b; font-size: 16px; line-height: 1.8; text-align: center; margin-bottom: 24px;">
-              Bonjour,<br><br>
-              Vous avez demandé à réinitialiser le mot de passe de votre compte <strong>SUPFile</strong>.<br>
-              Pour définir un nouveau mot de passe sécurisé, cliquez sur le bouton ci-dessous.
-            </p>
-
-            <!-- Bouton -->
-            <div style="text-align: center; margin-bottom: 32px;">
-              <a href="${resetUrl}" 
-                 style="display: inline-block; background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
-                Réinitialiser mon mot de passe
-              </a>
-            </div>
-
-            <!-- Expiration -->
-            <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-              <p style="color: #92400E; font-size: 14px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 18px;">⏱️</span>
-                <strong>Important :</strong> Ce lien expire dans <strong>15 minutes</strong> pour votre sécurité.
-              </p>
-            </div>
-
-            <!-- Lien alternatif -->
-            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-              <p style="color: #64748b; font-size: 12px; margin: 0 0 8px 0;">
-                Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
-              </p>
-              <p style="color: #3B82F6; font-size: 12px; word-break: break-all; margin: 0;">
-                ${resetUrl}
-              </p>
-            </div>
-
-            <!-- Avertissement sécurité -->
-            <div style="background: #FEE2E2; border-left: 4px solid #EF4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-              <p style="color: #991B1B; font-size: 13px; margin: 0; line-height: 1.6;">
-                <strong>🛡️ Sécurité :</strong> Si vous n'avez pas demandé cette réinitialisation, ignorez cet email et votre mot de passe restera inchangé. Nous vous recommandons de vérifier l'activité de votre compte.
-              </p>
-            </div>
-
-            <!-- Support -->
-            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin: 0;">
-              Besoin d'aide ? Contactez notre support à <a href="mailto:support@supfile.com" style="color: #3B82F6; text-decoration: none;">support@supfile.com</a>
-            </p>
-          </div>
-
-          <!-- Footer avec logo -->
-          <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-            <img src="${logoUrl}" alt="SUPFile" style="max-width: 80px; height: auto; margin-bottom: 12px; opacity: 0.8;" />
-            <p style="color: #1e293b; font-size: 18px; font-weight: 700; margin: 0 0 8px 0;">
-              SUPFile
-            </p>
-            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-              Votre espace de stockage cloud sécurisé
-            </p>
-            <p style="color: #cbd5e1; font-size: 11px; margin: 12px 0 0 0;">
-              © ${new Date().getFullYear()} SUPFile. Tous droits réservés.
-            </p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-SUPFile - Réinitialisation de mot de passe
-
-Vous avez demandé à réinitialiser votre mot de passe.
-
-Cliquez sur ce lien pour créer un nouveau mot de passe :
-${resetUrl}
-
-⏱️ IMPORTANT : Ce lien expire dans 15 minutes pour votre sécurité.
-
-Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
-
-© ${new Date().getFullYear()} SUPFile
-    `,
+    html,
+    attachments,
+    text: `SUPFile - Réinitialisation du mot de passe\n\nCliquez pour définir un nouveau mot de passe :\n${resetUrl}\n\nCe lien expire dans 15 minutes et ne fonctionnera plus après. Si vous n'avez pas fait cette demande, ignorez cet email.\n\n© ${new Date().getFullYear()} SUPFile`,
   };
 
   try {

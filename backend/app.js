@@ -1,5 +1,13 @@
 const express = require('express');
-const cors = require('cors');
+const app = express();
+
+// Fly.io : écouter immédiatement sur /health pour que le health check réussisse
+app.set('trust proxy', 1);
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+const PORT = parseInt(process.env.PORT, 10) || 5000;
+
+function loadRestOfApp() {
+  const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs').promises;
@@ -15,12 +23,9 @@ const { cacheMiddleware, invalidateUserCache } = require('./utils/cache');
 const logger = require('./utils/logger');
 const mongoose = require('mongoose');
 
-// Initialize MongoDB connection
 const db = require('./models/db');
-
-// Initialize Passport OAuth strategies
 const configurePassport = require('./config/passport');
-configurePassport(); // Configurer les stratégies OAuth
+configurePassport();
 
 /**
  * Crée le répertoire d'upload s'il n'existe pas
@@ -87,15 +92,6 @@ async function startServer() {
     logger.logWarn('Error in startServer, but continuing with server startup...');
   }
 }
-
-// ============================================================
-// CONFIGURATION EXPRESS APP
-// ============================================================
-const app = express();
-
-// Trust proxy - Nécessaire pour Fly.io/Render (derrière un proxy)
-// Permet à express-rate-limit de lire correctement X-Forwarded-For
-app.set('trust proxy', 1);
 
 // ============================================================
 // MIDDLEWARES GLOBAUX
@@ -342,18 +338,11 @@ app.use((req, res) => {
  */
 app.use(errorHandler);
 
-// ============================================================
-// CONSTANTES DE CONFIGURATION SERVEUR
-// ============================================================
-// Fly.io / Render : écouter sur 0.0.0.0 et le PORT fourni par la plateforme
-const PORT = parseInt(process.env.PORT, 10) || config.server.port;
-const HOST = '0.0.0.0'; // Toujours 0.0.0.0 en production pour être joignable par le proxy
 const SHUTDOWN_TIMEOUT = 10000; // 10 secondes avant fermeture forcée
 
 // ============================================================
 // GESTION DU GRACEFUL SHUTDOWN
 // ============================================================
-let server;
 
 /**
  * Arrêt gracieux du serveur
@@ -431,11 +420,13 @@ process.on('unhandledRejection', (reason, promise) => {
     context: 'unhandledRejection',
     promise
   });
-  // Gérer la promesse retournée par gracefulShutdown
-  gracefulShutdown('unhandledRejection').catch((shutdownErr) => {
-    logger.logError(shutdownErr, { context: 'gracefulShutdown error' });
-    process.exit(1);
-  });
+  // Ne pas faire planter l'app au démarrage : seulement arrêt gracieux si le serveur écoute déjà
+  if (server && server.listening) {
+    gracefulShutdown('unhandledRejection').catch((shutdownErr) => {
+      logger.logError(shutdownErr, { context: 'gracefulShutdown error' });
+      process.exit(1);
+    });
+  }
 });
 
 // ============================================================
@@ -446,40 +437,20 @@ process.on('unhandledRejection', (reason, promise) => {
  * Démarre le serveur HTTP après vérification de la connexion MongoDB
  * Attend que MongoDB soit prêt avant de démarrer le serveur Express
  */
-// Démarrer le serveur - écouter immédiatement sur 0.0.0.0:PORT pour Fly.io / Render
-function startHttpServer() {
-  try {
-    console.log(`[SERVER] Starting server on ${HOST}:${PORT}`);
-    server = app.listen(PORT, HOST, () => {
-      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
-        environment: config.server.nodeEnv,
-        port: PORT,
-        host: HOST,
-      });
-      console.log(`✓ Server started successfully on ${HOST}:${PORT}`);
-    });
-    server.on('error', (err) => {
-      logger.logError(err, { context: 'server listen error' });
-      if (err.code === 'EADDRINUSE') {
-        console.error(`✗ Port ${PORT} is already in use`);
-        process.exit(1);
-      } else {
-        console.error(`✗ Server error: ${err.message}`);
-        process.exit(1);
-      }
-    });
-  } catch (err) {
-    logger.logError(err, { context: 'server startup' });
-    console.error(`✗ Failed to start server: ${err.message}`);
-    process.exit(1);
-  }
+  // Vérifier MongoDB en arrière-plan (serveur déjà en écoute)
+  startServer().catch((err) => {
+    logger.logWarn('MongoDB check failed or pending', { error: err.message });
+  });
 }
 
-// Démarrer l'écoute immédiatement pour que Fly.io / Render détecte l'app (sans attendre MongoDB)
-startHttpServer();
-// Vérifier MongoDB en arrière-plan (ne pas bloquer le démarrage)
-startServer().catch((err) => {
-  logger.logWarn('MongoDB check failed or pending', { error: err.message });
+let server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('✓ Listening on 0.0.0.0:' + PORT);
+  loadRestOfApp();
+});
+server.on('error', (err) => {
+  console.error('✗ Server error:', err.message);
+  if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
+  process.exit(1);
 });
 
 // ============================================================
