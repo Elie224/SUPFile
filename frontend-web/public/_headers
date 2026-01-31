@@ -1,0 +1,6 @@
+# Toujours revalider index.html pour éviter MIME type error après déploiement
+# (ancien HTML en cache pointait vers des chunks JS supprimés → 404 → serveur renvoie index.html → HTML reçu au lieu de JS)
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
