@@ -199,6 +199,9 @@ const translations = {
     errorRateLimit: 'Trop de requêtes. Veuillez patienter quelques instants.',
     errorServer: 'Erreur serveur. Veuillez réessayer plus tard.',
     errorNetwork: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+    retry: 'Réessayer',
+    errorLoadingDashboard: 'Impossible de charger le tableau de bord.',
+    offlineNoCache: 'Hors ligne et aucune donnée en cache.',
     selectAll: 'Tout sélectionner',
   },
   en: {
@@ -400,6 +403,9 @@ const translations = {
     errorRateLimit: 'Too many requests. Please wait a moment.',
     errorServer: 'Server error. Please try again later.',
     errorNetwork: 'Unable to connect to server. Check your internet connection.',
+    retry: 'Retry',
+    errorLoadingDashboard: 'Unable to load dashboard.',
+    offlineNoCache: 'Offline and no cached data.',
     selectAll: 'Select all',
   }
 };

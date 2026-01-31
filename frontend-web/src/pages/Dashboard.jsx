@@ -12,9 +12,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fromCache, setFromCache] = useState(false);
+  const [error, setError] = useState(null);
   const { t, language } = useLanguage();
 
   const loadDashboard = useCallback(async () => {
+    setError(null);
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       try {
         await offlineDB.init();
@@ -22,9 +24,12 @@ export default function Dashboard() {
         if (cached) {
           setStats(cached);
           setFromCache(true);
+        } else {
+          setError(t('offlineNoCache') || 'Hors ligne et aucune donnée en cache.');
         }
       } catch (err) {
         console.warn('[Dashboard] Cache hors ligne indisponible:', err);
+        setError(t('offlineNoCache') || 'Hors ligne et aucune donnée en cache.');
       }
       setLoading(false);
       return;
@@ -42,6 +47,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
+      const msg = err.response?.data?.error?.message || err.message || (err.isOffline ? (t('offlineNoCache') || 'Hors ligne.') : (t('errorLoadingDashboard') || 'Impossible de charger le tableau de bord.'));
+      setError(msg);
       try {
         const cached = await offlineDB.getUserMeta('dashboardStats');
         if (cached) {
@@ -52,11 +59,22 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadDashboard();
-  }, [loadDashboard]);
+    // Filet de sécurité : après 25 s, sortir du chargement même si la requête n'a pas répondu (ex. ancien build sans timeout axios)
+    const safetyTimer = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) {
+          setError(t('errorLoadingDashboard') || 'Le serveur met trop de temps à répondre. Vérifiez votre connexion ou réessayez.');
+          return false;
+        }
+        return prev;
+      });
+    }, 25000);
+    return () => clearTimeout(safetyTimer);
+  }, [loadDashboard, t]);
 
   const formatBytes = useCallback((bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -78,6 +96,21 @@ export default function Dashboard() {
             <span className="visually-hidden">{t('loading')}</span>
           </div>
           <p className="text-muted">{t('loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <div className="container-fluid p-4">
+        <div className="text-center p-5" style={{ maxWidth: '480px', margin: '0 auto' }}>
+          <i className="bi bi-exclamation-triangle text-warning" style={{ fontSize: '48px' }}></i>
+          <h2 className="h5 mt-3 mb-2" style={{ color: 'var(--text-color)' }}>{t('error') || 'Erreur'}</h2>
+          <p className="text-muted mb-4">{error}</p>
+          <button className="btn btn-primary" onClick={() => { setLoading(true); loadDashboard(); }}>
+            <i className="bi bi-arrow-clockwise me-2"></i>{t('retry') || 'Réessayer'}
+          </button>
         </div>
       </div>
     );

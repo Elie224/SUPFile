@@ -10,6 +10,10 @@ router.get('/:id/download', optionalAuthMiddleware, validateObjectId, foldersCon
 
 // Routes protégées (toutes les autres routes nécessitent une authentification)
 router.use(authMiddleware);
+
+// Lister les dossiers (GET /api/folders?parent_id=xxx) - avant validateObjectId
+router.get('/', foldersController.listFolders);
+
 router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
 
 // Créer un dossier

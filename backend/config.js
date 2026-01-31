@@ -72,10 +72,11 @@ module.exports = {
           }
         }
         
-        // En production, autoriser aussi les sous-domaines Render et Netlify (au cas où NODE_ENV ou CORS_ORIGIN ne sont pas définis)
+        // En production, autoriser aussi les sous-domaines Render, Netlify et Fly (au cas où NODE_ENV ou CORS_ORIGIN ne sont pas définis)
         if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
           if (origin && (origin.match(/^https:\/\/.*\.onrender\.com$/) ||
-              origin.match(/^https:\/\/.*\.netlify\.app$/))) {
+              origin.match(/^https:\/\/.*\.netlify\.app$/) ||
+              origin.match(/^https:\/\/.*\.fly\.dev$/))) {
             return callback(null, true);
           }
         }

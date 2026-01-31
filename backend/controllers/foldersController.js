@@ -6,6 +6,39 @@ const path = require('path');
 const fs = require('fs').promises;
 const { calculateRealQuotaUsed, syncQuotaUsed } = require('../utils/quota');
 
+// Lister les dossiers (GET /api/folders?parent_id=xxx)
+async function listFolders(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const parentId = req.query.parent_id === 'root' || req.query.parent_id === '' || !req.query.parent_id
+      ? null
+      : req.query.parent_id;
+
+    const folders = await FolderModel.findByOwner(userId, parentId, false);
+
+    // À la racine : ajouter les dossiers partagés avec moi
+    if (parentId === null) {
+      const internalShares = await ShareModel.findBySharedWith(userId);
+      const folderShareIds = internalShares
+        .filter(s => s.folder_id)
+        .map(s => s.folder_id.toString());
+      const uniqueFolderIds = [...new Set(folderShareIds)];
+      if (uniqueFolderIds.length > 0) {
+        const sharedFolders = await Promise.all(
+          uniqueFolderIds.map(fid => FolderModel.findById(fid))
+        );
+        const validShared = sharedFolders.filter(Boolean);
+        const sharedWithMe = validShared.map(f => ({ ...f, shared_with_me: true }));
+        folders.push(...sharedWithMe);
+      }
+    }
+
+    res.status(200).json({ data: folders });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Créer un dossier
 async function createFolder(req, res, next) {
   try {
@@ -516,6 +549,7 @@ async function getFolder(req, res, next) {
 }
 
 module.exports = {
+  listFolders,
   createFolder,
   getFolder,
   updateFolder,
