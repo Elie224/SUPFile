@@ -19,7 +19,7 @@ Une plateforme de stockage cloud distribuée, moderne et sécurisée, concurrent
 SUPFile/
 ├─ backend/                 # API serveur (Node.js/Express)
 │  ├─ controllers/          # Logique métier des endpoints
-│  ├─ models/               # Schémas BDD (PostgreSQL)
+│  ├─ models/               # Schémas BDD (MongoDB / Mongoose)
 │  ├─ routes/               # Définition des routes API
 │  ├─ middlewares/          # Auth, validation, gestion d'erreurs
 │  ├─ utils/                # Utilitaires (ZIP, prévisualisation, etc.)
@@ -38,12 +38,12 @@ SUPFile/
 │  ├─ package.json
 │  └─ Dockerfile
 │
-├─ mobile-app/              # Client mobile (React Native/Expo)
-│  ├─ src/
-│  │  ├─ screens/           # Écrans de navigation
-│  │  ├─ components/        # Composants réutilisables
-│  │  └─ services/          # Appels API
-│  ├─ package.json
+├─ mobile-app/              # Client mobile (Flutter)
+│  ├─ lib/
+│  │  ├─ screens/          # Écrans
+│  │  ├─ widgets/          # Composants
+│  │  └─ services/         # Appels API
+│  ├─ pubspec.yaml
 │  └─ Dockerfile
 │
 ├─ docker-compose.yml       # Orchestration des services
@@ -74,8 +74,8 @@ SUPFile/
    ```bash
    cp .env.example .env
    ```
-   ⚠️ **IMPORTANT** : Éditer le fichier `.env` et changer les valeurs par défaut, notamment :
-   - `POSTGRES_PASSWORD`
+   ⚠️ **IMPORTANT** : Éditer le fichier `.env` et remplacer les valeurs par défaut (aucun secret ne doit rester en clair) :
+   - `MONGO_INITDB_ROOT_PASSWORD` (et `MONGO_URI` si besoin)
    - `JWT_SECRET`
    - `JWT_REFRESH_SECRET`
 
@@ -96,10 +96,9 @@ docker compose up -d
 ```
 
 Cela va :
-- ✓ Créer et démarrer la base de données PostgreSQL
+- ✓ Créer et démarrer la base de données MongoDB
 - ✓ Compiler et démarrer le serveur API (backend)
 - ✓ Compiler et démarrer le client web (frontend)
-- ✓ Compiler et démarrer le client mobile (Expo)
 
 ### Vérifier le statut des services
 
@@ -113,8 +112,7 @@ docker compose ps
 |---------|-----|--------|
 | API Backend | http://localhost:5000/health | [Vérifier](http://localhost:5000/health) |
 | Web Frontend | http://localhost:3000 | [Ouvrir](http://localhost:3000) |
-| Mobile (Expo) | http://localhost:19000 | [Ouvrir](http://localhost:19000) |
-| PostgreSQL | localhost:5432 | - |
+| MongoDB | localhost:27017 | (interne) |
 
 ### Arrêter l'application
 
@@ -137,7 +135,7 @@ docker compose down -v
 ```
 ┌─────────────────┐         ┌──────────────────┐
 │  Frontend Web   │         │ Mobile App       │
-│  (React/Vite)   │         │ (React Native)   │
+│  (React/Vite)   │         │ (Flutter)        │
 └────────┬────────┘         └────────┬─────────┘
          │                           │
          └───────────┬───────────────┘
@@ -154,7 +152,7 @@ docker compose down -v
          │                         │
          ▼                         ▼
     ┌──────────┐         ┌──────────────────┐
-    │PostgreSQL│         │ Volume Docker    │
+    │ MongoDB  │         │ Volume Docker    │
     │   BDD    │         │ (Fichiers)       │
     └──────────┘         └──────────────────┘
 ```
@@ -165,9 +163,26 @@ docker compose down -v
 |-----------|-------------|------|
 | **Backend** | Node.js + Express | API REST, logique métier, authentification |
 | **Frontend Web** | React + Vite | Interface utilisateur web |
-| **Mobile** | React Native + Expo | Application mobile (iOS/Android) |
-| **BDD** | PostgreSQL | Stockage des métadonnées |
+| **Mobile** | Flutter (Dart) | Application mobile iOS/Android |
+| **BDD** | MongoDB | Stockage des métadonnées (Mongoose) |
 | **Stockage** | Volume Docker | Fichiers utilisateurs |
+
+---
+
+## 📦 Rendu du projet (section 3 – Cahier des charges)
+
+- **Archive ZIP** : le rendu doit contenir une archive ZIP avec le code source, les assets, la documentation technique et le manuel utilisateur.
+- **Documentation technique** : voir le dossier `docs/` :
+  - **Installation et pré-requis** : `docs/INSTALLATION.md`
+  - **Guide de déploiement** : `docs/INSTALLATION.md` (Docker) et `DEPLOIEMENT_RENDER.md` à la racine
+  - **Justification des choix technologiques** : `docs/ARCHITECTURE.md` (sections 10 et 11)
+  - **Diagrammes UML** (cas d’utilisation, schéma relationnel BDD) : `docs/DIAGRAMMES_UML.md`
+  - **Architecture de l’API** (endpoints principaux) : `docs/API.md` et résumé dans `docs/DIAGRAMMES_UML.md`
+- **Manuel utilisateur** : `docs/MANUEL_UTILISATEUR.md` (fonctionnalités et guide pour un nouvel arrivant).
+- **Secrets** : aucun secret (clés OAuth, mots de passe BDD, secrets JWT) ne doit être présent en clair dans le code. Tous les secrets sont configurés via des variables d’environnement (voir `.env.example`).
+- **Dépôt Git** : un dépôt Git avec un historique de commits cohérent doit être fourni. Le dépôt doit rester **privé** jusqu’à la date d’échéance du rendu ; il peut être rendu public uniquement après cette date.
+
+Voir **`docs/RENDU.md`** pour le détail des exigences de rendu et la checklist avant envoi.
 
 ---
 

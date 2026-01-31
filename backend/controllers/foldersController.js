@@ -1,5 +1,6 @@
 const FolderModel = require('../models/folderModel');
 const FileModel = require('../models/fileModel');
+const ShareModel = require('../models/shareModel');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs').promises;
@@ -481,7 +482,7 @@ async function listTrash(req, res, next) {
   }
 }
 
-// Récupérer un dossier par ID
+// Récupérer un dossier par ID (propriétaire ou partage interne)
 async function getFolder(req, res, next) {
   try {
     const userId = req.user.id;
@@ -492,15 +493,23 @@ async function getFolder(req, res, next) {
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
 
-    // Comparer les ObjectId correctement
     const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
     const userOwnerId = userId?.toString ? userId.toString() : userId;
-    
-    if (folderOwnerId !== userOwnerId) {
+
+    if (folderOwnerId === userOwnerId) {
+      return res.status(200).json({ data: folder });
+    }
+
+    // Dossier partagé avec moi (partage interne) : autoriser la lecture
+    const internalShares = await ShareModel.findBySharedWith(userId);
+    const hasAccess = internalShares.some(
+      s => s.folder_id && s.folder_id.toString() === id
+    );
+    if (!hasAccess) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    res.status(200).json({ data: folder });
+    res.status(200).json({ data: { ...folder, shared_with_me: true } });
   } catch (err) {
     next(err);
   }

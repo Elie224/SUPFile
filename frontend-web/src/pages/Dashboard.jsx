@@ -199,7 +199,7 @@ export default function Dashboard() {
                         >
                           {percentageRaw > 5 && (
                             <span className="small fw-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
-                              {typeof percentage === 'string' ? percentage : percentage.toFixed(2)}%
+                              {percentageRaw < 1 ? percentageRaw.toFixed(2) : Math.round(percentageRaw)}%
                             </span>
                           )}
                         </div>
@@ -208,11 +208,13 @@ export default function Dashboard() {
                   );
                 })()}
                 <small className="d-block text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  {stats.quota.used === 0 
-                    ? `0% ${t('usedOf')} ${formatBytes(stats.quota.limit)}`
-                    : `${stats.quota.percentage < 1 
-                      ? stats.quota.percentage.toFixed(2) 
-                      : Math.round(stats.quota.percentage)}% ${t('usedOf')} ${formatBytes(stats.quota.limit)}`}
+                  {(() => {
+                    const used = Number(stats.quota.used) || 0;
+                    const limit = Number(stats.quota.limit) || 0;
+                    const pct = limit > 0 && used > 0 ? Math.min(100, (used / limit) * 100) : 0;
+                    const pctDisplay = used === 0 ? 0 : pct < 1 ? pct.toFixed(2) : Math.round(pct);
+                    return `${pctDisplay}% ${t('usedOf')} ${formatBytes(limit)}`;
+                  })()}
                 </small>
               </div>
             </div>
@@ -257,7 +259,7 @@ export default function Dashboard() {
                           {formatBytes(item.value)}
                         </span>
                       </div>
-                      <div className="progress" style={{ height: '10px', backgroundColor: 'var(--bg-hover)', borderRadius: '5px', overflow: 'hidden' }}>
+                      <div className="progress storage-progress-track" style={{ height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
                         <div 
                           className="progress-bar"
                           role="progressbar" 

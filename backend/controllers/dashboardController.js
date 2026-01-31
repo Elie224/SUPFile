@@ -96,16 +96,17 @@ async function getDashboard(req, res, next) {
     }
 
     // Utiliser le quota réel pour les calculs (toujours précis)
-    const quotaUsed = quotaUsedReal;
-    const quotaLimit = user.quota_limit || 32212254720; // 30 Go par défaut si non défini
-    // Calculer le pourcentage brut (avec décimales)
-    const rawPercentage = quotaLimit > 0 && quotaUsed > 0 
-      ? (quotaUsed / quotaLimit) * 100 
+    const quotaUsed = Number(quotaUsedReal) || 0;
+    const quotaLimit = Number(user.quota_limit) || 32212254720; // 30 Go par défaut si non défini
+    // Calculer le pourcentage brut : plafonné à 100 %, pas de division par zéro
+    const rawPercentage = quotaLimit > 0 && quotaUsed >= 0
+      ? Math.min(100, (quotaUsed / quotaLimit) * 100)
       : 0;
-    // Pour l'affichage, arrondir à 2 décimales si < 1%, sinon arrondir à l'entier
-    const percentageDisplay = rawPercentage < 1 
-      ? Math.max(0.01, parseFloat(rawPercentage.toFixed(2)))
-      : Math.round(rawPercentage);
+    const safeRaw = Number.isFinite(rawPercentage) ? rawPercentage : 0;
+    // Pour l'affichage : 2 décimales si < 1 %, sinon entier
+    const percentageDisplay = quotaUsed === 0 ? 0 : (safeRaw < 1
+      ? Math.max(0, parseFloat(safeRaw.toFixed(2)))
+      : Math.round(safeRaw));
     
     res.status(200).json({
       data: {
@@ -114,7 +115,7 @@ async function getDashboard(req, res, next) {
           limit: quotaLimit,
           available: Math.max(0, quotaLimit - quotaUsed),
           percentage: percentageDisplay,
-          percentageRaw: rawPercentage, // Pourcentage brut pour la barre de progression
+          percentageRaw: safeRaw, // Pourcentage brut pour la barre de progression (0–100)
         },
         breakdown: {
           images: breakdown.images,

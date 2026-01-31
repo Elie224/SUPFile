@@ -1,10 +1,10 @@
 // Rate limiting middleware pour protéger contre les attaques de force brute
 const rateLimit = require('express-rate-limit');
 
-// Rate limiter général pour toutes les routes
+// Rate limiter général pour toutes les routes (éviter 429 en usage normal)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limite de 100 requêtes par IP par fenêtre
+  max: 500, // 500 requêtes / 15 min par IP (usage normal : dashboard, fichiers, preview, etc.)
   message: {
     error: {
       message: 'Too many requests from this IP, please try again later.',

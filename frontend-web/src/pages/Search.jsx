@@ -106,6 +106,48 @@ export default function Search() {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  // Raccourcis de date (ex: "Modifié la semaine dernière")
+  const setDatePreset = useCallback((preset) => {
+    const now = new Date();
+    let dateFrom = '';
+    let dateTo = now.toISOString().slice(0, 10);
+    switch (preset) {
+      case 'today':
+        dateFrom = dateTo;
+        break;
+      case 'this_week': {
+        const d = new Date(now);
+        d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
+        dateFrom = d.toISOString().slice(0, 10);
+        break;
+      }
+      case 'last_week': {
+        const d = new Date(now);
+        d.setDate(d.getDate() - d.getDay() - 6);
+        dateFrom = d.toISOString().slice(0, 10);
+        const end = new Date(d);
+        end.setDate(end.getDate() + 6);
+        dateTo = end.toISOString().slice(0, 10);
+        break;
+      }
+      case 'this_month':
+        dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        break;
+      case 'last_month': {
+        const m = now.getMonth();
+        const y = m === 0 ? now.getFullYear() - 1 : now.getFullYear();
+        const lastMonth = m === 0 ? 11 : m - 1;
+        dateFrom = `${y}-${String(lastMonth + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(y, lastMonth + 1, 0);
+        dateTo = lastDay.toISOString().slice(0, 10);
+        break;
+      }
+      default:
+        return;
+    }
+    setFilters(prev => ({ ...prev, date_from: dateFrom, date_to: dateTo }));
+  }, []);
+
   return (
     <div className="container-fluid p-2 p-sm-3 p-md-4" style={{ maxWidth: '1400px', margin: '0 auto' }}>
       {fromCache && (
@@ -234,6 +276,26 @@ export default function Search() {
                 onChange={(e) => handleFilterChange('date_to', e.target.value)}
               />
             </div>
+          </div>
+          {/* Raccourcis date : Modifié la semaine dernière, etc. */}
+          <div className="mt-3 pt-3 border-top border-secondary border-opacity-25">
+            <span className="small text-muted me-2">{t('modifiedPresets') || 'Modifié :'}</span>
+            {[
+              { key: 'today', label: t('modifiedToday') || 'Aujourd\'hui' },
+              { key: 'this_week', label: t('modifiedThisWeek') || 'Cette semaine' },
+              { key: 'last_week', label: t('modifiedLastWeek') || 'La semaine dernière' },
+              { key: 'this_month', label: t('modifiedThisMonth') || 'Ce mois' },
+              { key: 'last_month', label: t('modifiedLastMonth') || 'Le mois dernier' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                className="btn btn-outline-secondary btn-sm me-2 mb-2"
+                onClick={() => setDatePreset(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@
 ### Windows
 - **Docker Desktop for Windows** (v4.0+)
 - **Git for Windows** (v2.30+)
-- **Node.js** (v18+) - optionnel, pour dev local
+- **Node.js** (v18+) – optionnel, pour le développement local
 
 Télécharger :
 - Docker : https://www.docker.com/products/docker-desktop
@@ -13,11 +13,10 @@ Télécharger :
 
 ### macOS
 - **Docker Desktop for Mac** (v4.0+)
-- **Git** (inclu dans Xcode Command Line Tools)
-- **Node.js** (v18+) - optionnel
+- **Git** (inclus dans Xcode Command Line Tools)
+- **Node.js** (v18+) – optionnel
 
 ```bash
-# Installer via Homebrew
 brew install docker git node
 ```
 
@@ -44,19 +43,24 @@ git clone <URL_DEPOT_PRIVÉ>
 cd SUPFile
 ```
 
-**Note** : Assurez-vous que le dépôt est **PRIVÉ** jusqu'à la date de rendu !
+**Important** : le dépôt doit rester **privé** jusqu’à la date de rendu du projet.
 
-### 2️⃣ Configurer les variables d'environnement
+### 2️⃣ Configurer les variables d’environnement
 
 ```bash
 cp .env.example .env
 ```
 
-**Éditer `.env`** et modifier les secrets (TRÈS IMPORTANT) :
+Éditer **`.env`** et remplacer les valeurs par défaut (aucun secret ne doit rester en clair) :
 
 ```env
-# Générer des secrets forts
-POSTGRES_PASSWORD=your_secure_password_here_32_chars
+# Base de données MongoDB (Docker)
+MONGO_INITDB_ROOT_USERNAME=supfile_root
+MONGO_INITDB_ROOT_PASSWORD=votre_mot_de_passe_mongo_secure
+MONGO_INITDB_DATABASE=supfile
+MONGO_URI=[REDACTED]
+
+# JWT (générer des secrets forts, au moins 32 caractères)
 JWT_SECRET=[REDACTED]
 JWT_REFRESH_SECRET=[REDACTED]
 ```
@@ -64,40 +68,40 @@ JWT_REFRESH_SECRET=[REDACTED]
 **Générer des secrets forts** :
 
 ```bash
-# Linux/macOS
+# Linux / macOS
 openssl rand -base64 32
 
 # Windows (PowerShell)
-[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)))
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])
 ```
 
-### 3️⃣ Démarrer l'application
+### 3️⃣ Démarrer l’application
 
 ```bash
 docker compose up -d
 ```
 
-Attendre ~30 secondes que tout démarre.
+Attendre environ 30 secondes que les services démarrent.
 
 Vérifier le statut :
+
 ```bash
 docker compose ps
 ```
 
-Tous les services doivent être **UP**.
+Tous les services doivent être **Up**.
 
 ---
 
 ## Accès aux applications
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| **API Backend** | http://localhost:5000/health | Endpoint de vérification |
-| **Web Frontend** | http://localhost:3000 | Application web |
-| **Mobile (Expo)** | http://localhost:19000 | Tunnel Expo |
-| **PostgreSQL** | localhost:5432 | Base de données (port interne) |
+| Service           | URL                         | Description        |
+|-------------------|-----------------------------|--------------------|
+| **API Backend**   | http://localhost:5000/health | Vérification santé |
+| **Frontend Web**  | http://localhost:3000       | Application web    |
+| **MongoDB**       | localhost:27017             | Base de données (interne) |
 
-### Vérifier la santé de l'API
+### Vérifier la santé de l’API
 
 ```bash
 curl http://localhost:5000/health
@@ -108,89 +112,73 @@ curl http://localhost:5000/health
 
 ## Développement local (sans Docker)
 
-Pour développer directement sur la machine (plus rapide que Docker) :
+Pour développer directement sur la machine :
 
 ### Backend
 
 ```bash
 cd backend
 npm install
-cp ../.env .env.local    # Copier et adapter les vars
+cp ../.env .env   # ou .env.local, et adapter MONGO_URI pour localhost
 
-npm run dev              # Démarre sur port 5000
+npm run dev       # Démarre sur le port 5000
 ```
+
+MongoDB doit être accessible (Docker : `docker compose up -d db` ou instance locale).
 
 ### Frontend Web
 
 ```bash
 cd frontend-web
 npm install
-npm run dev              # Démarre sur port 3000
+npm run dev       # Démarre sur le port 3000
 ```
 
-### Mobile
+### Application mobile (Flutter)
 
 ```bash
 cd mobile-app
-npm install
-npm start                # Démarre Expo CLI
+flutter pub get
+flutter run        # Ou ouvrir avec Android Studio / Xcode
 ```
 
-**Pour PostgreSQL en dev** : Vous aurez besoin d'une instance postgres locale ou via Docker :
-
-```bash
-docker run -d \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=supfile \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
+Configurer l’URL de l’API dans `mobile-app/lib/utils/constants.dart` (ou via variables d’environnement) pour pointer vers le backend (ex. `http://10.0.2.2:5000` pour l’émulateur Android).
 
 ---
 
 ## Gestion des données
 
-### Initialiser la base de données
+### Initialisation de la base de données
 
-Les tables sont créées automatiquement au premier démarrage du backend.
+MongoDB crée les collections à la demande au premier usage. Le backend initialise les index au démarrage.
 
-Pour initialiser manuellement :
+Pour réinitialiser complètement :
 
 ```bash
-# Copier le schéma SQL dans la BDD
-docker exec supfile-db psql -U supfile_user -d supfile < backend/migrations/001_initial_schema.sql
+docker compose down -v
+docker compose up -d
 ```
 
-### Accéder à PostgreSQL
+### Connexion à MongoDB (debug)
 
 ```bash
-# Connexion interactif
-docker exec -it supfile-db psql -U supfile_user -d supfile
+# Connexion au conteneur
+docker exec -it supfile-db mongosh -u supfile_root -p --authenticationDatabase admin
 
-# Commandes utiles dans psql
-\dt              # Lister tables
-\d users         # Décrire table users
-SELECT * FROM users;
-\q              # Quitter
+# Dans mongosh : utiliser la base supfile
+use supfile
+show collections
+db.users.find().limit(5)
+exit
 ```
 
-### Sauvegarder la BDD
+### Nettoyage des données
 
 ```bash
-# Dump complet
-docker exec supfile-db pg_dump -U supfile_user supfile > backup.sql
-
-# Restaurer
-docker exec -i supfile-db psql -U supfile_user supfile < backup.sql
-```
-
-### Nettoyer les données
-
-```bash
-# Supprimer TOUS les volumes (= réinitialiser BDD et fichiers)
+# Supprimer tous les volumes (BDD et fichiers uploadés)
 docker compose down -v
 
-# Relancer
+# Redémarrer
 docker compose up -d
 ```
 
@@ -198,47 +186,30 @@ docker compose up -d
 
 ## Logs et débogage
 
-### Voir les logs en temps réel
+### Consulter les logs
 
 ```bash
 # Tous les services
 docker compose logs -f
 
-# Service spécifique
+# Par service
 docker compose logs -f backend
 docker compose logs -f db
 docker compose logs -f frontend
 ```
 
-### Entrer dans un conteneur
+### Accéder à un conteneur
 
 ```bash
-# Shell backend
 docker exec -it supfile-backend sh
-
-# Shell PostgreSQL
-docker exec -it supfile-db sh
-
-# Shell frontend
-docker exec -it supfile-frontend sh
-```
-
-### Vérifier les volumes
-
-```bash
-# Lister les volumes
-docker volume ls
-
-# Inspecter un volume
-docker volume inspect SUPFile_db_data
-docker volume inspect SUPFile_backend_data
+docker exec -it supfile-db mongosh -u supfile_root -p --authenticationDatabase admin
 ```
 
 ---
 
 ## Tests
 
-### Tests backend
+### Backend
 
 ```bash
 cd backend
@@ -246,7 +217,7 @@ npm install
 npm test
 ```
 
-### Tests frontend
+### Frontend
 
 ```bash
 cd frontend-web
@@ -254,185 +225,61 @@ npm install
 npm test
 ```
 
-### Tests e2e (à implémenter)
-
-```bash
-# Avec Cypress ou Playwright
-npm run test:e2e
-```
-
 ---
 
 ## Déploiement en production
 
-### Pré-checklist
+### Checklist avant mise en production
 
-- ✅ Secrets en `.env` (jamais en git)
-- ✅ HTTPS activé (certificats SSL)
-- ✅ CORS configuré pour domaines autorisés
-- ✅ Rate limiting activé
-- ✅ Logs centralisés (syslog, ELK, etc.)
-- ✅ Monitoring et alertes
-- ✅ Backups BDD réguliers
-- ✅ Variables d'env sécurisées (AWS Secrets Manager, etc.)
+- [ ] Tous les secrets dans des variables d’environnement (jamais dans le code ni dans Git)
+- [ ] HTTPS activé (certificats SSL)
+- [ ] CORS configuré pour les domaines autorisés uniquement
+- [ ] Rate limiting activé
+- [ ] Logs et monitoring en place
+- [ ] Sauvegardes régulières de la BDD et du volume des fichiers
 
-### Stack production recommandée
+### Options de déploiement
 
-**Option 1 : AWS ECS**
-```yaml
-- ECS Cluster (Docker containers)
-- RDS PostgreSQL (managed DB)
-- S3 (file storage à la place du volume)
-- CloudFront (CDN)
-- ALB (load balancer)
-- CloudWatch (logging)
-```
+- **Render / Railway / Fly.io** : déploiement du backend et du frontend ; MongoDB managé (MongoDB Atlas) ou conteneur.
+- **VPS (DigitalOcean, OVH, etc.)** : installer Docker, utiliser `docker compose` avec un reverse proxy (Nginx) et Let’s Encrypt pour le HTTPS.
+- **MongoDB Atlas** : pour la base de données, utiliser une URI du type `mongodb+srv://[REDACTED] dans `MONGO_URI`.
 
-**Option 2 : Kubernetes**
-```yaml
-- EKS/AKS/GKE (managed K8s)
-- CloudSQL/RDS (managed DB)
-- Object Storage (S3, GCS, Azure Blob)
-- Ingress (routing)
-- Prometheus (monitoring)
-```
-
-**Option 3 : VPS (DigitalOcean, Linode)**
-```bash
-# Sur VPS - installer Docker, docker-compose
-# Adapter docker-compose.yml pour prod (sans volumes locaux)
-# Utiliser Nginx reverse proxy + Let's Encrypt
-```
-
-### Exemple : Déploiement DigitalOcean App Platform
-
-```yaml
-# .do/app.yaml
-name: supfile
-services:
-- name: backend
-  github:
-    branch: main
-    repo: your-repo
-  build_command: npm install
-  run_command: npm start
-  envs:
-  - key: NODE_ENV
-    value: production
-  - key: DB_URI
-    scope: RUN_AND_BUILD_TIME
-    value: ${db.username}:${db.password}@${db.host}:${db.port}/${db.database}
-
-- name: frontend
-  github:
-    branch: main
-    repo: your-repo
-  build_command: cd frontend-web && npm install && npm run build
-  source_dir: frontend-web
-
-databases:
-- name: db
-  engine: PG
-  version: "16"
-  production: true
-```
+Voir aussi `DEPLOIEMENT_RENDER.md` à la racine du projet pour un exemple avec Render.
 
 ---
 
-## Troubleshooting
+## Dépannage
 
-### "Port 5000 déjà utilisé"
+### Port 5000 déjà utilisé
 
 ```bash
-# Voir le processus
-netstat -ano | findstr :5000  # Windows
-lsof -i :5000                 # macOS/Linux
+# Windows
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
 
-# Tuer le processus
-taskkill /PID <PID> /F        # Windows
-kill -9 <PID>                 # macOS/Linux
+# macOS / Linux
+lsof -i :5000
+kill -9 <PID>
 ```
 
-### "BDD ne démarre pas"
+### La base de données ne démarre pas
 
 ```bash
-# Voir les logs
 docker compose logs db
-
-# Réinitialiser
 docker compose down -v
 docker compose up -d
 ```
 
-### "Frontend ne se connecte pas à l'API"
+### Le frontend ne se connecte pas à l’API
 
-- Vérifier VITE_API_URL dans `.env`
-- Vérifier que backend est UP : `docker compose ps`
-- Vérifier CORS dans `backend/config.js`
+- Vérifier `VITE_API_URL` dans `.env` (ou dans la config du frontend).
+- Vérifier que le backend est démarré : `docker compose ps`.
+- Vérifier la configuration CORS dans le backend.
 
-### "Erreur JWT"
+### Erreur JWT
 
-```bash
-# Vérifier que JWT_SECRET est défini
-grep JWT_SECRET .env
-
-# JWT_SECRET doit être > 32 caractères fort
-```
-
-### "Disk space full"
-
-```bash
-# Nettoyer volumes inutilisés
-docker volume prune
-
-# Nettoyer images inutilisées
-docker image prune -a
-
-# Voir l'espace utilisé
-docker system df
-```
-
----
-
-## Continuité intégration (CI/CD)
-
-### GitHub Actions (exemple)
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Build Docker images
-        run: docker compose build
-      
-      - name: Run tests
-        run: |
-          cd backend && npm test
-          cd ../frontend-web && npm test
-      
-      - name: Push to registry
-        run: docker push ...
-```
-
----
-
-## Support et questions
-
-1. Consulter `QUICKSTART.md` pour démarrage rapide
-2. Lire `ARCHITECTURE.md` pour architecture détaillée
-3. Vérifier les logs : `docker compose logs -f`
-4. Vérifier `.env` : secrets en place?
-5. Redémarrer : `docker compose restart`
+- Vérifier que `JWT_SECRET` et `JWT_REFRESH_SECRET` sont définis dans `.env`.
+- Ils doivent contenir au moins 32 caractères et être suffisamment aléatoires.
 
 ---
 

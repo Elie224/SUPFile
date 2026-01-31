@@ -53,7 +53,12 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _performSearch() async {
-    if (_searchController.text.trim().isEmpty) {
+    final hasQuery = _searchController.text.trim().isNotEmpty;
+    final hasFilters = _selectedType != null ||
+        _selectedMimeType != null ||
+        _dateFrom != null ||
+        _dateTo != null;
+    if (!hasQuery && !hasFilters) {
       setState(() {
         _files = [];
         _folders = [];
@@ -226,11 +231,11 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(value: null, child: Text('Tous')),
-                          DropdownMenuItem(value: 'image', child: Text('Images')),
-                          DropdownMenuItem(value: 'video', child: Text('Vidéos')),
-                          DropdownMenuItem(value: 'audio', child: Text('Audio')),
+                          DropdownMenuItem(value: 'image/', child: Text('Images')),
+                          DropdownMenuItem(value: 'video/', child: Text('Vidéos')),
+                          DropdownMenuItem(value: 'audio/', child: Text('Audio')),
                           DropdownMenuItem(value: 'application/pdf', child: Text('PDF')),
-                          DropdownMenuItem(value: 'text', child: Text('Texte')),
+                          DropdownMenuItem(value: 'text/', child: Text('Texte')),
                         ],
                         onChanged: (value) {
                           setState(() {

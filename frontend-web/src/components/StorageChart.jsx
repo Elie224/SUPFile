@@ -5,10 +5,15 @@ import React from 'react';
  * Utilise SVG pur pour les performances
  */
 export default function StorageChart({ used, total, breakdown, formatBytes }) {
-  const percentage = total > 0 ? (used / total * 100) : 0;
+  const usedNum = Number(used) || 0;
+  const totalNum = Number(total) || 0;
+  const percentage = totalNum > 0 && usedNum >= 0
+    ? Math.min(100, (usedNum / totalNum) * 100)
+    : 0;
+  const safePercentage = Number.isFinite(percentage) ? percentage : 0;
   const circumference = 2 * Math.PI * 45; // rayon = 45
   const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = circumference - (safePercentage / 100) * circumference;
 
   // Calculer les pourcentages pour chaque type
   const breakdownItems = breakdown ? [
@@ -19,7 +24,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
     { key: 'other', label: 'Autres', color: '#607D8B', value: breakdown.other || 0 },
   ].filter(item => item.value > 0) : [];
 
-  const totalBreakdown = breakdownItems.reduce((sum, item) => sum + item.value, 0);
+  const totalBreakdown = breakdownItems.reduce((sum, item) => sum + Number(item.value), 0);
 
   return (
     <div className="d-flex flex-column align-items-center">
@@ -41,7 +46,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
             cy="60"
             r="45"
             fill="none"
-            stroke={percentage > 80 ? '#f44336' : percentage > 75 ? '#ff9800' : '#4caf50'}
+            stroke={safePercentage >= 90 ? '#f44336' : safePercentage >= 75 ? '#ff9800' : '#4caf50'}
             strokeWidth="10"
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
@@ -61,7 +66,13 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
           }}
         >
           <span className="fw-bold" style={{ fontSize: '24px', lineHeight: 1 }}>
-            {percentage.toFixed(1)}%
+            {safePercentage === 0
+              ? '0%'
+              : safePercentage < 1
+                ? `${safePercentage.toFixed(2)}%`
+                : safePercentage < 100
+                  ? `${safePercentage.toFixed(1)}%`
+                  : '100%'}
           </span>
           <span className="small text-muted" style={{ fontSize: '11px' }}>
             utilisé
@@ -74,7 +85,10 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
         <div className="mt-3" style={{ width: '100%' }}>
           <div className="small text-muted mb-2">Répartition:</div>
           {breakdownItems.map((item) => {
-            const itemPercentage = totalBreakdown > 0 ? (item.value / totalBreakdown * 100) : 0;
+            const itemValue = Number(item.value) || 0;
+            const itemPercentage = totalBreakdown > 0 && itemValue >= 0
+              ? Math.min(100, (itemValue / totalBreakdown) * 100)
+              : 0;
             return (
               <div key={item.key} className="mb-2">
                 <div className="d-flex justify-content-between align-items-center mb-1">
@@ -90,10 +104,10 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
                     <span className="small">{item.label}</span>
                   </div>
                   <span className="small text-muted">
-                    {formatBytes ? formatBytes(item.value) : `${(item.value / 1024 / 1024).toFixed(1)} MB`}
+                    {formatBytes ? formatBytes(itemValue) : `${(itemValue / 1024 / 1024).toFixed(1)} MB`}
                   </span>
                 </div>
-                <div className="progress" style={{ height: '6px' }}>
+                <div className="progress storage-progress-track" style={{ height: '6px' }}>
                   <div
                     className="progress-bar"
                     role="progressbar"

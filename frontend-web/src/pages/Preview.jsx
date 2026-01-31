@@ -82,6 +82,7 @@ export default function Preview() {
           name: fileInfo.name, 
           size: fileInfo.size,
           folder_id: fileInfo.folder_id,
+          updated_at: fileInfo.updated_at,
         });
         
         // Déterminer le type de prévisualisation basé sur le MIME type
@@ -314,7 +315,10 @@ export default function Preview() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
             <div><strong>Nom:</strong> {file.name || 'Non spécifié'}</div>
             <div><strong>Type MIME:</strong> {file.contentType || 'Non spécifié'}</div>
-            {file.size && <div><strong>Taille:</strong> {formatBytes(file.size)}</div>}
+            {file.size != null && <div><strong>Taille:</strong> {formatBytes(file.size)}</div>}
+            {file.updated_at && (
+              <div><strong>Date de modification:</strong> {new Date(file.updated_at).toLocaleString('fr-FR')}</div>
+            )}
             <div><strong>ID:</strong> {id}</div>
           </div>
         </div>

@@ -212,6 +212,16 @@ body {
   background-color: var(--bg-tertiary);
 }
 
+/* Barre de stockage (quota) : piste plus sombre en thème dark pour éviter le "trop blanc" */
+.storage-progress-track {
+  background-color: var(--bg-hover);
+  border-radius: 12px;
+  overflow: hidden;
+}
+[data-theme="dark"] .storage-progress-track {
+  background-color: #1f2937 !important; /* Gris foncé, pas blanc */
+}
+
 /* ============================================
    THEME SOMBRE - AMÉLIORATIONS GLOBALES
    ============================================ */
