@@ -29,8 +29,8 @@ module.exports = {
       let defaultOrigins = '';
       
       if (process.env.NODE_ENV === 'production') {
-        // En production, inclure les domaines Render par défaut si CORS_ORIGIN n'est pas défini
-        defaultOrigins = 'https://supfile-frontend.onrender.com,https://supfile-frontend-1.onrender.com';
+        // En production : Render, Netlify (.netlify.app), et CORS_ORIGIN
+        defaultOrigins = 'https://supfile-frontend.onrender.com,https://supfile-frontend-1.onrender.com,https://flourishing-banoffee-c0b1ad.netlify.app';
       } else {
         // En développement, autoriser localhost
         defaultOrigins = 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:19000,exp://localhost:19000';
@@ -72,10 +72,10 @@ module.exports = {
           }
         }
         
-        // En production, autoriser aussi les sous-domaines Render (.onrender.com) et Netlify (.netlify.app)
-        if (process.env.NODE_ENV === 'production') {
-          if (origin.match(/^https:\/\/.*\.onrender\.com$/) ||
-              origin.match(/^https:\/\/.*\.netlify\.app$/)) {
+        // En production, autoriser aussi les sous-domaines Render et Netlify (au cas où NODE_ENV ou CORS_ORIGIN ne sont pas définis)
+        if (process.env.NODE_ENV === 'production' || !process.env.NODE_ENV) {
+          if (origin && (origin.match(/^https:\/\/.*\.onrender\.com$/) ||
+              origin.match(/^https:\/\/.*\.netlify\.app$/))) {
             return callback(null, true);
           }
         }

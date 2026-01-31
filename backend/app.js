@@ -97,6 +97,27 @@ async function startServer() {
 // MIDDLEWARES GLOBAUX
 // ============================================================
 
+// CORS en premier pour que toutes les réponses (y compris erreurs) aient les en-têtes
+app.use(cors(config.cors));
+
+// Réponse explicite aux preflight OPTIONS (évite blocage CORS quand le navigateur envoie OPTIONS avant GET/POST)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.get('Origin') || '';
+    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.includes('localhost');
+    const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
+    if (allowOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
+  }
+  next();
+});
+
 // Compression HTTP - Réduit la taille des réponses (DOIT être avant les routes)
 app.use(compressionMiddleware);
 
@@ -136,9 +157,6 @@ app.use(generalLimiter);
 
 // Nettoyage des requêtes contre les injections NoSQL
 app.use(sanitizeQuery);
-
-// CORS middleware - doit être avant les routes
-app.use(cors(config.cors));
 
 // Session middleware pour OAuth (doit être avant Passport)
 app.use(session({
@@ -324,14 +342,11 @@ app.use('/api/2fa', require('./routes/twoFactor'));
  * DOIT être avant errorHandler pour intercepter les routes non définies
  */
 app.use((req, res) => {
-  console.log('[APP] 404 Handler triggered:', {
-    method: req.method,
-    url: req.originalUrl,
-    path: req.path,
-    params: req.params,
-    query: req.query,
-    timestamp: new Date().toISOString()
-  });
+  const origin = req.get('Origin');
+  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   res.status(404).json({ error: { message: 'Route not found', status: 404 } });
 });
 
