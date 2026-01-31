@@ -7,10 +7,13 @@ import offlineDB from './offlineDB';
 import { fileService, folderService } from './api';
 import { API_URL } from '../config';
 
+const SYNC_COOLDOWN_MS = 8000; // Éviter les rafales de GET /api/folders
+
 class SyncService {
   constructor() {
     this.isSyncing = false;
     this.syncListeners = [];
+    this.lastSyncFromServerTime = 0;
   }
 
   /**
@@ -45,9 +48,17 @@ class SyncService {
       console.log('[Sync] Hors ligne - synchronisation impossible');
       return { success: false, reason: 'offline' };
     }
+    if (this.isSyncing) {
+      return { success: false, reason: 'already-syncing' };
+    }
+    const now = Date.now();
+    if (now - this.lastSyncFromServerTime < SYNC_COOLDOWN_MS) {
+      return { success: false, reason: 'cooldown' };
+    }
 
     try {
       this.isSyncing = true;
+      this.lastSyncFromServerTime = now;
       this.notifyListeners({ type: 'sync-start', direction: 'from-server' });
 
       // 1. Récupérer tous les dossiers
