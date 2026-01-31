@@ -3,7 +3,7 @@ import { LOGO_IMG } from '../config';
 
 /**
  * Composant Logo réutilisable
- * - Bordures arrondies
+ * - Bordures arrondies (style moderne)
  * - S'adapte au thème clair/sombre
  */
 export default function Logo({ size = 'medium', style = {}, className = '' }) {
@@ -19,10 +19,8 @@ export default function Logo({ size = 'medium', style = {}, className = '' }) {
   // Style de base avec bordures arrondies et adaptation au thème
   const logoStyle = {
     ...sizeStyle,
-    borderRadius: '12px',
-    // Fond léger pour le mode sombre (le logo reste visible)
-    backgroundColor: 'var(--logo-bg, transparent)',
-    padding: '4px',
+    borderRadius: '50%', // Bordures complètement arrondies (cercle)
+    objectFit: 'cover',
     transition: 'all 0.3s ease',
     ...style,
   };
