@@ -700,22 +700,22 @@ export default function Files() {
     : [];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="page-container" style={{ padding: 'clamp(12px, 3vw, 24px)', maxWidth: '1400px', margin: '0 auto' }}>
       {/* En-tête amélioré */}
       <div style={{ 
-        marginBottom: '24px',
-        padding: '20px',
+        marginBottom: 'clamp(16px, 3vw, 24px)',
+        padding: 'clamp(12px, 3vw, 20px)',
         backgroundColor: 'var(--bg-color)',
         borderRadius: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         border: '1px solid var(--border-color)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
             <h1 style={{ 
               margin: 0, 
               marginBottom: '8px',
-              fontSize: '28px',
+              fontSize: 'clamp(1.25rem, 4vw, 1.75rem)',
               fontWeight: '700',
               color: 'var(--text-color)'
             }}>
@@ -770,7 +770,7 @@ export default function Files() {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: '0 0 auto' }}>
             <input
               type="file"
               multiple
@@ -781,16 +781,18 @@ export default function Files() {
             <label 
               htmlFor="file-upload" 
               style={{ 
-                padding: '10px 20px', 
+                padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)', 
                 backgroundColor: '#2196F3', 
                 color: 'white', 
                 borderRadius: '8px', 
                 cursor: 'pointer', 
-                display: 'inline-block',
-                fontSize: '15px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                fontSize: 'clamp(13px, 2vw, 15px)',
                 fontWeight: '600',
                 boxShadow: '0 2px 4px rgba(33, 150, 243, 0.3)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 e.target.style.backgroundColor = '#1976D2';
@@ -808,16 +810,19 @@ export default function Files() {
               onClick={() => setShowNewFolder(!showNewFolder)}
               aria-label={t('newFolder') || 'Nouveau dossier'}
               style={{ 
-                padding: '10px 20px', 
+                padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)', 
                 backgroundColor: '#4CAF50', 
                 color: 'white', 
                 border: 'none', 
                 borderRadius: '8px', 
                 cursor: 'pointer',
-                fontSize: '15px',
+                fontSize: 'clamp(13px, 2vw, 15px)',
                 fontWeight: '600',
                 boxShadow: '0 2px 4px rgba(76, 175, 80, 0.3)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 e.target.style.backgroundColor = '#45a049';
@@ -829,21 +834,22 @@ export default function Files() {
               }}
             >
               <i className="bi bi-folder-plus me-2" aria-hidden="true"></i>
-              {t('newFolder')}
+              <span className="desktop-only">{t('newFolder')}</span>
+              <span className="mobile-only">+</span>
             </button>
           </div>
         </div>
       </div>
 
       {showNewFolder && (
-        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 4, backgroundColor: 'var(--bg-color)' }}>
+        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 8, backgroundColor: 'var(--bg-color)', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
           <input
             type="text"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             placeholder={t('folderName')}
             onKeyPress={(e) => e.key === 'Enter' && createFolder()}
-            style={{ padding: 8, width: 300, marginRight: 8 }}
+            style={{ padding: 10, flex: '1 1 200px', minWidth: '150px', maxWidth: '300px', border: '1px solid var(--border-color)', borderRadius: 6, backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
           />
           <button 
             onClick={createFolder} 
@@ -1099,11 +1105,11 @@ export default function Files() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{ 
-          minHeight: 400, 
+          minHeight: 'clamp(300px, 50vh, 400px)', 
           border: isDragOver ? '2px dashed #2196F3' : '2px dashed var(--border-color)',
           backgroundColor: isDragOver ? 'var(--bg-hover)' : 'var(--bg-secondary)',
           borderRadius: '12px',
-          padding: '32px',
+          padding: 'clamp(16px, 4vw, 32px)',
           transition: 'all 0.3s ease'
         }}
         onDragEnter={(e) => {
@@ -1191,18 +1197,19 @@ export default function Files() {
               </div>
             )}
             
-            <div style={{ 
+            <div className="responsive-table-container" style={{ 
               overflowX: 'auto', 
               borderRadius: '12px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               backgroundColor: 'var(--bg-color)',
-              border: '1px solid var(--border-color)'
+              border: '1px solid var(--border-color)',
+              WebkitOverflowScrolling: 'touch'
             }}>
-              <table style={{ 
+              <table className="responsive-table" style={{ 
                 width: '100%', 
                 borderCollapse: 'separate',
                 borderSpacing: 0,
-                minWidth: '600px'
+                minWidth: '550px'
               }}>
                 <thead>
                   <tr style={{ 

@@ -243,8 +243,8 @@ export default function Settings() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ marginBottom: 32, fontSize: '2em', color: 'var(--text-color)' }}>⚙️ {t('settings')}</h1>
+    <div className="page-container" style={{ padding: 'clamp(12px, 3vw, 24px)', maxWidth: 900, margin: '0 auto' }}>
+      <h1 style={{ marginBottom: 'clamp(20px, 3vw, 32px)', fontSize: 'clamp(1.5em, 4vw, 2em)', color: 'var(--text-color)' }}>⚙️ {t('settings')}</h1>
 
       {message.text && (
         <div style={{
@@ -260,13 +260,13 @@ export default function Settings() {
       )}
 
       {/* Informations du compte */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>
+      <section style={{ marginBottom: 'clamp(20px, 3vw, 32px)', padding: 'clamp(16px, 3vw, 24px)', backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: 'clamp(1.2em, 3vw, 1.5em)', color: 'var(--text-color)' }}>
           <i className="bi bi-graph-up me-2"></i>
           {t('accountInfo')}
         </h2>
         
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(16px, 3vw, 24px)', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ position: 'relative' }}>
             {avatarUrl ? (
               <img
@@ -368,8 +368,8 @@ export default function Settings() {
       </section>
 
       {/* Profil */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>👤 {t('profile')}</h2>
+      <section style={{ marginBottom: 'clamp(20px, 3vw, 32px)', padding: 'clamp(16px, 3vw, 24px)', backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: 'clamp(1.2em, 3vw, 1.5em)', color: 'var(--text-color)' }}>👤 {t('profile')}</h2>
         <form onSubmit={handleUpdateProfile}>
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('email')}</label>

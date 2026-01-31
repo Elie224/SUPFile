@@ -339,7 +339,7 @@ export default function Intro() {
 
   return (
     <div style={styles.container}>
-      {/* Animation CSS */}
+      {/* Animation CSS + Responsive */}
       <style>
         {`
           @keyframes float {
@@ -352,19 +352,75 @@ export default function Intro() {
           }
           .page-content { animation: fadeIn 0.5s ease-out; }
           .btn-hover:hover { transform: translateY(-2px); }
+          
+          /* Responsive Mobile */
+          @media (max-width: 767px) {
+            .intro-header-wrapper {
+              flex-wrap: wrap !important;
+              padding: 12px 16px !important;
+              gap: 12px !important;
+            }
+            .intro-theme-toggle-wrapper {
+              display: none !important;
+            }
+            .intro-auth-btns-wrapper {
+              gap: 8px !important;
+            }
+            .intro-auth-btns-wrapper button {
+              padding: 8px 14px !important;
+              font-size: 13px !important;
+            }
+            .intro-icon-box {
+              width: 80px !important;
+              height: 80px !important;
+              font-size: 40px !important;
+              border-radius: 20px !important;
+            }
+            .intro-highlights-wrapper {
+              gap: 10px !important;
+            }
+            .intro-highlight-item {
+              padding: 10px 16px !important;
+              font-size: 13px !important;
+            }
+            .intro-nav-btns-wrapper {
+              flex-direction: column !important;
+              width: 100% !important;
+              gap: 12px !important;
+            }
+            .intro-nav-btn {
+              width: 100% !important;
+              justify-content: center !important;
+              padding: 14px 20px !important;
+            }
+            .intro-description {
+              font-size: 0.95rem !important;
+            }
+          }
+          
+          @media (max-width: 575px) {
+            .intro-logo-text {
+              font-size: 1.2rem !important;
+            }
+            .intro-icon-box {
+              width: 70px !important;
+              height: 70px !important;
+              font-size: 35px !important;
+            }
+          }
         `}
       </style>
 
       {/* Header */}
-      <header style={styles.header}>
+      <header style={styles.header} className="intro-header-wrapper">
         <div style={styles.logo}>
           <div style={styles.logoIcon}>S</div>
-          <span style={styles.logoText}>SUPFile</span>
+          <span style={styles.logoText} className="intro-logo-text">SUPFile</span>
         </div>
 
         <div style={styles.headerRight}>
           {/* Theme toggle */}
-          <div style={styles.themeToggle}>
+          <div style={styles.themeToggle} className="intro-theme-toggle-wrapper">
             <button
               style={styles.themeBtn(theme === 'light')}
               onClick={() => setTheme('light')}
@@ -382,7 +438,7 @@ export default function Intro() {
           </div>
 
           {/* Auth buttons */}
-          <div style={styles.authBtns}>
+          <div style={styles.authBtns} className="intro-auth-btns-wrapper">
             <button
               style={styles.btnLogin}
               onClick={() => navigate('/login')}
@@ -410,7 +466,7 @@ export default function Intro() {
           </div>
 
           {/* Icon */}
-          <div style={styles.iconBox}>{page.icon}</div>
+          <div style={styles.iconBox} className="intro-icon-box">{page.icon}</div>
 
           {/* Title */}
           <h1 style={styles.title}>{page.title}</h1>
@@ -419,12 +475,12 @@ export default function Intro() {
           <p style={styles.subtitle}>{page.subtitle}</p>
 
           {/* Description */}
-          <p style={styles.description}>{page.description}</p>
+          <p style={styles.description} className="intro-description">{page.description}</p>
 
           {/* Highlights */}
-          <div style={styles.highlights}>
+          <div style={styles.highlights} className="intro-highlights-wrapper">
             {page.highlights.map((item, idx) => (
-              <div key={idx} style={styles.highlightItem}>
+              <div key={idx} style={styles.highlightItem} className="intro-highlight-item">
                 <span>✓</span> {item}
               </div>
             ))}
@@ -445,19 +501,19 @@ export default function Intro() {
             </div>
 
             {/* Buttons */}
-            <div style={styles.navButtons}>
+            <div style={styles.navButtons} className="intro-nav-btns-wrapper">
               <button
                 style={styles.btnPrev}
                 onClick={goPrev}
                 disabled={isFirst}
-                className="btn-hover"
+                className="btn-hover intro-nav-btn"
               >
                 ← Précédent
               </button>
               <button
                 style={styles.btnNext}
                 onClick={goNext}
-                className="btn-hover"
+                className="btn-hover intro-nav-btn"
               >
                 {isLast ? '🚀 Commencer' : 'Suivant →'}
               </button>

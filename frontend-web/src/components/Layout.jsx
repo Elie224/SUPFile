@@ -59,8 +59,8 @@ export default function Layout({ children }) {
       {/* En-tête principal */}
       <nav style={{ 
         padding: '0',
-        borderBottom: '1px solid #e0e0e0', 
-        backgroundColor: '#ffffff',
+        borderBottom: '1px solid var(--border-color)', 
+        backgroundColor: 'var(--bg-color)',
         position: 'sticky',
         top: 0,
         zIndex: 1000,
@@ -135,7 +135,7 @@ export default function Layout({ children }) {
                 style={{
                   padding: '10px 16px',
                   textDecoration: 'none',
-                  color: location.pathname === link.path ? '#2196F3' : '#666',
+                  color: location.pathname === link.path ? '#2196F3' : 'var(--text-secondary)',
                   fontWeight: location.pathname === link.path ? '600' : '400',
                   borderRadius: '8px',
                   transition: 'all 0.2s',
@@ -147,14 +147,14 @@ export default function Layout({ children }) {
                 }}
                 onMouseEnter={(e) => {
                   if (location.pathname !== link.path) {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                    e.target.style.color = '#333';
+                    e.target.style.backgroundColor = 'var(--bg-hover)';
+                    e.target.style.color = 'var(--text-color)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (location.pathname !== link.path) {
                     e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = '#666';
+                    e.target.style.color = 'var(--text-secondary)';
                   }
                 }}
               >
@@ -190,12 +190,12 @@ export default function Layout({ children }) {
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               style={{
                 padding: '8px 12px',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'var(--bg-secondary)',
                 border: 'none',
                 borderRadius: '24px',
                 cursor: 'pointer',
                 fontSize: '14px',
-                color: '#333',
+                color: 'var(--text-color)',
                 fontWeight: '500',
                 minHeight: '40px',
                 transition: 'background-color 0.2s'
@@ -235,18 +235,18 @@ export default function Layout({ children }) {
                 alignItems: 'center',
                 gap: '10px',
                 padding: '8px 14px',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'var(--bg-secondary)',
                 border: 'none',
                 borderRadius: '24px',
                 cursor: 'pointer',
                 fontSize: '14px',
-                color: '#333',
+                color: 'var(--text-color)',
                 fontWeight: '500',
                 transition: 'background-color 0.2s'
               }}
               className="desktop-user-button user-menu-button"
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#eeeeee'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
             >
               <span style={{ 
                 display: 'inline-block',
@@ -317,20 +317,20 @@ export default function Layout({ children }) {
                   <div className="p-1">
                     <button
                       className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
-                      style={{ 
-                        textDecoration: 'none',
-                        color: '#333',
-                        padding: '10px 16px',
-                        fontSize: '14px',
-                        border: 'none',
-                        borderRadius: '8px'
-                      }}
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        navigate('/settings');
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+style={{ 
+                          textDecoration: 'none',
+                          color: 'var(--text-color)',
+                          padding: '10px 16px',
+                          fontSize: '14px',
+                          border: 'none',
+                          borderRadius: '8px'
+                        }}
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigate('/settings');
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
                       <i className="bi bi-gear"></i>
                       {t('settings') || 'Paramètres'}
@@ -341,7 +341,7 @@ export default function Layout({ children }) {
                         className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
                         style={{ 
                           textDecoration: 'none',
-                          color: '#333',
+                          color: 'var(--text-color)',
                           padding: '10px 16px',
                           fontSize: '14px',
                           border: 'none',
@@ -351,7 +351,7 @@ export default function Layout({ children }) {
                           setUserMenuOpen(false);
                           navigate('/admin');
                         }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
                         <i className="bi bi-shield-check"></i>
@@ -374,7 +374,7 @@ export default function Layout({ children }) {
                         setUserMenuOpen(false);
                         handleLogout();
                       }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#fff5f5'}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
                       <i className="bi bi-box-arrow-right"></i>
@@ -397,7 +397,7 @@ export default function Layout({ children }) {
           left: mobileMenuOpen ? '0' : '-280px',
           width: '280px',
           height: '100vh',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-color)',
           boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
           zIndex: 1002,
           transition: 'left 0.3s ease-out',
@@ -409,7 +409,7 @@ export default function Layout({ children }) {
         {/* Header du drawer */}
         <div style={{
           padding: '20px 16px',
-          borderBottom: '1px solid #e0e0e0',
+          borderBottom: '1px solid var(--border-color)',
           marginBottom: '8px'
         }}>
           <div style={{
@@ -422,7 +422,7 @@ export default function Layout({ children }) {
           </div>
           <div style={{
             fontSize: '13px',
-            color: '#666',
+            color: 'var(--text-secondary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
@@ -441,13 +441,13 @@ export default function Layout({ children }) {
               style={{
                 padding: '16px 20px',
                 textDecoration: 'none',
-                color: location.pathname === link.path ? '#2196F3' : '#333',
+                color: location.pathname === link.path ? '#2196F3' : 'var(--text-color)',
                 fontWeight: location.pathname === link.path ? '600' : '400',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 minHeight: '52px',
-                backgroundColor: location.pathname === link.path ? '#e3f2fd' : 'transparent',
+                backgroundColor: location.pathname === link.path ? 'var(--bg-hover)' : 'transparent',
                 transition: 'all 0.2s ease',
                 borderLeft: location.pathname === link.path ? '4px solid #2196F3' : '4px solid transparent',
                 fontSize: '16px',
@@ -457,7 +457,7 @@ export default function Layout({ children }) {
               }}
               onTouchStart={(e) => {
                 if (location.pathname !== link.path) {
-                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                 }
               }}
               onTouchEnd={(e) => {
@@ -469,7 +469,7 @@ export default function Layout({ children }) {
               }}
               onMouseEnter={(e) => {
                 if (location.pathname !== link.path) {
-                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                 }
               }}
               onMouseLeave={(e) => {
@@ -483,7 +483,7 @@ export default function Layout({ children }) {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: location.pathname === link.path ? '#2196F3' : '#ddd',
+                backgroundColor: location.pathname === link.path ? '#2196F3' : 'var(--border-color)',
                 marginRight: '16px',
                 flexShrink: 0
               }}></span>
@@ -495,7 +495,7 @@ export default function Layout({ children }) {
         {/* Bouton Déconnexion dans le drawer */}
         <div style={{
           padding: '16px',
-          borderTop: '1px solid #e0e0e0',
+          borderTop: '1px solid var(--border-color)',
           marginTop: 'auto'
         }}>
           <button
