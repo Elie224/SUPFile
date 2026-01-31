@@ -49,14 +49,18 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(userData);
         notifyListeners();
         
-        // Vérifier que le token est toujours valide
+        // Vérifier que le token est toujours valide (uniquement si en ligne)
         try {
           final response = await _apiService.getMe();
           _user = User.fromJson(response.data['data']);
           await _saveUser(_user!);
         } catch (e) {
-          // Token invalide, déconnecter
-          await logout();
+          // Déconnecter seulement si 401 (token invalide/expiré), pas en cas d'erreur réseau/hors ligne
+          final statusCode = e is DioException && e.response != null ? e.response!.statusCode : null;
+          if (statusCode == 401) {
+            await logout();
+          }
+          // Sinon (hors ligne, timeout, etc.) : garder la session pour permettre la navigation hors ligne
         }
       }
     } catch (e) {

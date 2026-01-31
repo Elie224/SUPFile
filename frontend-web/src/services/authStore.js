@@ -10,6 +10,8 @@ const useAuthStore = create(
       refreshToken: null,
       loading: false,
       error: null,
+      /** Mis à true quand le store a été rehydraté depuis le localStorage (permet la nav hors ligne). */
+      _hasHydrated: false,
 
       // Inscription
       signup: async (email, password) => {
@@ -145,6 +147,9 @@ const useAuthStore = create(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       }),
+      onRehydrateStorage: () => (state, err) => {
+        useAuthStore.setState({ _hasHydrated: true });
+      },
     }
   )
 );

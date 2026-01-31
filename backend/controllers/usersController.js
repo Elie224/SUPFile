@@ -60,7 +60,7 @@ async function getMe(req, res, next) {
       return res.status(404).json({ error: { message: 'User not found' } });
     }
 
-    // Retirer les informations sensibles
+    // Retirer les informations sensibles (two_factor_enabled pour afficher l'état 2FA dans les paramètres)
     const safeUser = {
       id: user.id,
       email: user.email,
@@ -70,6 +70,7 @@ async function getMe(req, res, next) {
       quota_limit: user.quota_limit,
       preferences: user.preferences,
       is_admin: user.is_admin || false,
+      two_factor_enabled: user.two_factor_enabled || false,
       created_at: user.created_at,
       last_login_at: user.last_login_at,
     };
