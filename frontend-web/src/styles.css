@@ -154,6 +154,147 @@
 }
 
 /* ============================================
+   BOOTSTRAP OVERRIDES - THEME SOMBRE
+   ============================================ */
+
+/* Cards */
+.card {
+  background-color: var(--bg-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.card-header {
+  background-color: var(--bg-secondary);
+  border-bottom-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.card-body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.card-footer {
+  background-color: var(--bg-secondary);
+  border-top-color: var(--border-color);
+}
+
+/* Progress bars */
+.progress {
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .progress {
+  background-color: #3D3D3D;
+}
+
+/* Text utilities */
+[data-theme="dark"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .text-dark {
+  color: var(--text-color) !important;
+}
+
+/* Borders */
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-top {
+  border-color: var(--border-color) !important;
+}
+
+/* Tables */
+[data-theme="dark"] .table {
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .table > :not(caption) > * > * {
+  background-color: var(--bg-color);
+  border-bottom-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+  background-color: var(--bg-hover);
+}
+
+/* Modals */
+[data-theme="dark"] .modal-content {
+  background-color: var(--bg-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-footer {
+  border-top-color: var(--border-color);
+}
+
+/* Inputs & Forms */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  background-color: var(--bg-color);
+  border-color: var(--primary-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .form-control::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .form-label {
+  color: var(--text-secondary);
+}
+
+/* Alerts */
+[data-theme="dark"] .alert {
+  border-color: var(--border-color);
+}
+
+/* List groups */
+[data-theme="dark"] .list-group-item {
+  background-color: var(--bg-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+/* Dropdowns */
+[data-theme="dark"] .dropdown-menu {
+  background-color: var(--bg-color);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dropdown-item {
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .dropdown-item:focus {
+  background-color: var(--bg-hover);
+  color: var(--text-color);
+}
+
+/* HR / Separator */
+[data-theme="dark"] hr {
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+/* ============================================
    BASE STYLES - MOBILE FIRST
    ============================================ */
 * {
