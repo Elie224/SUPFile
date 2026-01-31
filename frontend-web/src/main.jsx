@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './services/authStore';
@@ -46,6 +46,7 @@ const LoadingFallback = () => (
 
 function App() {
   const { user, accessToken, initialize } = useAuthStore();
+  const initialSyncDone = useRef(false);
 
   useEffect(() => {
     initialize();
@@ -54,14 +55,20 @@ function App() {
     offlineDB.init().catch(err => {
       console.error('[App] Erreur initialisation IndexedDB:', err);
     });
-    
-    // Synchroniser au démarrage si en ligne et authentifié
-    if (navigator.onLine && user && accessToken) {
-      syncService.syncFromServer().catch(err => {
-        console.error('[App] Erreur synchronisation initiale:', err);
-      });
+  }, [initialize]);
+
+  // Sync initiale une seule fois par session quand user+token sont disponibles (évite rafale GET /api/folders)
+  useEffect(() => {
+    if (!navigator.onLine || !user || !accessToken) {
+      if (!user) initialSyncDone.current = false;
+      return;
     }
-  }, [initialize, user, accessToken]);
+    if (initialSyncDone.current) return;
+    initialSyncDone.current = true;
+    syncService.syncFromServer().catch(err => {
+      console.error('[App] Erreur synchronisation initiale:', err);
+    });
+  }, [user, accessToken]);
 
   // Synchronisation automatique au retour de la connexion
   useEffect(() => {
