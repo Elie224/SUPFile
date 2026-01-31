@@ -97,11 +97,12 @@ function App() {
         >
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
+        {/* /reset-password en premier : pas de redirection si connecté, pour que le lien email mène bien à la page */}
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<Intro />} />
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route path="/forgot-password" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
-        <Route path="/reset-password" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <ResetPassword />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
         {/* Routes de proxy pour les callbacks OAuth directs depuis les providers */}
         <Route path="/auth/callback/google" element={<OAuthProxy provider="google" />} />

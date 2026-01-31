@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
-import { API_URL } from '../config';
+import { API_URL, LOGO_IMG } from '../config';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -35,7 +35,7 @@ export default function ResetPassword() {
           setTokenValid(true);
           setTokenEmail(data.data.email || '');
         } else {
-          setError(data.error?.message || 'Lien de réinitialisation invalide ou expiré');
+          setError(data.error?.message || 'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande.');
         }
       } catch (err) {
         setError('Erreur de connexion au serveur');
@@ -180,18 +180,7 @@ export default function ResetPassword() {
             <>
               {/* Logo / Titre */}
               <div className="text-center mb-4">
-                <div style={{ 
-                  width: '64px', 
-                  height: '64px', 
-                  margin: '0 auto 16px',
-                  background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <i className="bi bi-shield-lock-fill" style={{ fontSize: '28px', color: 'white' }}></i>
-                </div>
+                <img src={LOGO_IMG} alt="SUPFile" style={{ maxWidth: '120px', height: 'auto', marginBottom: '16px' }} />
                 <h1 className="h3 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
                   Nouveau mot de passe
                 </h1>

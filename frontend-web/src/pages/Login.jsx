@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
+import { LOGO_IMG } from '../config';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -71,6 +72,7 @@ export default function Login() {
         <div className="card-body p-4 p-md-5">
           {/* Logo / Titre */}
           <div className="text-center mb-4">
+            <img src={LOGO_IMG} alt="SUPFile" style={{ maxWidth: '120px', height: 'auto', marginBottom: '16px' }} />
             <h1 className="h2 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
               SUPFile
             </h1>
