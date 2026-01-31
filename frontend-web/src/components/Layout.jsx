@@ -202,8 +202,25 @@ export default function Layout({ children }) {
               }}
               className="mobile-user-button user-menu-button"
             >
+              {user.avatar_url ? (
+                <img 
+                  src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'https://supfile.fly.dev'}${user.avatar_url}`}
+                  alt="Avatar"
+                  style={{ 
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    marginRight: '8px'
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'inline-block';
+                  }}
+                />
+              ) : null}
               <span style={{ 
-                display: 'inline-block',
+                display: user.avatar_url ? 'none' : 'inline-block',
                 width: '28px',
                 height: '28px',
                 borderRadius: '50%',
@@ -215,7 +232,7 @@ export default function Layout({ children }) {
                 fontWeight: '600',
                 marginRight: '8px'
               }}>
-                {user.email.charAt(0).toUpperCase()}
+                {(user.display_name || user.email || '?').charAt(0).toUpperCase()}
               </span>
               <span style={{ 
                 maxWidth: '100px',
@@ -223,7 +240,7 @@ export default function Layout({ children }) {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {user.email.split('@')[0]}
+                {user.display_name || user.email.split('@')[0]}
               </span>
             </button>
 
@@ -248,8 +265,25 @@ export default function Layout({ children }) {
               onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
             >
+              {user.avatar_url ? (
+                <img 
+                  src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'https://supfile.fly.dev'}${user.avatar_url}`}
+                  alt="Avatar"
+                  style={{ 
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    flexShrink: 0
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'inline-block';
+                  }}
+                />
+              ) : null}
               <span style={{ 
-                display: 'inline-block',
+                display: user.avatar_url ? 'none' : 'inline-block',
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
@@ -261,7 +295,7 @@ export default function Layout({ children }) {
                 fontWeight: '600',
                 flexShrink: 0
               }}>
-                {user.email.charAt(0).toUpperCase()}
+                {(user.display_name || user.email || '?').charAt(0).toUpperCase()}
               </span>
               <span style={{ 
                 maxWidth: '200px',
@@ -269,7 +303,7 @@ export default function Layout({ children }) {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {user.email}
+                {user.display_name || user.email.split('@')[0]}
               </span>
             </button>
             
@@ -291,19 +325,35 @@ export default function Layout({ children }) {
                   {/* En-tête du menu */}
                   <div className="p-3 border-bottom">
                     <div className="d-flex align-items-center gap-2">
+                      {user.avatar_url ? (
+                        <img 
+                          src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'https://supfile.fly.dev'}${user.avatar_url}`}
+                          alt="Avatar"
+                          style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            borderRadius: '50%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
                       <span className="badge bg-primary rounded-circle" style={{ 
                         width: '40px', 
                         height: '40px', 
-                        display: 'flex', 
+                        display: user.avatar_url ? 'none' : 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
                         fontSize: '16px',
                         fontWeight: 600
                       }}>
-                        {user.email.charAt(0).toUpperCase()}
+                        {(user.display_name || user.email || '?').charAt(0).toUpperCase()}
                       </span>
                       <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                        <div className="fw-semibold text-truncate" style={{ fontSize: '14px' }}>
+                        <div className="fw-semibold text-truncate" style={{ fontSize: '14px', color: 'var(--text-color)' }}>
                           {user.display_name || user.email.split('@')[0]}
                         </div>
                         <div className="text-muted small text-truncate" style={{ fontSize: '12px' }}>
@@ -412,22 +462,52 @@ style={{
           borderBottom: '1px solid var(--border-color)',
           marginBottom: '8px'
         }}>
-          <div style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            color: '#2196F3',
-            marginBottom: '8px'
-          }}>
-            SUPFile
-          </div>
-          <div style={{
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            {user.email}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            {user.avatar_url ? (
+              <img 
+                src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'https://supfile.fly.dev'}${user.avatar_url}`}
+                alt="Avatar"
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span style={{ 
+              display: user.avatar_url ? 'none' : 'flex',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              backgroundColor: '#2196F3',
+              color: 'white',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              fontWeight: '600'
+            }}>
+              {(user.display_name || user.email || '?').charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <div style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-color)'
+              }}>
+                {user.display_name || user.email.split('@')[0]}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)'
+              }}>
+                {user.email}
+              </div>
+            </div>
           </div>
         </div>
 
