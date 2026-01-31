@@ -79,40 +79,41 @@
   --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   
-  /* Logo */
-  --logo-bg: transparent;
-  --logo-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] {
-  --bg-color: #1E1E1E;
-  --bg-secondary: #2D2D2D;
-  --bg-hover: #3D3D3D;
-  --text-color: #E0E0E0;
-  --text-secondary: #B0B0B0;
-  --text-muted: #808080;
-  --border-color: #404040;
-  --nav-bg: #2D2D2D;
+  --bg-color: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-hover: #475569;
+  --text-color: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --nav-bg: rgba(15, 23, 42, 0.95);
+  --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   
-  /* Logo - fond clair pour visibilité en mode sombre */
-  --logo-bg: rgba(255, 255, 255, 0.95);
-  --logo-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  /* Cartes et surfaces */
+  --card-bg: #1e293b;
+  --card-hover-bg: #334155;
+  
+  /* Ombres adaptées au mode sombre */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================
    LOGO - STYLES GLOBAUX
    ============================================ */
 .app-logo {
-  border-radius: 12px;
-  background-color: var(--logo-bg);
-  box-shadow: var(--logo-shadow);
-  padding: 4px;
+  border-radius: 50%;
   transition: all 0.3s ease;
 }
 
 .app-logo:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }
 
 /* ============================================
@@ -149,7 +150,70 @@
 }
 
 [data-theme="dark"] .progress {
-  background-color: #3D3D3D;
+  background-color: var(--bg-tertiary);
+}
+
+/* ============================================
+   THEME SOMBRE - AMÉLIORATIONS GLOBALES
+   ============================================ */
+
+[data-theme="dark"] section,
+[data-theme="dark"] .settings-section {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  background-color: var(--bg-hover) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+[data-theme="dark"] input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] button:not(.btn-primary):not(.btn-danger):not(.btn-success):not(.btn-warning) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] button:not(.btn-primary):not(.btn-danger):not(.btn-success):not(.btn-warning):hover {
+  background-color: var(--bg-hover);
+}
+
+/* Labels et textes */
+[data-theme="dark"] label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--text-color) !important;
+}
+
+/* Liens */
+[data-theme="dark"] a:not(.btn) {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] a:not(.btn):hover {
+  color: var(--primary-color);
 }
 
 /* Text utilities */
