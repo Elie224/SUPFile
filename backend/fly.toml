@@ -1,6 +1,6 @@
-# fly.toml app configuration file generated for backend-sparkling-sun-1539 on 2026-01-27T19:17:02+01:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+# fly.toml - Backend SUPFile sur Fly.io
+# Toujours lancer : cd backend  puis  flyctl deploy  (depuis ce dossier)
+# Voir https://fly.io/docs/reference/configuration/
 #
 
 app = 'supfile'
