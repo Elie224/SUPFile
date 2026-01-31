@@ -116,7 +116,7 @@ export default function Dashboard() {
           {/* Quota - Carte principale */}
           <div className="col-12">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header bg-light">
+              <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <h5 className="mb-0 d-flex align-items-center gap-2">
                   <i className="bi bi-hdd-stack text-primary"></i>
                   {t('storageSpace') || 'Espace de stockage'}
@@ -172,7 +172,7 @@ export default function Dashboard() {
           {/* Répartition par type avec graphique circulaire */}
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header bg-light">
+              <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <h5 className="mb-0 d-flex align-items-center gap-2">
                   <i className="bi bi-pie-chart text-primary"></i>
                   {t('breakdownByType') || 'Répartition par type'}
@@ -225,7 +225,7 @@ export default function Dashboard() {
           {/* Fichiers récents */}
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header bg-light d-flex justify-content-between align-items-center">
+              <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <h5 className="mb-0 d-flex align-items-center gap-2">
                   <i className="bi bi-clock-history text-primary"></i>
                   {t('recentFiles') || 'Fichiers récents'}
@@ -245,7 +245,7 @@ export default function Dashboard() {
                       <li 
                         key={file.id}
                         className="py-2 border-bottom"
-                        style={{ borderColor: index < recentFiles.length - 1 ? '#f0f0f0' : 'transparent' }}
+                        style={{ borderColor: index < recentFiles.length - 1 ? 'var(--border-color)' : 'transparent' }}
                       >
                         <div 
                           className="d-flex align-items-center gap-2 cursor-pointer"

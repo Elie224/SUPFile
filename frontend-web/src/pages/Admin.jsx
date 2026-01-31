@@ -248,7 +248,7 @@ export default function Admin() {
         padding: '24px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>Gestion des utilisateurs</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-color)', margin: 0 }}>Gestion des utilisateurs</h2>
           <input
             type="text"
             placeholder="Rechercher un utilisateur..."
@@ -256,30 +256,32 @@ export default function Admin() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               padding: '10px 16px',
-              border: '1px solid #ddd',
+              border: '1px solid var(--border-color)',
               borderRadius: '8px',
               fontSize: '14px',
-              minWidth: '250px'
+              minWidth: '250px',
+              backgroundColor: 'var(--bg-color)',
+              color: 'var(--text-color)'
             }}
           />
         </div>
 
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Chargement...</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>Chargement...</div>
         ) : users.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>Aucun utilisateur trouvé</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Aucun utilisateur trouvé</div>
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #e0e0e0' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Email</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Nom</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Stockage</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Statut</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Admin</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#333' }}>Actions</th>
+                  <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Email</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Nom</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Stockage</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Statut</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Admin</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: 'var(--text-color)' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,13 +289,13 @@ export default function Admin() {
                     <tr 
                       key={u.id}
                       style={{
-                        borderBottom: index < users.length - 1 ? '1px solid #f0f0f0' : 'none',
-                        backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa'
+                        borderBottom: index < users.length - 1 ? '1px solid var(--border-color)' : 'none',
+                        backgroundColor: 'var(--bg-color)'
                       }}
                     >
-                      <td style={{ padding: '12px', fontSize: '14px', color: '#333' }}>{u.email}</td>
-                      <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>{u.display_name || '-'}</td>
-                      <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>
+                      <td style={{ padding: '12px', fontSize: '14px', color: 'var(--text-color)' }}>{u.email}</td>
+                      <td style={{ padding: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>{u.display_name || '-'}</td>
+                      <td style={{ padding: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>
                         {formatBytes(u.quota_used)} / {formatBytes(u.quota_limit)}
                       </td>
                       <td style={{ padding: '12px' }}>
@@ -379,7 +381,7 @@ export default function Admin() {
                 >
                   Précédent
                 </button>
-                <span style={{ padding: '8px 16px', color: '#666' }}>
+                <span style={{ padding: '8px 16px', color: 'var(--text-secondary)' }}>
                   Page {pagination.page} sur {pagination.pages}
                 </span>
                 <button
@@ -418,7 +420,7 @@ export default function Admin() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--bg-color)',
             borderRadius: '12px',
             padding: '24px',
             maxWidth: '500px',
@@ -426,12 +428,12 @@ export default function Admin() {
             maxHeight: '90vh',
             overflow: 'auto'
           }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '20px', fontWeight: '600' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '20px', fontWeight: '600', color: 'var(--text-color)' }}>
               Modifier {selectedUser.email}
             </h3>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>Nom d'affichage</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-secondary)' }}>Nom d'affichage</label>
               <input
                 type="text"
                 value={editForm.display_name}
@@ -439,16 +441,18 @@ export default function Admin() {
                 style={{
                   padding: '10px',
                   width: '100%',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--bg-color)',
+                  color: 'var(--text-color)'
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#555' }}>Quota limite (GB)</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-secondary)' }}>Quota limite (GB)</label>
               <input
                 type="number"
                 step="0.1"
@@ -457,10 +461,12 @@ export default function Admin() {
                 style={{
                   padding: '10px',
                   width: '100%',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--bg-color)',
+                  color: 'var(--text-color)'
                 }}
               />
             </div>
@@ -472,7 +478,7 @@ export default function Admin() {
                   checked={editForm.is_active}
                   onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
                 />
-                <span style={{ fontWeight: '600', color: '#555' }}>Compte actif</span>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Compte actif</span>
               </label>
             </div>
 
@@ -483,7 +489,7 @@ export default function Admin() {
                   checked={editForm.is_admin}
                   onChange={(e) => setEditForm({ ...editForm, is_admin: e.target.checked })}
                 />
-                <span style={{ fontWeight: '600', color: '#555' }}>Administrateur</span>
+                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Administrateur</span>
               </label>
             </div>
 
@@ -492,9 +498,9 @@ export default function Admin() {
                 onClick={() => setSelectedUser(null)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#f5f5f5',
-                  color: '#333',
-                  border: '1px solid #ddd',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontWeight: '600'

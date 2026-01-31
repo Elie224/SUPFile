@@ -210,7 +210,7 @@ export default function Trash() {
             <div className="card-body p-0">
               <div className="table-responsive">
                 <table className="table table-hover mb-0">
-                  <thead className="table-light">
+                  <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <tr>
                       <th style={{ padding: '16px' }}>
                         <i className="bi bi-file-earmark me-2"></i>
