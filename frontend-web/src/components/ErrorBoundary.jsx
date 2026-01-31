@@ -36,10 +36,9 @@ class ErrorBoundary extends React.Component {
   };
 
   render() {
-    // En production, on évite d'afficher l'écran d'erreur pleine page
-    // pour des erreurs non critiques afin de ne pas bloquer l'utilisateur.
-    // On loggue toujours l'erreur dans componentDidCatch.
-    if (this.state.hasError && process.env.NODE_ENV === 'development') {
+    // Toujours afficher un fallback en cas d'erreur (dev + prod) pour éviter page blanche
+    if (this.state.hasError) {
+      const isDev = process.env.NODE_ENV === 'development';
       return (
         <div style={{
           display: 'flex',
@@ -49,60 +48,52 @@ class ErrorBoundary extends React.Component {
           minHeight: '100vh',
           padding: '20px',
           textAlign: 'center',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: '#0f172a',
+          color: '#e2e8f0',
         }}>
           <div style={{
-            maxWidth: '600px',
-            backgroundColor: 'white',
-            padding: '40px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            maxWidth: '480px',
+            padding: '32px',
+            borderRadius: '12px',
+            background: 'rgba(30, 41, 59, 0.95)',
+            border: '1px solid rgba(71, 85, 105, 0.5)',
           }}>
-            <h1 style={{ fontSize: '24px', color: '#d32f2f', marginBottom: '16px' }}>
-              ⚠️ Une erreur s'est produite
+            <h1 style={{ fontSize: '20px', color: '#f1f5f9', marginBottom: '12px' }}>
+              Une erreur s'est produite
             </h1>
-            <p style={{ fontSize: '16px', color: '#666', marginBottom: '24px' }}>
-              Désolé, une erreur inattendue s'est produite. Veuillez réessayer.
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px' }}>
+              Rechargez la page ou réessayez plus tard.
             </p>
-            
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {isDev && this.state.error && (
               <details style={{
-                marginTop: '20px',
-                padding: '16px',
-                backgroundColor: '#f5f5f5',
-                borderRadius: '4px',
+                marginBottom: '20px',
+                padding: '12px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '8px',
                 textAlign: 'left',
                 fontSize: '12px',
                 fontFamily: 'monospace',
-                maxHeight: '300px',
+                maxHeight: '200px',
                 overflow: 'auto',
+                color: '#cbd5e1',
               }}>
-                <summary style={{ cursor: 'pointer', marginBottom: '8px', fontWeight: 'bold' }}>
-                  Détails de l'erreur (développement uniquement)
-                </summary>
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <summary style={{ cursor: 'pointer' }}>Détails (dev)</summary>
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: '8px' }}>
                   {this.state.error.toString()}
-                  {this.state.errorInfo && (
-                    <div style={{ marginTop: '12px' }}>
-                      {this.state.errorInfo.componentStack}
-                    </div>
-                  )}
                 </div>
               </details>
             )}
-            
             <button
               onClick={this.handleReset}
               style={{
-                marginTop: '24px',
                 padding: '12px 24px',
-                fontSize: '16px',
-                backgroundColor: '#1976d2',
+                fontSize: '15px',
+                backgroundColor: '#3b82f6',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: '8px',
                 cursor: 'pointer',
-                fontWeight: '500',
+                fontWeight: '600',
               }}
             >
               Recharger la page

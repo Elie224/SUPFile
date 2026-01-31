@@ -1,2 +1,2 @@
-# SPA : toute route non trouvée → index.html (pas les fichiers /assets/*)
-/*    /index.html   200
+# SPA : toute route → index.html pour que React Router gère /verify-email, /login, etc.
+/*  /index.html  200

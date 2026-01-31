@@ -30,7 +30,8 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Intro = lazy(() => import('./pages/Intro'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+// Import direct pour éviter page blanche au clic sur le lien de vérification email (chunk 404 après déploiement)
+import VerifyEmail from './pages/VerifyEmail';
 const Offline = lazy(() => import('./pages/Offline'));
 
 // Composant de chargement
@@ -50,8 +51,9 @@ function App() {
   const initialSyncDone = useRef(false);
 
   useEffect(() => {
+    // Masquer le fallback "Chargement..." dès que l'app React est montée (évite page blanche si JS charge lentement)
+    document.getElementById('app-loading')?.remove();
     initialize();
-    
     // Initialiser IndexedDB
     offlineDB.init().catch(err => {
       console.error('[App] Erreur initialisation IndexedDB:', err);
