@@ -14,6 +14,14 @@ export default function Layout({ children }) {
   const { t, language } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [theme, setThemeState] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('theme') || 'light') : 'light');
+
+  const applyTheme = (value) => {
+    const next = value || (theme === 'dark' ? 'light' : 'dark');
+    setThemeState(next);
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  };
 
   // GET /api/dashboard dès qu'on est sur /dashboard et qu'un token existe (ne pas attendre user du store)
   useEffect(() => {
@@ -23,6 +31,13 @@ export default function Layout({ children }) {
       dashboardService.getStats().catch(() => {});
     }
   }, [location.pathname]);
+
+  // Appliquer le thème au montage (sync avec localStorage / autre onglet)
+  useEffect(() => {
+    const stored = localStorage.getItem('theme') || 'light';
+    if (stored !== theme) setThemeState(stored);
+    document.documentElement.setAttribute('data-theme', stored);
+  }, []);
 
   // Fermer les menus quand on change de page
   useEffect(() => {
@@ -186,7 +201,7 @@ export default function Layout({ children }) {
             ))}
           </div>
 
-          {/* DROITE: User Menu */}
+          {/* DROITE: Thème (desktop) + User Menu */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -196,6 +211,30 @@ export default function Layout({ children }) {
           }}
           className="user-menu-container"
           >
+            {/* Interrupteur thème - visible desktop et mobile header */}
+            <button
+              type="button"
+              onClick={() => applyTheme()}
+              aria-label={theme === 'dark' ? (t('lightTheme') || 'Thème clair') : (t('darkTheme') || 'Thème sombre')}
+              title={theme === 'dark' ? (t('lightTheme') || 'Thème clair') : (t('darkTheme') || 'Thème sombre')}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              className="layout-theme-toggle"
+            >
+              {theme === 'dark' ? <i className="bi bi-sun-fill" /> : <i className="bi bi-moon-fill" />}
+            </button>
             {/* User Menu Mobile */}
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -519,6 +558,63 @@ style={{
                 {user.email}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Thème - visible sur mobile dans le drawer */}
+        <div style={{
+          padding: '12px 20px',
+          borderBottom: '1px solid var(--border-color)',
+          marginBottom: '8px',
+        }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px', fontWeight: 600 }}>
+            {t('theme') || 'Thème'}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => applyTheme('light')}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: theme === 'light' ? '2px solid #2196F3' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'light' ? 'rgba(33, 150, 243, 0.15)' : 'var(--bg-secondary)',
+                color: theme === 'light' ? '#2196F3' : 'var(--text-secondary)',
+                fontWeight: theme === 'light' ? 600 : 400,
+                fontSize: '15px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <i className="bi bi-sun-fill" style={{ fontSize: '18px' }} />
+              <span>{t('lightTheme') || 'Clair'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTheme('dark')}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: theme === 'dark' ? '2px solid #2196F3' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'var(--bg-secondary)',
+                color: theme === 'dark' ? '#2196F3' : 'var(--text-secondary)',
+                fontWeight: theme === 'dark' ? 600 : 400,
+                fontSize: '15px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <i className="bi bi-moon-fill" style={{ fontSize: '18px' }} />
+              <span>{t('darkTheme') || 'Sombre'}</span>
+            </button>
           </div>
         </div>
 

@@ -219,8 +219,9 @@ export default function Signup() {
             </div>
           )}
 
-          {/* Séparateur - masqué après succès */}
+          {/* Séparateur + OAuth - masqués après succès */}
           {!successMessage && (
+          <>
           <div className="d-flex align-items-center my-2">
             <div className="flex-grow-1" style={{ height: '1px', backgroundColor: 'var(--border-color)' }}></div>
             <span className="px-2 text-muted" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{t('or')}</span>
@@ -286,7 +287,7 @@ export default function Signup() {
           </div>
 
           {/* Liens bas de page */}
-          <div className="text-center mt-2">
+          <div className="text-center mt-2" style={{ marginTop: '0.5rem' }}>
             <p className="text-muted mb-0" style={{ fontSize: '12px' }}>
               {t('alreadyHaveAccount') || 'Déjà un compte ?'}{' '}
               <Link to="/login" className="text-primary text-decoration-none fw-semibold">
@@ -302,6 +303,8 @@ export default function Signup() {
               ← Retour à la présentation de SUPFile
             </button>
           </div>
+          </>
+          )}
         </div>
         </div>
       </div>
