@@ -93,6 +93,10 @@ async function startServer() {
 // ============================================================
 const app = express();
 
+// Trust proxy - Nécessaire pour Fly.io/Render (derrière un proxy)
+// Permet à express-rate-limit de lire correctement X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ============================================================
 // MIDDLEWARES GLOBAUX
 // ============================================================
@@ -341,8 +345,9 @@ app.use(errorHandler);
 // ============================================================
 // CONSTANTES DE CONFIGURATION SERVEUR
 // ============================================================
-const PORT = config.server.port;
-const HOST = config.server.host;
+// Fly.io / Render : écouter sur 0.0.0.0 et le PORT fourni par la plateforme
+const PORT = parseInt(process.env.PORT, 10) || config.server.port;
+const HOST = '0.0.0.0'; // Toujours 0.0.0.0 en production pour être joignable par le proxy
 const SHUTDOWN_TIMEOUT = 10000; // 10 secondes avant fermeture forcée
 
 // ============================================================
@@ -441,25 +446,18 @@ process.on('unhandledRejection', (reason, promise) => {
  * Démarre le serveur HTTP après vérification de la connexion MongoDB
  * Attend que MongoDB soit prêt avant de démarrer le serveur Express
  */
-// Démarrer le serveur - ne pas bloquer même si MongoDB échoue
-startServer().then(() => {
+// Démarrer le serveur - écouter immédiatement sur 0.0.0.0:PORT pour Fly.io / Render
+function startHttpServer() {
   try {
-    // Forcer 0.0.0.0 pour Fly.io (doit écouter sur toutes les interfaces)
-    const listenHost = HOST === 'localhost' ? '0.0.0.0' : HOST;
-    console.log(`[SERVER] Starting server on ${listenHost}:${PORT} (HOST=${HOST}, PORT=${PORT})`);
-    
-    server = app.listen(PORT, listenHost, () => {
-      logger.logInfo(`SUPFile API listening on http://${listenHost}:${PORT}`, {
+    console.log(`[SERVER] Starting server on ${HOST}:${PORT}`);
+    server = app.listen(PORT, HOST, () => {
+      logger.logInfo(`SUPFile API listening on http://${HOST}:${PORT}`, {
         environment: config.server.nodeEnv,
         port: PORT,
-        host: listenHost,
-        originalHost: HOST,
+        host: HOST,
       });
-      console.log(`✓ Server started successfully on ${listenHost}:${PORT}`);
-      console.log(`✓ Server is listening on all interfaces (0.0.0.0)`);
+      console.log(`✓ Server started successfully on ${HOST}:${PORT}`);
     });
-    
-    // Gérer les erreurs d'écoute
     server.on('error', (err) => {
       logger.logError(err, { context: 'server listen error' });
       if (err.code === 'EADDRINUSE') {
@@ -475,29 +473,13 @@ startServer().then(() => {
     console.error(`✗ Failed to start server: ${err.message}`);
     process.exit(1);
   }
-}).catch((err) => {
-  logger.logError(err, { context: 'server startup' });
-  console.error(`✗ Failed to start server: ${err.message}`);
-  // Essayer quand même de démarrer le serveur
-  try {
-    // Forcer 0.0.0.0 pour Fly.io (doit écouter sur toutes les interfaces)
-    const listenHost = HOST === 'localhost' ? '0.0.0.0' : HOST;
-    console.log(`[SERVER] Fallback: Starting server on ${listenHost}:${PORT} (HOST=${HOST}, PORT=${PORT})`);
-    
-    server = app.listen(PORT, listenHost, () => {
-      logger.logInfo(`SUPFile API listening on http://${listenHost}:${PORT} (started despite errors)`, {
-        environment: config.server.nodeEnv,
-        port: PORT,
-        host: listenHost,
-        originalHost: HOST,
-      });
-      console.log(`✓ Server started on ${listenHost}:${PORT} (despite startup errors)`);
-      console.log(`✓ Server is listening on all interfaces (0.0.0.0)`);
-    });
-  } catch (listenErr) {
-    logger.logError(listenErr, { context: 'server listen fallback' });
-    process.exit(1);
-  }
+}
+
+// Démarrer l'écoute immédiatement pour que Fly.io / Render détecte l'app (sans attendre MongoDB)
+startHttpServer();
+// Vérifier MongoDB en arrière-plan (ne pas bloquer le démarrage)
+startServer().catch((err) => {
+  logger.logWarn('MongoDB check failed or pending', { error: err.message });
 });
 
 // ============================================================
