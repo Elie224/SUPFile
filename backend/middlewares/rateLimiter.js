@@ -15,13 +15,16 @@ const generalLimiter = rateLimit({
   legacyHeaders: false, // Désactiver les headers `X-RateLimit-*`
 });
 
-// Rate limiter strict pour l'authentification (protection contre force brute)
+// Rate limiter pour l'authentification (configurable via env)
+const AUTH_WINDOW_MS = parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000; // 15 min par défaut
+const AUTH_MAX = parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 10; // 10 tentatives par défaut (au lieu de 5)
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limite de 5 tentatives de connexion par IP
+  windowMs: AUTH_WINDOW_MS,
+  max: AUTH_MAX,
   message: {
     error: {
-      message: 'Too many login attempts from this IP, please try again after 15 minutes.',
+      message: `Too many login attempts from this IP, please try again after ${Math.round(AUTH_WINDOW_MS / 60000)} minutes.`,
       status: 429,
     },
   },

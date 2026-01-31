@@ -3,7 +3,7 @@ const { generateAccessToken, generateRefreshToken, verifyToken } = require('../u
 const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
 const { AppError } = require('../middlewares/errorHandler');
-const { sendPasswordResetEmail } = require('../utils/mailer');
+const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mailer');
 const config = require('../config');
 
 const SALT_ROUNDS = 10;
@@ -38,7 +38,7 @@ async function signup(req, res, next) {
     }
 
     const body = req.validatedBody || req.body;
-    const { email, password } = body;
+    const { email, password, first_name, last_name, country } = body;
 
     // Check existing user
     let existing;
@@ -62,9 +62,18 @@ async function signup(req, res, next) {
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
+    const displayName = [first_name, last_name].filter(Boolean).map(s => s.trim()).join(' ').trim() || null;
     let created;
     try {
-      created = await User.create({ email, passwordHash });
+      created = await User.create({
+        email,
+        passwordHash,
+        display_name: displayName,
+        first_name: first_name?.trim() || null,
+        last_name: last_name?.trim() || null,
+        country: country?.trim() || null,
+        email_verified: false,
+      });
     } catch (err) {
       console.error('Error creating user:', err);
       if (err.message && err.message.includes('MongoDB')) {
@@ -77,29 +86,27 @@ async function signup(req, res, next) {
       throw err;
     }
 
+    // Générer le token de vérification et envoyer l'email
+    const tokenData = await User.generateEmailVerificationToken(email);
+    if (tokenData) {
+      const frontendUrl = (process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+      const verifyUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(tokenData.token)}`;
+      await sendVerificationEmail(email, verifyUrl, first_name || undefined);
+    }
+
     // Créer le dossier racine pour l'utilisateur
     const FolderModel = require('../models/folderModel');
     try {
       await FolderModel.create({ name: 'Root', ownerId: created.id, parentId: null });
     } catch (e) {
       console.error('Failed to create root folder for user:', e.message || e);
-      // Ne pas bloquer l'inscription si la création du dossier échoue
     }
 
-    const payload = { id: created.id, email: created.email };
-    const access_token = generateAccessToken(payload);
-    const refresh_token = generateRefreshToken(payload);
-
-    // Persist refresh token in sessions table
-    try {
-      const userAgent = req.get('user-agent') || null;
-      const ip = req.ip || req.headers['x-forwarded-for'] || null;
-      await Session.createSession({ userId: created.id, refreshToken: refresh_token, userAgent, ipAddress: ip, deviceName: null, expiresIn: config.jwt.refreshExpiresIn });
-    } catch (e) {
-      console.error('Failed to create session for user:', e.message || e);
-    }
-
-    res.status(201).json({ data: { user: created, access_token, refresh_token }, message: 'Account created successfully' });
+    // Ne pas renvoyer de tokens : l'utilisateur doit d'abord vérifier son email
+    res.status(201).json({
+      data: { email: created.email },
+      message: 'Account created. Please check your email to verify your address before signing in.',
+    });
   } catch (err) {
     console.error('Signup error:', err);
     // Si c'est une erreur MongoDB de connexion
@@ -153,6 +160,15 @@ async function login(req, res, next) {
     const user = await User.findByEmail(email);
     if (!user || !user.password_hash) {
       return res.status(401).json({ error: { message: 'Invalid credentials' } });
+    }
+
+    if (!user.email_verified) {
+      return res.status(403).json({
+        error: {
+          message: 'Email not verified. Please check your inbox and click the verification link before signing in.',
+          code: 'EMAIL_NOT_VERIFIED',
+        },
+      });
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
@@ -520,6 +536,67 @@ async function resetPassword(req, res, next) {
   }
 }
 
+/**
+ * Vérifie l'email via le token reçu par email
+ * GET /api/auth/verify-email?token=xxx ou POST /api/auth/verify-email { token }
+ */
+async function verifyEmail(req, res, next) {
+  try {
+    const token = req.query.token || req.body?.token;
+    if (!token) {
+      return res.status(400).json({ error: { message: 'Token manquant' } });
+    }
+
+    const user = await User.verifyEmailToken(token);
+    if (!user) {
+      return res.status(400).json({
+        error: { message: 'Lien expiré ou invalide. Demandez un nouvel email de vérification depuis la page de connexion.' },
+      });
+    }
+
+    res.status(200).json({
+      data: { email: user.email },
+      message: 'Email vérifié. Vous pouvez maintenant vous connecter.',
+    });
+  } catch (err) {
+    console.error('Verify email error:', err);
+    next(err);
+  }
+}
+
+/**
+ * Renvoyer l'email de vérification
+ * POST /api/auth/resend-verification { email }
+ */
+async function resendVerification(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: { message: 'Email requis' } });
+    }
+
+    const user = await User.findByEmail(email);
+    if (!user) {
+      return res.status(200).json({ message: 'Si ce compte existe, un nouvel email de vérification a été envoyé.' });
+    }
+    if (user.email_verified) {
+      return res.status(200).json({ message: 'Cet email est déjà vérifié. Vous pouvez vous connecter.' });
+    }
+
+    const tokenData = await User.generateEmailVerificationToken(email);
+    if (tokenData) {
+      const frontendUrl = (process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+      const verifyUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(tokenData.token)}`;
+      await sendVerificationEmail(email, verifyUrl, user.first_name || undefined);
+    }
+
+    res.status(200).json({ message: 'Si ce compte existe, un nouvel email de vérification a été envoyé.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    next(err);
+  }
+}
+
 module.exports = {
   signup,
   login,
@@ -529,5 +606,7 @@ module.exports = {
   forgotPassword,
   verifyResetToken,
   resetPassword,
+  verifyEmail,
+  resendVerification,
 };
 

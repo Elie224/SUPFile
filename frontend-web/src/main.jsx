@@ -30,6 +30,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Intro = lazy(() => import('./pages/Intro'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const Offline = lazy(() => import('./pages/Offline'));
 
 // Composant de chargement
@@ -122,6 +123,7 @@ function App() {
             <Routes>
         {/* /reset-password en premier : pas de redirection si connecté, pour que le lien email mène bien à la page */}
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/offline" element={<Offline />} />
         <Route path="/" element={<Intro />} />
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />

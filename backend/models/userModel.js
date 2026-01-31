@@ -9,6 +9,13 @@ const UserSchema = new Schema({
   oauth_id: String,
   display_name: String,
   avatar_url: String,
+  first_name: { type: String },
+  last_name: { type: String },
+  country: { type: String },
+  email_verified: { type: Boolean, default: false },
+  email_verified_at: { type: Date },
+  email_verification_token: { type: String },
+  email_verification_expires: { type: Date },
   quota_limit: { type: Number, default: 32212254720 }, // 30 Go par défaut (30 * 1024 * 1024 * 1024 bytes)
   quota_used: { type: Number, default: 0 },
   preferences: { type: Schema.Types.Mixed, default: { theme: 'light', language: 'en', notifications_enabled: true } },
@@ -63,6 +70,10 @@ const UserModel = {
       password_hash: u.password_hash,
       display_name: u.display_name,
       avatar_url: u.avatar_url,
+      first_name: u.first_name,
+      last_name: u.last_name,
+      country: u.country,
+      email_verified: u.email_verified || false,
       quota_limit: u.quota_limit,
       quota_used: u.quota_used,
       preferences: u.preferences,
@@ -88,6 +99,10 @@ const UserModel = {
       password_hash: u.password_hash,
       display_name: u.display_name,
       avatar_url: u.avatar_url,
+      first_name: u.first_name,
+      last_name: u.last_name,
+      country: u.country,
+      email_verified: u.email_verified || false,
       quota_limit: u.quota_limit,
       quota_used: u.quota_used,
       preferences: u.preferences,
@@ -100,7 +115,7 @@ const UserModel = {
     };
   },
 
-  async create({ email, passwordHash, display_name = null, avatar_url = null, oauth_provider = null, oauth_id = null }) {
+  async create({ email, passwordHash, display_name = null, avatar_url = null, oauth_provider = null, oauth_id = null, first_name = null, last_name = null, country = null, email_verified = false }) {
     // Attendre que MongoDB soit connecté
     const mongoose = require('./db');
     const db = mongoose.connection;
@@ -134,7 +149,11 @@ const UserModel = {
       display_name, 
       avatar_url,
       oauth_provider,
-      oauth_id
+      oauth_id,
+      first_name,
+      last_name,
+      country,
+      email_verified,
     });
     const saved = await u.save();
     return {
@@ -159,6 +178,56 @@ const UserModel = {
 
   async updatePreferences(id, preferences) {
     await User.findByIdAndUpdate(id, { preferences });
+  },
+
+  /**
+   * Génère un token de vérification d'email
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object|null} Token et expiration
+   */
+  async generateEmailVerificationToken(email) {
+    const user = await User.findOne({ email });
+    if (!user) return null;
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 h
+
+    await User.findByIdAndUpdate(user._id, {
+      email_verification_token: hashedToken,
+      email_verification_expires: expiresAt,
+    });
+
+    return { token, expiresAt, userId: user._id.toString() };
+  },
+
+  /**
+   * Vérifie un token de vérification d'email et marque l'email comme vérifié
+   * @param {string} token - Token reçu par email
+   * @returns {Object|null} Utilisateur si token valide
+   */
+  async verifyEmailToken(token) {
+    if (!token) return null;
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      email_verification_token: hashedToken,
+      email_verification_expires: { $gt: new Date() },
+    }).lean();
+
+    if (!user) return null;
+
+    await User.findByIdAndUpdate(user._id, {
+      email_verified: true,
+      email_verified_at: new Date(),
+      email_verification_token: undefined,
+      email_verification_expires: undefined,
+    });
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+    };
   },
 
   /**
