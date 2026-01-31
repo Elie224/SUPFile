@@ -5,6 +5,41 @@
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
 /* ============================================
+   OPTIMISATIONS MOBILE & TOUCH
+   ============================================ */
+
+/* Améliorer l'expérience tactile */
+button,
+a,
+.btn,
+[role="button"] {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+/* Éviter la sélection de texte accidentelle sur mobile */
+.btn,
+button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scroll pour toute l'application */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimiser le scroll sur mobile */
+body {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+}
+
+/* ============================================
    DESIGN SYSTEM - VARIABLES CSS MODERNES
    ============================================ */
 :root {
@@ -901,6 +936,37 @@ button, a, .btn {
   }
 }
 
+/* Très petits écrans (< 375px) - iPhone SE, petits Android */
+@media (max-width: 374.98px) {
+  body {
+    font-size: 13px;
+  }
+  
+  h1 { font-size: 1.3rem !important; }
+  h2 { font-size: 1.15rem !important; }
+  h3 { font-size: 1rem !important; }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .card {
+    border-radius: 8px !important;
+  }
+  
+  .page-container {
+    padding: 8px !important;
+  }
+  
+  /* Tables encore plus compactes */
+  .table td,
+  .table th {
+    padding: 6px !important;
+    font-size: 12px !important;
+  }
+}
+
 /* Small devices (landscape phones, 576px and up) */
 @media (min-width: 576px) {
   .btn {
@@ -1464,6 +1530,44 @@ button, a, .btn {
   }
   .desktop-only {
     display: none;
+  }
+  
+  /* Améliorer la lisibilité sur mobile */
+  body {
+    font-size: 14px;
+  }
+  
+  h1 {
+    font-size: 1.75rem !important;
+  }
+  
+  h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  h3 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Padding réduit pour les cartes */
+  .card-body {
+    padding: 1rem !important;
+  }
+  
+  /* Boutons pleine largeur sur mobile */
+  .btn-mobile-full {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Améliorer les modals sur mobile */
+  .modal-dialog {
+    margin: 0.5rem !important;
+  }
+  
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
   }
 }
 
