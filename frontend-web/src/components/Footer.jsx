@@ -5,8 +5,8 @@ export default function Footer() {
 
   return (
     <footer style={{
-      backgroundColor: '#f8f9fa',
-      borderTop: '1px solid #e0e0e0',
+      backgroundColor: 'var(--bg-color)',
+      borderTop: '1px solid var(--border-color)',
       padding: '20px',
       marginTop: 'auto',
       width: '100%',
@@ -16,7 +16,7 @@ export default function Footer() {
         maxWidth: '1200px',
         margin: '0 auto',
         fontSize: '14px',
-        color: '#999'
+        color: 'var(--text-muted)'
       }}>
         © {currentYear} SUPFile. Tous droits réservés.
       </div>
