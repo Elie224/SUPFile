@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
+import { LOGO_IMG } from '../config';
 import Footer from './Footer';
 
 export default function Layout({ children }) {
@@ -110,16 +111,13 @@ export default function Layout({ children }) {
             </button>
             
             {/* Logo Mobile */}
-            <span style={{ 
-              fontSize: '22px', 
-              fontWeight: '700', 
-              color: '#2196F3',
-              letterSpacing: '-0.5px'
-            }}
-            className="mobile-logo"
-            >
-              SUPFile
-            </span>
+            <Link to="/dashboard" className="d-flex align-items-center gap-2" style={{ textDecoration: 'none' }}>
+              <img src={LOGO_IMG} alt="SUPFile" className="mobile-logo" style={{ height: '32px', width: 'auto' }} />
+            </Link>
+            {/* Logo Desktop (visible sur grand écran) */}
+            <Link to="/dashboard" className="desktop-logo d-flex align-items-center" style={{ textDecoration: 'none' }}>
+              <img src={LOGO_IMG} alt="SUPFile" style={{ height: '36px', width: 'auto' }} />
+            </Link>
           </div>
 
           {/* CENTRE: Navigation Desktop */}
@@ -562,6 +560,9 @@ style={{
           .mobile-logo {
             display: block !important;
           }
+          .desktop-logo {
+            display: none !important;
+          }
           .mobile-user-button {
             display: flex !important;
             align-items: center;
@@ -584,11 +585,8 @@ style={{
           .mobile-logo {
             display: none !important;
           }
-          .mobile-user-button {
-            display: none !important;
-          }
-          .mobile-menu-drawer {
-            display: none !important;
+          .desktop-logo {
+            display: flex !important;
           }
         }
       `}</style>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
-import { API_URL } from '../config';
+import { API_URL, LOGO_IMG } from '../config';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -50,18 +50,7 @@ export default function ForgotPassword() {
         <div className="card-body p-4 p-md-5">
           {/* Logo / Titre */}
           <div className="text-center mb-4">
-            <div style={{ 
-              width: '64px', 
-              height: '64px', 
-              margin: '0 auto 16px',
-              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="bi bi-key-fill" style={{ fontSize: '28px', color: 'white' }}></i>
-            </div>
+            <img src={LOGO_IMG} alt="SUPFile" style={{ maxWidth: '120px', height: 'auto', marginBottom: '16px' }} />
             <h1 className="h3 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
               Mot de passe oublié ?
             </h1>

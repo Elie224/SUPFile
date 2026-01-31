@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
+import { LOGO_IMG } from '../config';
 
 // Données des 5 pages d'introduction
 const PAGES = [
@@ -414,7 +415,7 @@ export default function Intro() {
       {/* Header */}
       <header style={styles.header} className="intro-header-wrapper">
         <div style={styles.logo}>
-          <div style={styles.logoIcon}>S</div>
+          <img src={LOGO_IMG} alt="SUPFile" style={{ height: '48px', width: 'auto', marginRight: '12px' }} />
           <span style={styles.logoText} className="intro-logo-text">SUPFile</span>
         </div>
 

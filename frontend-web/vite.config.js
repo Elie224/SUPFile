@@ -6,6 +6,16 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    // Éviter les erreurs de lecture sur Windows/OneDrive (INCONNU : erreur inconnue, lecture)
+    watch: {
+      usePolling: true,
+    },
+    fs: {
+      strict: false,
+    },
+    hmr: {
+      overlay: false,
+    },
   },
   build: {
     outDir: 'dist',
