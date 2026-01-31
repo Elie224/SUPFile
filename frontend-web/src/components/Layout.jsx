@@ -60,11 +60,13 @@ export default function Layout({ children }) {
       <nav style={{ 
         padding: '0',
         borderBottom: '1px solid var(--border-color)', 
-        backgroundColor: 'var(--bg-color)',
+        backgroundColor: 'var(--nav-bg)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         position: 'sticky',
         top: 0,
         zIndex: 1000,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--nav-shadow)'
       }}>
         <div style={{ 
           display: 'flex', 
