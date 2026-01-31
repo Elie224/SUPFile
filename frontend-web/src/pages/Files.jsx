@@ -1197,7 +1197,7 @@ export default function Files() {
               </div>
             )}
             
-            <div className="responsive-table-container" style={{ 
+            <div className="responsive-table-container files-table-container" style={{ 
               overflowX: 'auto', 
               borderRadius: '12px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
@@ -1205,11 +1205,10 @@ export default function Files() {
               border: '1px solid var(--border-color)',
               WebkitOverflowScrolling: 'touch'
             }}>
-              <table className="responsive-table" style={{ 
+              <table className="responsive-table files-table" style={{ 
                 width: '100%', 
                 borderCollapse: 'separate',
-                borderSpacing: 0,
-                minWidth: '550px'
+                borderSpacing: 0
               }}>
                 <thead>
                   <tr style={{ 
