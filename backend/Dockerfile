@@ -13,4 +13,4 @@ RUN mkdir -p uploads && chmod 777 uploads
 
 EXPOSE 5000
 
-CMD ["npm", "start"]
+CMD ["node", "app.js"]

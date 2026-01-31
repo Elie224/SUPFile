@@ -305,9 +305,9 @@ async function forgotPassword(req, res, next) {
       });
     }
 
-    // Construire l'URL de réinitialisation
-    const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetData.token}`;
+    // Construire l'URL de réinitialisation (frontend uniquement, sans trailing slash)
+    const frontendUrl = (process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetData.token)}`;
 
     // Envoyer l'email
     const emailSent = await sendPasswordResetEmail(email, resetUrl);
@@ -343,7 +343,7 @@ async function verifyResetToken(req, res, next) {
 
     if (!user) {
       return res.status(400).json({ 
-        error: { message: 'Token invalide ou expiré' } 
+        error: { message: 'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande de réinitialisation.' } 
       });
     }
 
@@ -395,7 +395,7 @@ async function resetPassword(req, res, next) {
     
     if (!user) {
       return res.status(400).json({ 
-        error: { message: 'Token invalide ou expiré. Veuillez refaire une demande de réinitialisation.' } 
+        error: { message: 'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande de réinitialisation.' } 
       });
     }
 
