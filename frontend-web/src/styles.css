@@ -62,21 +62,21 @@ body {
   --warning-color: #F59E0B;
   --info-color: #06B6D4;
   
-  /* Couleurs de fond - Thème clair élégant */
+  /* Couleurs de fond - Thème clair élégant et lisible */
   --bg-color: #FFFFFF;
   --bg-secondary: #F8FAFC;
   --bg-tertiary: #F1F5F9;
-  --bg-hover: #E2E8F0;
-  --bg-gradient: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
+  --bg-hover: #EFF6FF;
+  --bg-gradient: linear-gradient(160deg, #F0F9FF 0%, #F8FAFC 40%, #FFFFFF 100%);
   --progress-track-bg: #E2E8F0;
-  --chart-ring-bg: #e0e0e0;
+  --chart-ring-bg: #E2E8F0;
   
-  /* Couleurs de texte */
-  --text-color: #1E293B;
-  --text-secondary: #64748B;
-  --text-muted: #94A3B8;
+  /* Couleurs de texte - bon contraste */
+  --text-color: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
   
-  /* Bordures modernes */
+  /* Bordures - nettes mais douces */
   --border-color: #E2E8F0;
   --border-color-light: #F1F5F9;
   --border-radius: 12px;
@@ -84,15 +84,15 @@ body {
   --border-radius-lg: 16px;
   --border-radius-xl: 24px;
   
-  /* Ombres modernes - Plus douces */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-  --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 10px 40px -10px rgba(59, 130, 246, 0.2);
+  /* Ombres - thème clair : légères et professionnelles */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.08);
+  --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.1);
+  --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 12px 32px rgba(59, 130, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
   
   /* Espacements */
   --spacing-xs: 4px;
@@ -117,11 +117,28 @@ body {
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   
-  /* Navigation */
+  /* Navigation - thème clair */
   --nav-height: 64px;
-  --nav-bg: rgba(255, 255, 255, 0.95);
-  --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --nav-bg: rgba(255, 255, 255, 0.98);
+  --nav-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
   
+}
+
+/* Thème clair explicite - surcharge pour cohérence */
+[data-theme="light"] {
+  --bg-color: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-tertiary: #F1F5F9;
+  --bg-hover: #EFF6FF;
+  --bg-gradient: linear-gradient(160deg, #F0F9FF 0%, #F8FAFC 40%, #FFFFFF 100%);
+  --text-color: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --border-color: #E2E8F0;
+  --nav-bg: rgba(255, 255, 255, 0.98);
+  --nav-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 12px 32px rgba(59, 130, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] {
@@ -499,27 +516,29 @@ body {
    THEME CLAIR - STYLES MODERNES
    ============================================ */
 
-/* Cards améliorées - Thème clair */
+/* Cards - Thème clair : blanc pur, ombre nette, hover soigné */
 [data-theme="light"] .card,
 :root .card {
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: var(--border-radius);
-  box-shadow: var(--shadow-card);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 [data-theme="light"] .card:hover,
 :root .card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 [data-theme="light"] .card-header,
 :root .card-header {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border-bottom: 1px solid #E2E8F0;
   font-weight: var(--font-weight-semibold);
+  color: #0F172A;
 }
 
 /* Progress bars - Thème clair */
@@ -561,28 +580,37 @@ body {
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.35);
 }
 
-/* Inputs améliorés - Thème clair */
+/* Inputs - Thème clair : bordures nettes, focus visible */
 [data-theme="light"] .form-control,
-:root .form-control {
-  border: 2px solid var(--border-color);
+[data-theme="light"] .form-select,
+:root .form-control,
+:root .form-select {
+  border: 1px solid #E2E8F0;
   border-radius: var(--border-radius-sm);
   padding: 12px 16px;
   transition: all var(--transition-fast);
-  background: var(--bg-color);
+  background: #FFFFFF;
+  color: #0F172A;
 }
 
 [data-theme="light"] .form-control:focus,
-:root .form-control:focus {
+[data-theme="light"] .form-select:focus,
+:root .form-control:focus,
+:root .form-select:focus {
   border-color: var(--primary-color);
-  box-shadow: var(--shadow-focus);
-  background: var(--bg-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: #FFFFFF;
+  outline: none;
 }
 
-/* Navbar améliorée */
+/* Navbar - Thème clair : blanc, ombre légère */
 [data-theme="light"] nav,
 :root nav {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Stats cards avec icônes colorées */
@@ -594,20 +622,52 @@ body {
   background-clip: text;
 }
 
+/* Alertes - Thème clair : fonds pastel, texte lisible */
+[data-theme="light"] .alert-success {
+  background-color: #ECFDF5;
+  border-color: #A7F3D0;
+  color: #065F46;
+}
 
-/* Tables améliorées */
+[data-theme="light"] .alert-danger {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+[data-theme="light"] .alert-warning {
+  background-color: #FFFBEB;
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+[data-theme="light"] .alert-info {
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1E40AF;
+}
+
+/* Zone principale - Thème clair */
+[data-theme="light"] main {
+  background: transparent;
+  color: #0F172A;
+}
+
+
+/* Tables - Thème clair : en-têtes lisibles, lignes alternées au survol */
 [data-theme="light"] .table,
 :root .table {
   border-radius: var(--border-radius);
   overflow: hidden;
+  background: #FFFFFF;
 }
 
 [data-theme="light"] .table thead th,
 :root .table thead th {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  border-bottom: 2px solid #E2E8F0;
   font-weight: var(--font-weight-semibold);
-  color: var(--text-color);
+  color: #0F172A;
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.5px;
@@ -615,7 +675,13 @@ body {
 
 [data-theme="light"] .table tbody tr:hover,
 :root .table tbody tr:hover {
-  background-color: rgba(59, 130, 246, 0.04);
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+[data-theme="light"] .table td,
+:root .table td {
+  color: #334155;
+  border-color: #F1F5F9;
 }
 
 /* Liens avec style moderne */
@@ -662,6 +728,13 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+}
+
+/* Thème clair : fond dégradé doux et lisible */
+[data-theme="light"] body {
+  background: linear-gradient(160deg, #F0F9FF 0%, #F8FAFC 35%, #FAFBFC 100%);
+  background-attachment: fixed;
+  color: #0F172A;
 }
 
 [data-theme="dark"] body {
