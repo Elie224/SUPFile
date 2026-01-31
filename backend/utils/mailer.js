@@ -96,9 +96,12 @@ async function sendPasswordResetEmail(to, resetUrl) {
             </div>
 
             <!-- Expiration -->
-            <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 24px;">
-              ⏱️ Ce lien expire dans <strong>1 heure</strong>.
-            </p>
+            <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="color: #92400E; font-size: 14px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">⏱️</span>
+                <strong>Important :</strong> Ce lien expire dans <strong>15 minutes</strong> pour votre sécurité.
+              </p>
+            </div>
 
             <!-- Lien alternatif -->
             <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
@@ -135,7 +138,7 @@ Vous avez demandé à réinitialiser votre mot de passe.
 Cliquez sur ce lien pour créer un nouveau mot de passe :
 ${resetUrl}
 
-Ce lien expire dans 1 heure.
+⏱️ IMPORTANT : Ce lien expire dans 15 minutes pour votre sécurité.
 
 Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
 

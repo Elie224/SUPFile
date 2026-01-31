@@ -169,8 +169,8 @@ const UserModel = {
     // Hash le token pour le stocker en base
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     
-    // Expiration dans 1 heure
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    // Expiration dans 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await User.findByIdAndUpdate(user._id, {
       reset_password_token: hashedToken,
