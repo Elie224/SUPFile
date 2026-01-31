@@ -3,6 +3,7 @@ const { generateAccessToken, generateRefreshToken, verifyToken } = require('../u
 const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
 const { AppError } = require('../middlewares/errorHandler');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 const config = require('../config');
 
 const SALT_ROUNDS = 10;
@@ -264,10 +265,175 @@ async function logout(req, res, next) {
   }
 }
 
+/**
+ * Demande de réinitialisation de mot de passe
+ * POST /api/auth/forgot-password
+ */
+async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        error: { message: 'L\'adresse email est requise' } 
+      });
+    }
+
+    // Vérifier si l'utilisateur existe
+    const user = await User.findByEmail(email);
+    
+    // On retourne toujours un succès pour ne pas révéler si l'email existe
+    if (!user) {
+      return res.status(200).json({ 
+        message: 'Si cette adresse email est associée à un compte, vous recevrez un lien de réinitialisation.' 
+      });
+    }
+
+    // Vérifier que l'utilisateur a un mot de passe (pas OAuth uniquement)
+    if (!user.password_hash) {
+      return res.status(200).json({ 
+        message: 'Si cette adresse email est associée à un compte, vous recevrez un lien de réinitialisation.' 
+      });
+    }
+
+    // Générer le token de réinitialisation
+    const resetData = await User.generateResetToken(email);
+    
+    if (!resetData) {
+      return res.status(200).json({ 
+        message: 'Si cette adresse email est associée à un compte, vous recevrez un lien de réinitialisation.' 
+      });
+    }
+
+    // Construire l'URL de réinitialisation
+    const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetData.token}`;
+
+    // Envoyer l'email
+    const emailSent = await sendPasswordResetEmail(email, resetUrl);
+
+    if (!emailSent) {
+      console.error('Failed to send reset email to:', email);
+    }
+
+    res.status(200).json({ 
+      message: 'Si cette adresse email est associée à un compte, vous recevrez un lien de réinitialisation.' 
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    next(err);
+  }
+}
+
+/**
+ * Vérifie si un token de réinitialisation est valide
+ * GET /api/auth/verify-reset-token/:token
+ */
+async function verifyResetToken(req, res, next) {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ 
+        error: { message: 'Token manquant' } 
+      });
+    }
+
+    const user = await User.verifyResetToken(token);
+
+    if (!user) {
+      return res.status(400).json({ 
+        error: { message: 'Token invalide ou expiré' } 
+      });
+    }
+
+    res.status(200).json({ 
+      data: { valid: true, email: user.email },
+      message: 'Token valide' 
+    });
+  } catch (err) {
+    console.error('Verify reset token error:', err);
+    next(err);
+  }
+}
+
+/**
+ * Réinitialise le mot de passe avec un token valide
+ * POST /api/auth/reset-password
+ */
+async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ 
+        error: { message: 'Token et nouveau mot de passe requis' } 
+      });
+    }
+
+    // Validation du mot de passe
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        error: { message: 'Le mot de passe doit contenir au moins 8 caractères' } 
+      });
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return res.status(400).json({ 
+        error: { message: 'Le mot de passe doit contenir au moins une majuscule' } 
+      });
+    }
+
+    if (!/[0-9]/.test(password)) {
+      return res.status(400).json({ 
+        error: { message: 'Le mot de passe doit contenir au moins un chiffre' } 
+      });
+    }
+
+    // Vérifier le token
+    const user = await User.verifyResetToken(token);
+    
+    if (!user) {
+      return res.status(400).json({ 
+        error: { message: 'Token invalide ou expiré. Veuillez refaire une demande de réinitialisation.' } 
+      });
+    }
+
+    // Hasher le nouveau mot de passe
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // Mettre à jour le mot de passe
+    const success = await User.resetPassword(token, passwordHash);
+
+    if (!success) {
+      return res.status(400).json({ 
+        error: { message: 'Erreur lors de la réinitialisation du mot de passe' } 
+      });
+    }
+
+    // Révoquer toutes les sessions de l'utilisateur
+    try {
+      await Session.revokeAllByUserId(user.id);
+    } catch (e) {
+      console.error('Failed to revoke sessions after password reset:', e.message);
+    }
+
+    res.status(200).json({ 
+      message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' 
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    next(err);
+  }
+}
+
 module.exports = {
   signup,
   login,
   refresh,
   logout,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword,
 };
 

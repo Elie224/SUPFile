@@ -24,6 +24,8 @@ const Search = lazy(() => import('./pages/Search'));
 const Trash = lazy(() => import('./pages/Trash'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Intro = lazy(() => import('./pages/Intro'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 // Composant de chargement
 const LoadingFallback = () => (
@@ -98,6 +100,8 @@ function App() {
         <Route path="/" element={<Intro />} />
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/forgot-password" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
+        <Route path="/reset-password" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <ResetPassword />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
         {/* Routes de proxy pour les callbacks OAuth directs depuis les providers */}
         <Route path="/auth/callback/google" element={<OAuthProxy provider="google" />} />

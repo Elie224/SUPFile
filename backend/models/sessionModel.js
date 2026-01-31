@@ -43,6 +43,14 @@ const SessionModel = {
     const expiresAt = ms ? new Date(Date.now() + ms) : new Date(Date.now() + 7 * 24 * 3600 * 1000);
     return Session.findOneAndUpdate({ refresh_token: oldToken }, { refresh_token: newToken, expires_at: expiresAt, is_revoked: false }, { new: true }).lean();
   },
+
+  /**
+   * Révoque toutes les sessions d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   */
+  async revokeAllByUserId(userId) {
+    return Session.updateMany({ user_id: userId }, { is_revoked: true });
+  },
 };
 
 module.exports = SessionModel;
