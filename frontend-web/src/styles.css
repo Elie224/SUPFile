@@ -8,26 +8,29 @@
    DESIGN SYSTEM - VARIABLES CSS MODERNES
    ============================================ */
 :root {
-  /* Couleurs principales - Palette moderne 2026 */
-  --primary-color: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-light: #60A5FA;
-  --secondary-color: #7C3AED;
-  --secondary-hover: #6D28D9;
+  /* Couleurs principales - Palette moderne */
+  --primary-color: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-light: #93C5FD;
+  --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  --secondary-color: #8B5CF6;
+  --secondary-hover: #7C3AED;
   --accent-color: #10B981;
-  --success-color: #10B981;
+  --success-color: #22C55E;
   --danger-color: #EF4444;
   --warning-color: #F59E0B;
-  --info-color: #2563EB;
+  --info-color: #06B6D4;
   
-  /* Couleurs de fond - Modernes */
+  /* Couleurs de fond - Thème clair élégant */
   --bg-color: #FFFFFF;
   --bg-secondary: #F8FAFC;
-  --bg-hover: #F1F5F9;
+  --bg-tertiary: #F1F5F9;
+  --bg-hover: #E2E8F0;
+  --bg-gradient: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
   
-  /* Couleurs de texte - Modernes */
-  --text-color: #0F172A;
-  --text-secondary: #475569;
+  /* Couleurs de texte */
+  --text-color: #1E293B;
+  --text-secondary: #64748B;
   --text-muted: #94A3B8;
   
   /* Bordures modernes */
@@ -36,15 +39,17 @@
   --border-radius: 12px;
   --border-radius-sm: 8px;
   --border-radius-lg: 16px;
-  --border-radius-xl: 20px;
+  --border-radius-xl: 24px;
   
-  /* Ombres modernes - En couches */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  /* Ombres modernes - Plus douces */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 40px -10px rgba(59, 130, 246, 0.2);
   
   /* Espacements */
   --spacing-xs: 4px;
@@ -55,12 +60,12 @@
   --spacing-xxl: 48px;
   
   /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.3s ease;
-  --transition-slow: 0.5s ease;
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Typographie */
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
   --font-size-base: 16px;
   --font-size-sm: 14px;
   --font-size-lg: 18px;
@@ -71,75 +76,8 @@
   
   /* Navigation */
   --nav-height: 64px;
-  --nav-bg: #FFFFFF;
-  --nav-shadow: var(--shadow-sm);
-}
-:root {
-  /* Couleurs principales - Palette moderne 2026 */
-  --primary-color: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-light: #60A5FA;
-  --secondary-color: #7C3AED;
-  --secondary-hover: #6D28D9;
-  --accent-color: #10B981;
-  --success-color: #10B981;
-  --danger-color: #EF4444;
-  --warning-color: #F59E0B;
-  --info-color: #2563EB;
-  
-  /* Couleurs de fond - Modernes */
-  --bg-color: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --bg-hover: #F1F5F9;
-  
-  /* Couleurs de texte - Modernes */
-  --text-color: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
-  
-  /* Bordures modernes */
-  --border-color: #E2E8F0;
-  --border-color-light: #F1F5F9;
-  --border-radius: 12px;
-  --border-radius-sm: 8px;
-  --border-radius-lg: 16px;
-  --border-radius-xl: 20px;
-  
-  /* Ombres modernes - En couches */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  
-  /* Espacements */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
-  
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.3s ease;
-  --transition-slow: 0.5s ease;
-  
-  /* Typographie */
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-size-base: 16px;
-  --font-size-sm: 14px;
-  --font-size-lg: 18px;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  
-  /* Navigation */
-  --nav-height: 64px;
-  --nav-bg: #FFFFFF;
-  --nav-shadow: var(--shadow-sm);
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 [data-theme="dark"] {
@@ -295,6 +233,148 @@
 }
 
 /* ============================================
+   THEME CLAIR - STYLES MODERNES
+   ============================================ */
+
+/* Cards améliorées - Thème clair */
+[data-theme="light"] .card,
+:root .card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+[data-theme="light"] .card:hover,
+:root .card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] .card-header,
+:root .card-header {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Progress bars - Thème clair */
+[data-theme="light"] .progress,
+:root .progress {
+  background: linear-gradient(180deg, #E2E8F0 0%, #F1F5F9 100%);
+  border-radius: 999px;
+  overflow: hidden;
+  height: 10px;
+}
+
+[data-theme="light"] .progress-bar,
+:root .progress-bar {
+  border-radius: 999px;
+  transition: width var(--transition-base);
+}
+
+/* Boutons améliorés */
+.btn-primary {
+  background: var(--primary-gradient);
+  border: none;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25);
+}
+
+.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.35);
+}
+
+/* Inputs améliorés - Thème clair */
+[data-theme="light"] .form-control,
+:root .form-control {
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 12px 16px;
+  transition: all var(--transition-fast);
+  background: var(--bg-color);
+}
+
+[data-theme="light"] .form-control:focus,
+:root .form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-focus);
+  background: var(--bg-color);
+}
+
+/* Navbar améliorée */
+[data-theme="light"] nav,
+:root nav {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Stats cards avec icônes colorées */
+[data-theme="light"] .card-body .text-primary,
+:root .card-body .text-primary {
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
+/* Tables améliorées */
+[data-theme="light"] .table,
+:root .table {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+[data-theme="light"] .table thead th,
+:root .table thead th {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-bottom: 2px solid var(--border-color);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-color);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="light"] .table tbody tr:hover,
+:root .table tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.04);
+}
+
+/* Liens avec style moderne */
+a:not(.btn) {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:not(.btn):hover {
+  color: var(--primary-hover);
+}
+
+/* Badges modernes */
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: var(--font-weight-medium);
+  font-size: 12px;
+}
+
+/* ============================================
    BASE STYLES - MOBILE FIRST
    ============================================ */
 * {
@@ -314,9 +394,15 @@ body {
   font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--text-color);
-  background-color: var(--bg-secondary);
+  background: var(--bg-gradient, var(--bg-secondary));
+  background-attachment: fixed;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+}
+
+[data-theme="dark"] body {
+  background: var(--bg-secondary);
 }
 
 /* ============================================

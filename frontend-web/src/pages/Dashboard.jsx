@@ -141,15 +141,23 @@ export default function Dashboard() {
                   const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
                   
                   return (
-                    <div className="progress" style={{ height: '28px', backgroundColor: 'var(--bg-hover)' }}>
+                    <div className="progress" style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '12px', overflow: 'hidden' }}>
                       {barWidth > 0 && (
                         <div 
-                          className={`progress-bar bg-${barColor}`}
+                          className={`progress-bar`}
                           role="progressbar" 
-                          style={{ width: `${barWidth}%` }}
+                          style={{ 
+                            width: `${barWidth}%`,
+                            background: barColor === 'success' 
+                              ? 'linear-gradient(90deg, #22C55E 0%, #16A34A 100%)'
+                              : barColor === 'warning'
+                              ? 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)'
+                              : 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
+                            borderRadius: '12px'
+                          }}
                         >
                           {percentageRaw > 5 && (
-                            <span className="small fw-bold">
+                            <span className="small fw-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
                               {typeof percentage === 'string' ? percentage : percentage.toFixed(2)}%
                             </span>
                           )}
@@ -208,11 +216,16 @@ export default function Dashboard() {
                           {formatBytes(item.value)}
                         </span>
                       </div>
-                      <div className="progress" style={{ height: '24px', backgroundColor: 'var(--bg-hover)' }}>
+                      <div className="progress" style={{ height: '10px', backgroundColor: 'var(--bg-hover)', borderRadius: '5px', overflow: 'hidden' }}>
                         <div 
                           className="progress-bar"
                           role="progressbar" 
-                          style={{ width: `${percentage}%`, backgroundColor: item.color }}
+                          style={{ 
+                            width: `${percentage}%`, 
+                            backgroundColor: item.color,
+                            borderRadius: '5px',
+                            transition: 'width 0.5s ease'
+                          }}
                         ></div>
                       </div>
                     </div>
