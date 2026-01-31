@@ -3,3 +3,9 @@
   publish = "dist"
   command = "npm run build"
 
+# SPA fallback - toutes les routes vers index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
