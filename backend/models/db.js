@@ -3,34 +3,36 @@ const config = require('../config');
 
 const mongoUri = config.database.mongoUri || process.env.MONGO_URI;
 
+// Ne jamais faire process.exit(1) : permettre au serveur HTTP de démarrer (Fly.io / Render)
+// pour que le health check réponde. La base sera connectée quand MONGO_URI est défini.
 if (!mongoUri) {
-  console.error('❌ MongoDB connection string not found. Set MONGO_URI in environment.');
-  process.exit(1);
+  console.warn('⚠️ MONGO_URI non défini : le serveur démarrera mais la base sera indisponible. Définissez MONGO_URI.');
+  mongoose.connectionPromise = Promise.resolve(null);
+  module.exports = mongoose;
+  module.exports.isConnected = () => false;
+  module.exports.waitForConnection = () => Promise.reject(new Error('MONGO_URI not set'));
+  return;
 }
 
 console.log('🔄 Attempting to connect to MongoDB...');
 console.log('📍 Connection URI:', mongoUri.replace(/:[^:]*@/, ':****@'));
 
 mongoose.set('strictQuery', false);
-// Note: bufferCommands et bufferMaxEntries ne sont plus supportés dans Mongoose 6+
-// Le buffering est géré automatiquement par Mongoose
 
 const options = {
-  serverSelectionTimeoutMS: 30000, // 30 secondes (timeout pour la sélection de serveur)
-  socketTimeoutMS: 45000, // 45 secondes (timeout pour les opérations socket)
-  connectTimeoutMS: 30000, // Timeout de connexion initiale
-  maxPoolSize: 50, // Augmenté pour meilleure scalabilité
-  minPoolSize: 5, // Pool minimum pour performances
-  maxIdleTimeMS: 30000, // Fermer les connexions inactives après 30s
-  heartbeatFrequencyMS: 10000, // Vérifier la santé toutes les 10s
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
+  maxPoolSize: 50,
+  minPoolSize: 5,
+  maxIdleTimeMS: 30000,
+  heartbeatFrequencyMS: 10000,
 };
 
-// Fonction pour vérifier si MongoDB est connecté
 function isConnected() {
   return mongoose.connection.readyState === 1;
 }
 
-// Fonction pour attendre la connexion
 async function waitForConnection(maxWait = 30000) {
   const startTime = Date.now();
   while (!isConnected() && (Date.now() - startTime) < maxWait) {
@@ -41,7 +43,6 @@ async function waitForConnection(maxWait = 30000) {
   }
 }
 
-// Connecter à MongoDB avec gestion d'erreur améliorée
 let connectionPromise = mongoose.connect(mongoUri, options)
   .then(() => {
     console.log('✓ Connected to MongoDB');
@@ -50,11 +51,9 @@ let connectionPromise = mongoose.connect(mongoUri, options)
   .catch((err) => {
     console.error('✗ MongoDB connection error:', err.message || err);
     console.error('Ensure MongoDB is running on the configured URI.');
-    // Ne pas throw l'erreur pour permettre au serveur de démarrer quand même
     return null;
   });
 
-// Exposer la promesse de connexion
 mongoose.connectionPromise = connectionPromise;
 
 // Handle connection events
