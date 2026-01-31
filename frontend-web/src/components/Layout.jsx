@@ -550,6 +550,14 @@ style={{
       <Footer />
 
       <style>{`
+        /* Styles par défaut - Desktop first */
+        .mobile-user-button {
+          display: none !important;
+        }
+        .desktop-user-button {
+          display: flex !important;
+        }
+        
         /* Mobile styles */
         @media (max-width: 767px) {
           .mobile-menu-toggle {
@@ -586,6 +594,12 @@ style={{
             display: none !important;
           }
           .desktop-logo {
+            display: flex !important;
+          }
+          .mobile-user-button {
+            display: none !important;
+          }
+          .desktop-user-button {
             display: flex !important;
           }
         }
