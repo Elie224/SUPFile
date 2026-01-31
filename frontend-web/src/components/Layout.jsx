@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
-import { LOGO_IMG } from '../config';
+import Logo from './Logo';
 import Footer from './Footer';
 
 export default function Layout({ children }) {
@@ -112,11 +112,11 @@ export default function Layout({ children }) {
             
             {/* Logo Mobile */}
             <Link to="/dashboard" className="d-flex align-items-center gap-2" style={{ textDecoration: 'none' }}>
-              <img src={LOGO_IMG} alt="SUPFile" className="mobile-logo" style={{ height: '32px', width: 'auto' }} />
+              <Logo size="small" className="mobile-logo" />
             </Link>
             {/* Logo Desktop (visible sur grand écran) */}
             <Link to="/dashboard" className="desktop-logo d-flex align-items-center" style={{ textDecoration: 'none' }}>
-              <img src={LOGO_IMG} alt="SUPFile" style={{ height: '36px', width: 'auto' }} />
+              <Logo size="small" style={{ height: '36px' }} />
             </Link>
           </div>
 

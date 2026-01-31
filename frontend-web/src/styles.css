@@ -78,6 +78,10 @@
   --nav-height: 64px;
   --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  
+  /* Logo */
+  --logo-bg: transparent;
+  --logo-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] {
@@ -89,6 +93,26 @@
   --text-muted: #808080;
   --border-color: #404040;
   --nav-bg: #2D2D2D;
+  
+  /* Logo - fond clair pour visibilité en mode sombre */
+  --logo-bg: rgba(255, 255, 255, 0.95);
+  --logo-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   LOGO - STYLES GLOBAUX
+   ============================================ */
+.app-logo {
+  border-radius: 12px;
+  background-color: var(--logo-bg);
+  box-shadow: var(--logo-shadow);
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.app-logo:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
 }
 
 /* ============================================

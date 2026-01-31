@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
-import { API_URL, LOGO_IMG } from '../config';
+import { API_URL } from '../config';
+import Logo from '../components/Logo';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -180,7 +181,7 @@ export default function ResetPassword() {
             <>
               {/* Logo / Titre */}
               <div className="text-center mb-4">
-                <img src={LOGO_IMG} alt="SUPFile" style={{ maxWidth: '120px', height: 'auto', marginBottom: '16px' }} />
+                <Logo size="large" style={{ marginBottom: '16px' }} />
                 <h1 className="h3 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
                   Nouveau mot de passe
                 </h1>
