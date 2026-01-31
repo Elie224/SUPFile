@@ -31,13 +31,13 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
       {/* Graphique circulaire SVG */}
       <div className="position-relative" style={{ width: '120px', height: '120px' }}>
         <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-          {/* Cercle de fond */}
+          {/* Cercle de fond (couleur selon thème via variable CSS) */}
           <circle
             cx="60"
             cy="60"
             r="45"
             fill="none"
-            stroke="#e0e0e0"
+            stroke="var(--chart-ring-bg, #e0e0e0)"
             strokeWidth="10"
           />
           {/* Cercle de progression */}

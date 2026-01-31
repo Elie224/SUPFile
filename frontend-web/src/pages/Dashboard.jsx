@@ -182,7 +182,7 @@ export default function Dashboard() {
                   const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
                   
                   return (
-                    <div className="progress" style={{ height: '24px', backgroundColor: 'var(--bg-hover)', borderRadius: '12px', overflow: 'hidden' }}>
+                    <div className="progress storage-progress-track" style={{ height: '24px', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--progress-track-bg)' }}>
                       {barWidth > 0 && (
                         <div 
                           className={`progress-bar`}

@@ -68,6 +68,8 @@ body {
   --bg-tertiary: #F1F5F9;
   --bg-hover: #E2E8F0;
   --bg-gradient: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
+  --progress-track-bg: #E2E8F0;
+  --chart-ring-bg: #e0e0e0;
   
   /* Couleurs de texte */
   --text-color: #1E293B;
@@ -128,6 +130,8 @@ body {
   --bg-secondary: #111827;
   --bg-tertiary: #1f2937;
   --bg-hover: #374151;
+  /* Piste des barres de stockage : gris foncé (évite le blanc) */
+  --progress-track-bg: #1f2937;
   
   /* Textes - plus lumineux pour meilleure lisibilité */
   --text-color: #ffffff;
@@ -212,14 +216,11 @@ body {
   background-color: var(--bg-tertiary);
 }
 
-/* Barre de stockage (quota) : piste plus sombre en thème dark pour éviter le "trop blanc" */
+/* Barre de stockage (quota) : utilise --progress-track-bg (défini plus sombre en dark) */
 .storage-progress-track {
-  background-color: var(--bg-hover);
+  background-color: var(--progress-track-bg);
   border-radius: 12px;
   overflow: hidden;
-}
-[data-theme="dark"] .storage-progress-track {
-  background-color: #1f2937 !important; /* Gris foncé, pas blanc */
 }
 
 /* ============================================
