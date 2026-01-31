@@ -249,7 +249,7 @@ export default function Search() {
 
       {!loading && !error && results.length > 0 && (
         <div className="card shadow-md">
-          <div className="card-header bg-light">
+          <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             <h5 className="mb-0">
               <i className="bi bi-list-ul me-2"></i>
               {t('results') || 'Résultats'} ({results.length})
@@ -258,7 +258,7 @@ export default function Search() {
           <div className="card-body p-0">
             <div className="table-responsive">
               <table className="table table-hover mb-0">
-                <thead className="table-light">
+                <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   <tr>
                     <th style={{ padding: '16px' }}>
                       <i className="bi bi-file-earmark me-2"></i>

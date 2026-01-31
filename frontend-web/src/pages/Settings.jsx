@@ -357,12 +357,12 @@ export default function Settings() {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
           <div>
-            <strong style={{ color: '#666', fontSize: '0.9em' }}>{t('accountCreated')}</strong>
-            <p style={{ margin: '4px 0 0 0', fontSize: '1.1em' }}>{accountCreated || 'N/A'}</p>
+            <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9em' }}>{t('accountCreated')}</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '1.1em', color: 'var(--text-color)' }}>{accountCreated || 'N/A'}</p>
           </div>
           <div>
-            <strong style={{ color: '#666', fontSize: '0.9em' }}>{t('lastLogin')}</strong>
-            <p style={{ margin: '4px 0 0 0', fontSize: '1.1em' }}>{lastLogin}</p>
+            <strong style={{ color: 'var(--text-secondary)', fontSize: '0.9em' }}>{t('lastLogin')}</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '1.1em', color: 'var(--text-color)' }}>{lastLogin}</p>
           </div>
         </div>
       </section>
@@ -372,7 +372,7 @@ export default function Settings() {
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>👤 {t('profile')}</h2>
         <form onSubmit={handleUpdateProfile}>
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('email')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('email')}</label>
             <input
               type="email"
               value={email}
@@ -381,7 +381,7 @@ export default function Settings() {
                 padding: 12,
                 width: '100%',
                 maxWidth: 400,
-                border: '1px solid #ddd',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
                 fontSize: '1em'
               }}
@@ -389,7 +389,7 @@ export default function Settings() {
             />
           </div>
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('displayName')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('displayName')}</label>
             <input
               type="text"
               value={displayName}
@@ -399,9 +399,11 @@ export default function Settings() {
                 padding: 12,
                 width: '100%',
                 maxWidth: 400,
-                border: '1px solid #ddd',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
-                fontSize: '1em'
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
               }}
             />
           </div>
@@ -429,7 +431,7 @@ export default function Settings() {
       <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🎨 {t('interfacePreferences') || 'Préférences d’interface'}</h2>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>
             {t('theme') || 'Thème'}
           </label>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -439,8 +441,9 @@ export default function Settings() {
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
-                border: theme === 'light' ? '2px solid #2196F3' : '1px solid #ddd',
-                backgroundColor: theme === 'light' ? '#E3F2FD' : '#f5f5f5',
+                border: theme === 'light' ? '2px solid #2196F3' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'light' ? '#E3F2FD' : 'var(--bg-secondary)',
+                color: theme === 'light' ? '#1E293B' : 'var(--text-color)',
                 cursor: 'pointer',
                 minWidth: 120,
                 display: 'flex',
@@ -458,9 +461,9 @@ export default function Settings() {
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
-                border: theme === 'dark' ? '2px solid #2196F3' : '1px solid #ddd',
-                backgroundColor: theme === 'dark' ? '#1E293B' : '#f5f5f5',
-                color: theme === 'dark' ? 'white' : '#333',
+                border: theme === 'dark' ? '2px solid #2196F3' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'dark' ? '#1E293B' : 'var(--bg-secondary)',
+                color: theme === 'dark' ? 'white' : 'var(--text-color)',
                 cursor: 'pointer',
                 minWidth: 120,
                 display: 'flex',
@@ -499,7 +502,7 @@ export default function Settings() {
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🔒 {t('security')}</h2>
         <form onSubmit={handleChangePassword}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('currentPassword')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('currentPassword')}</label>
             <input
               type="password"
               value={currentPassword}
@@ -508,15 +511,17 @@ export default function Settings() {
                 padding: 12,
                 width: '100%',
                 maxWidth: 400,
-                border: '1px solid #ddd',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
-                fontSize: '1em'
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
               }}
               required
             />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('newPassword')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('newPassword')}</label>
             <input
               type="password"
               value={newPassword}
@@ -525,9 +530,11 @@ export default function Settings() {
                 padding: 12,
                 width: '100%',
                 maxWidth: 400,
-                border: '1px solid #ddd',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
-                fontSize: '1em'
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
               }}
               required
               minLength={8}
@@ -535,7 +542,7 @@ export default function Settings() {
             />
           </div>
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#555' }}>{t('confirmPassword')}</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('confirmPassword')}</label>
             <input
               type="password"
               value={confirmPassword}
@@ -544,9 +551,11 @@ export default function Settings() {
                 padding: 12,
                 width: '100%',
                 maxWidth: 400,
-                border: '1px solid #ddd',
+                border: '1px solid var(--border-color)',
                 borderRadius: 8,
-                fontSize: '1em'
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
               }}
               required
               minLength={8}

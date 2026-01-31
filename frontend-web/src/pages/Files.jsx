@@ -735,19 +735,14 @@ export default function Files() {
                   onClick={goBack} 
                   style={{ 
                     padding: '6px 12px',
-                    backgroundColor: '#f5f5f5',
-                    border: '1px solid #ddd',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '500',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#e0e0e0';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = '#f5f5f5';
+                    transition: 'all 0.2s',
+                    color: 'var(--text-color)'
                   }}
                 >
                   ← {t('back')}
@@ -768,8 +763,8 @@ export default function Files() {
                 </span>
                 {breadcrumbs.map((name, idx) => (
                   <React.Fragment key={idx}>
-                    <span style={{ color: '#999' }}>/</span>
-                    <span style={{ color: '#666' }}>{name}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>/</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{name}</span>
                   </React.Fragment>
                 ))}
               </div>
@@ -905,8 +900,8 @@ export default function Files() {
                       onClick={() => { setShareType('public'); setSelectedShareUser(null); setShareUserSearch(''); }}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: shareType === 'public' ? '#2196F3' : '#f0f0f0',
-                        color: shareType === 'public' ? 'white' : '#333',
+                        backgroundColor: shareType === 'public' ? '#2196F3' : 'var(--bg-secondary)',
+                        color: shareType === 'public' ? 'white' : 'var(--text-color)',
                         border: 'none',
                         borderRadius: 4,
                         cursor: 'pointer',
@@ -919,8 +914,8 @@ export default function Files() {
                       onClick={() => { setShareType('internal'); setSharePassword(''); setShareExpiresAt(''); }}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: shareType === 'internal' ? '#2196F3' : '#f0f0f0',
-                        color: shareType === 'internal' ? 'white' : '#333',
+                        backgroundColor: shareType === 'internal' ? '#2196F3' : 'var(--bg-secondary)',
+                        color: shareType === 'internal' ? 'white' : 'var(--text-color)',
                         border: 'none',
                         borderRadius: 4,
                         cursor: 'pointer',
@@ -944,7 +939,7 @@ export default function Files() {
                         style={{ padding: 8, width: '100%' }}
                         placeholder={t('language') === 'en' ? 'Leave empty for public sharing' : 'Laissez vide pour un partage public'}
                       />
-                      <small style={{ color: '#666', fontSize: '12px' }}>{t('passwordMinLength')}</small>
+                      <small style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{t('passwordMinLength')}</small>
                     </div>
                     <div style={{ marginBottom: 16 }}>
                       <label style={{ display: 'block', marginBottom: 4 }}>{t('shareExpiresAt')}</label>
@@ -979,18 +974,19 @@ export default function Files() {
                             style={{
                               padding: 12,
                               cursor: 'pointer',
-                              backgroundColor: selectedShareUser?.id === user.id ? '#e3f2fd' : 'white',
-                              borderBottom: '1px solid #eee'
+                              backgroundColor: selectedShareUser?.id === user.id ? 'var(--bg-hover)' : 'var(--bg-color)',
+                              borderBottom: '1px solid var(--border-color)',
+                              color: 'var(--text-color)'
                             }}
                           >
                             <div style={{ fontWeight: 'bold' }}>{user.display_name || user.email}</div>
-                            {user.display_name && <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>}
+                            {user.display_name && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{user.email}</div>}
                           </div>
                         ))}
                       </div>
                     )}
                     {selectedShareUser && (
-                      <div style={{ marginTop: 8, padding: 8, backgroundColor: '#e8f5e9', borderRadius: 4 }}>
+                      <div style={{ marginTop: 8, padding: 8, backgroundColor: 'var(--bg-secondary)', borderRadius: 4, color: 'var(--text-color)', border: '1px solid var(--border-color)' }}>
                         {t('shareWith')}: {selectedShareUser.display_name || selectedShareUser.email}
                       </div>
                     )}
@@ -1104,15 +1100,15 @@ export default function Files() {
         onDragLeave={handleDragLeave}
         style={{ 
           minHeight: 400, 
-          border: isDragOver ? '2px dashed #2196F3' : '2px dashed #ddd',
-          backgroundColor: isDragOver ? '#e3f2fd' : '#fafafa',
+          border: isDragOver ? '2px dashed #2196F3' : '2px dashed var(--border-color)',
+          backgroundColor: isDragOver ? 'var(--bg-hover)' : 'var(--bg-secondary)',
           borderRadius: '12px',
           padding: '32px',
           transition: 'all 0.3s ease'
         }}
         onDragEnter={(e) => {
           e.currentTarget.style.borderColor = '#2196F3';
-          e.currentTarget.style.backgroundColor = '#f0f7ff';
+          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
         }}
       >
         {loading ? (
@@ -1199,8 +1195,8 @@ export default function Files() {
               overflowX: 'auto', 
               borderRadius: '12px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e0e0e0'
+              backgroundColor: 'var(--bg-color)',
+              border: '1px solid var(--border-color)'
             }}>
               <table style={{ 
                 width: '100%', 
@@ -1210,15 +1206,15 @@ export default function Files() {
               }}>
                 <thead>
                   <tr style={{ 
-                    backgroundColor: '#f8f9fa',
-                    borderBottom: '2px solid #e0e0e0'
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderBottom: '2px solid var(--border-color)'
                   }}>
                     <th style={{ 
                       textAlign: 'left', 
                       padding: '16px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#333',
+                      color: 'var(--text-color)',
                       width: '40px'
                     }}>
                       <input
@@ -1241,7 +1237,7 @@ export default function Files() {
                       padding: '16px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#333',
+                      color: 'var(--text-color)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       cursor: 'pointer',
@@ -1263,7 +1259,7 @@ export default function Files() {
                       padding: '16px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#333',
+                      color: 'var(--text-color)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       cursor: 'pointer',
@@ -1285,7 +1281,7 @@ export default function Files() {
                       padding: '16px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#333',
+                      color: 'var(--text-color)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       cursor: 'pointer',
@@ -1300,7 +1296,7 @@ export default function Files() {
                     padding: '16px',
                     fontSize: '14px',
                     fontWeight: '600',
-                    color: '#333',
+                    color: 'var(--text-color)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px'
                   }}>{t('actions')}</th>
@@ -1363,17 +1359,17 @@ export default function Files() {
                   <tr 
                     key={itemId} 
                     style={{ 
-                      borderBottom: index < sortedItems.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      borderBottom: index < sortedItems.length - 1 ? '1px solid var(--border-color)' : 'none',
                       backgroundColor: selectedItems.includes(itemId)
-                        ? '#e3f2fd'
-                        : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
+                        ? 'var(--bg-hover)'
+                        : 'var(--bg-color)',
                       transition: 'background-color 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f0f7ff';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#fafafa';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-color)';
                     }}
                     // Drag & drop: on peut toujours drag un fichier ou dossier
                     draggable
@@ -1421,19 +1417,19 @@ export default function Files() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
-                            color: '#333',
+                            color: 'var(--text-color)',
                             transition: 'color 0.2s'
                           }}
                           onMouseEnter={(e) => e.target.style.color = '#2196F3'}
-                          onMouseLeave={(e) => e.target.style.color = '#333'}
+                          onMouseLeave={(e) => e.target.style.color = 'var(--text-color)'}
                         >
                           <i className="bi bi-file-earmark text-primary me-2" style={{ fontSize: '18px' }}></i>
                           {item.name}
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '16px', color: '#666', fontSize: '14px' }}>{formatBytes(item.size || 0)}</td>
-                    <td style={{ padding: '16px', color: '#666', fontSize: '14px' }}>{new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
+                    <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '14px' }}>{formatBytes(item.size || 0)}</td>
+                    <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '14px' }}>{new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}</td>
                     <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {itemType === 'file' && (
@@ -1816,14 +1812,14 @@ export default function Files() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--bg-color)',
             padding: 24,
             borderRadius: 12,
             maxWidth: 500,
             width: '90%',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>
+            <h2 style={{ marginTop: 0, marginBottom: 16, color: 'var(--text-color)' }}>
               <i className="bi bi-arrow-left-right me-2"></i>
               {t('move')} "{itemToMove.name}"
             </h2>
@@ -1856,9 +1852,9 @@ export default function Files() {
                     }}
                     style={{
                       padding: '8px 16px',
-                      backgroundColor: '#ccc',
-                      color: 'white',
-                      border: 'none',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-color)',
+                      border: '1px solid var(--border-color)',
                       borderRadius: 4,
                       cursor: 'pointer'
                     }}
@@ -1900,20 +1896,20 @@ export default function Files() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--bg-color)',
             padding: 24,
             borderRadius: 12,
             maxWidth: 500,
             width: '90%',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16, color: '#333' }}>
+            <h2 style={{ marginTop: 0, marginBottom: 16, color: 'var(--text-color)' }}>
               ⚠️ {t('deleteConfirm')}
             </h2>
-            <p style={{ marginBottom: 24, color: '#666', fontSize: '1.1em' }}>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)', fontSize: '1.1em' }}>
               {t('deleteConfirm')} <strong>"{itemToDelete.name}"</strong> ?
             </p>
-            <p style={{ marginBottom: 24, color: '#999', fontSize: '0.9em' }}>
+            <p style={{ marginBottom: 24, color: 'var(--text-muted)', fontSize: '0.9em' }}>
               {t('deleteConfirmDetails')} {itemToDelete.type === 'folder' ? t('folder') : t('file')}.
               {t('language') === 'en' ? ' You can restore it later if needed.' : ' Vous pourrez le restaurer plus tard si nécessaire.'}
             </p>
@@ -1925,9 +1921,9 @@ export default function Files() {
                 }}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#e0e0e0',
-                  color: '#333',
-                  border: 'none',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: 6,
                   cursor: 'pointer',
                   fontSize: '1em',
