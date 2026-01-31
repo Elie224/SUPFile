@@ -104,14 +104,20 @@ export default function Signup() {
           {/* Message d'erreur */}
           {error && (
             <div className="alert alert-danger py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center gap-2 mb-2">
                 <i className="bi bi-exclamation-triangle-fill"></i>
                 <span>{error}</span>
               </div>
               {(error.includes('déjà') || error.includes('already')) && (
-                <Link to="/login" className="btn btn-sm btn-outline-light mt-2 d-inline-block">
-                  {t('goToLogin') || 'Aller à la connexion'} — Renvoyer l&apos;email de vérification
-                </Link>
+                <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.3)' }}>
+                  <p className="small mb-2" style={{ color: '#fff', opacity: 0.95 }}>
+                    Cet email est déjà utilisé. Si vous n&apos;avez pas vérifié votre compte, allez sur la page de connexion et cliquez sur « Renvoyer l&apos;email de vérification ».
+                  </p>
+                  <Link to="/login" className="btn btn-sm btn-light d-inline-block" style={{ fontWeight: 600 }}>
+                    <i className="bi bi-box-arrow-in-right me-1"></i>
+                    {t('goToLogin') || 'Aller à la connexion'}
+                  </Link>
+                </div>
               )}
             </div>
           )}
