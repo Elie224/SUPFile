@@ -2019,3 +2019,464 @@ button, a, .btn {
     gap: 8px;
   }
 }
+
+/* ============================================
+   RESPONSIVE - CARTES AUTHENTIFICATION
+   ============================================ */
+
+/* Tablettes et petits desktop */
+@media (max-width: 991.98px) {
+  .auth-card-container {
+    padding: 15px;
+  }
+  
+  .auth-card {
+    max-width: 100% !important;
+    margin: 0 10px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  .auth-page-background {
+    min-height: 100dvh; /* Dynamic viewport height pour mobile */
+  }
+  
+  .auth-card-container {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+  
+  .auth-card {
+    max-width: 100% !important;
+    margin: 0 5px;
+    border-radius: 8px !important;
+  }
+  
+  .auth-card .card-body {
+    padding: 16px !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - PAGES PRINCIPALES
+   ============================================ */
+
+/* Dashboard */
+@media (max-width: 767.98px) {
+  .container-fluid.p-3.p-md-4 {
+    padding: 12px !important;
+  }
+  
+  /* Titres plus petits sur mobile */
+  .h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Cartes statistiques */
+  .card.shadow-md {
+    margin-bottom: 12px;
+  }
+  
+  .card.shadow-md .card-body {
+    padding: 16px !important;
+  }
+  
+  .card.shadow-md i {
+    font-size: 24px !important;
+  }
+  
+  .card.shadow-md .h4 {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Files Page */
+@media (max-width: 767.98px) {
+  /* Barre d'outils fichiers */
+  .d-flex.justify-content-between.align-items-center.mb-4.flex-wrap {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  
+  /* Grille de fichiers en 2 colonnes sur mobile */
+  .row.g-3 > [class*="col-"] {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  
+  /* Liste de fichiers */
+  .list-group-item {
+    padding: 12px !important;
+    flex-wrap: wrap;
+  }
+  
+  .list-group-item .d-flex {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  /* Boutons d'action fichiers */
+  .btn-group {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  
+  .btn-group .btn {
+    min-width: auto !important;
+    padding: 6px 10px !important;
+  }
+}
+
+@media (max-width: 374.98px) {
+  /* Très petits écrans - 1 colonne */
+  .row.g-3 > [class*="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+/* Settings Page */
+@media (max-width: 767.98px) {
+  /* Onglets settings en scrollable horizontal */
+  .nav-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-tabs .nav-link {
+    white-space: nowrap;
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Formulaires settings */
+  .form-label {
+    font-size: 13px !important;
+  }
+  
+  .form-control {
+    font-size: 14px !important;
+  }
+}
+
+/* Search Page */
+@media (max-width: 767.98px) {
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .input-group .form-control {
+    border-radius: 8px !important;
+    margin-bottom: 8px;
+  }
+  
+  .input-group .btn {
+    border-radius: 8px !important;
+    width: 100%;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - NAVIGATION
+   ============================================ */
+
+@media (max-width: 991.98px) {
+  /* Menu desktop caché sur tablette/mobile */
+  .desktop-nav-links {
+    display: none !important;
+  }
+  
+  /* Bouton hamburger visible */
+  .mobile-menu-toggle {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 992px) {
+  /* Menu desktop visible */
+  .desktop-nav-links {
+    display: flex !important;
+  }
+  
+  /* Bouton hamburger caché */
+  .mobile-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - TABLEAUX
+   ============================================ */
+
+@media (max-width: 767.98px) {
+  /* Tableaux en mode cartes sur mobile */
+  .table-responsive-stack {
+    display: block;
+  }
+  
+  .table-responsive-stack thead {
+    display: none;
+  }
+  
+  .table-responsive-stack tbody tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--bg-color);
+  }
+  
+  .table-responsive-stack tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border: none;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+  
+  .table-responsive-stack tbody td:last-child {
+    border-bottom: none;
+  }
+  
+  .table-responsive-stack tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  
+  /* Files Table - Mode cartes sur mobile */
+  .files-table-container {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  
+  .files-table {
+    display: block !important;
+    min-width: auto !important;
+  }
+  
+  .files-table thead {
+    display: none !important;
+  }
+  
+  .files-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .files-table tbody tr {
+    display: flex !important;
+    flex-direction: column !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    background: var(--bg-color) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .files-table tbody tr:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+  }
+  
+  .files-table tbody td {
+    display: flex !important;
+    padding: 8px 0 !important;
+    border: none !important;
+    align-items: center;
+  }
+  
+  /* Checkbox en haut à droite */
+  .files-table tbody td:first-child {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 0 !important;
+  }
+  
+  .files-table tbody tr {
+    position: relative;
+    padding-right: 40px !important;
+  }
+  
+  /* Nom du fichier en premier */
+  .files-table tbody td:nth-child(2) {
+    order: 1;
+    font-size: 15px !important;
+    font-weight: 500;
+    padding-bottom: 4px !important;
+  }
+  
+  /* Taille */
+  .files-table tbody td:nth-child(3) {
+    order: 2;
+    font-size: 13px !important;
+    color: var(--text-muted) !important;
+  }
+  
+  .files-table tbody td:nth-child(3)::before {
+    content: "Taille: ";
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  
+  /* Date */
+  .files-table tbody td:nth-child(4) {
+    order: 3;
+    font-size: 13px !important;
+    color: var(--text-muted) !important;
+  }
+  
+  .files-table tbody td:nth-child(4)::before {
+    content: "Modifié: ";
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  
+  /* Actions */
+  .files-table tbody td:last-child {
+    order: 4;
+    padding-top: 12px !important;
+    border-top: 1px solid var(--border-color) !important;
+    margin-top: 8px;
+  }
+  
+  .files-table tbody td:last-child > div {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+  
+  .files-table tbody td:last-child button {
+    flex: 1;
+    min-width: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - MODALS
+   ============================================ */
+
+@media (max-width: 575.98px) {
+  .modal-dialog {
+    margin: 10px !important;
+    max-width: calc(100% - 20px) !important;
+  }
+  
+  .modal-content {
+    border-radius: 12px !important;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 16px !important;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+    margin: 0 !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - FORMULAIRES
+   ============================================ */
+
+@media (max-width: 575.98px) {
+  /* Formulaires pleine largeur */
+  .form-control,
+  .form-select {
+    font-size: 16px !important; /* Empêche le zoom sur iOS */
+  }
+  
+  /* Groupes de boutons */
+  .btn-group-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .btn-group-mobile .btn {
+    width: 100%;
+  }
+  
+  /* Labels et inputs */
+  .form-floating > label {
+    font-size: 14px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - ALERTES ET BADGES
+   ============================================ */
+
+@media (max-width: 575.98px) {
+  .alert {
+    padding: 12px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+  
+  .badge {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - UTILITAIRES
+   ============================================ */
+
+/* Cacher sur mobile */
+@media (max-width: 767.98px) {
+  .d-mobile-none {
+    display: none !important;
+  }
+}
+
+/* Afficher uniquement sur mobile */
+@media (min-width: 768px) {
+  .d-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Pleine largeur sur mobile */
+@media (max-width: 575.98px) {
+  .w-mobile-100 {
+    width: 100% !important;
+  }
+  
+  .flex-mobile-column {
+    flex-direction: column !important;
+  }
+  
+  .text-mobile-center {
+    text-align: center !important;
+  }
+  
+  .gap-mobile-2 {
+    gap: 8px !important;
+  }
+}
