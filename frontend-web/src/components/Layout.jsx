@@ -15,12 +15,14 @@ export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // GET /api/dashboard une fois quand on arrive sur la page (pas à chaque re-render si user change de référence)
+  // GET /api/dashboard dès qu'on est sur /dashboard et qu'un token existe (ne pas attendre user du store)
   useEffect(() => {
-    if (location.pathname === '/dashboard' && user) {
+    if (location.pathname !== '/dashboard') return;
+    const token = localStorage.getItem('access_token');
+    if (token) {
       dashboardService.getStats().catch(() => {});
     }
-  }, [location.pathname, user?.id]);
+  }, [location.pathname]);
 
   // Fermer les menus quand on change de page
   useEffect(() => {
