@@ -15,8 +15,10 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
   
-  const { signup } = useAuthStore();
+  const { signup, resendVerificationEmail } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useLanguage();
 
@@ -25,6 +27,23 @@ export default function Signup() {
     if (!/[A-Z]/.test(pwd)) return t('passwordRequiresUppercase');
     if (!/[0-9]/.test(pwd)) return t('passwordRequiresNumber');
     return null;
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    setResendLoading(true);
+    setResendSuccess('');
+    setError('');
+    
+    const result = await resendVerificationEmail(email);
+    
+    if (result.success) {
+      setResendSuccess('Email de vérification renvoyé ! Vérifiez votre boîte mail.');
+    } else {
+      setError(result.error || 'Erreur lors de l\'envoi de l\'email');
+    }
+    
+    setResendLoading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -103,22 +122,51 @@ export default function Signup() {
 
           {/* Message d'erreur */}
           {error && (
-            <div className="alert alert-danger py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+            <div className="alert alert-danger py-3 mb-2" role="alert" style={{ fontSize: '13px' }}>
               <div className="d-flex align-items-center gap-2 mb-2">
                 <i className="bi bi-exclamation-triangle-fill"></i>
-                <span>{error}</span>
+                <span style={{ color: '#fff', fontWeight: 600 }}>{error}</span>
               </div>
               {(error.includes('déjà') || error.includes('already')) && (
-                <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.3)' }}>
-                  <p className="small mb-2" style={{ color: '#fff', opacity: 0.95 }}>
-                    Cet email est déjà utilisé. Si vous n&apos;avez pas vérifié votre compte, allez sur la page de connexion et cliquez sur « Renvoyer l&apos;email de vérification ».
+                <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.4)' }}>
+                  <p className="mb-3" style={{ color: '#fff', fontSize: '14px', lineHeight: '1.6', fontWeight: 500 }}>
+                    Cet email est déjà utilisé. Si vous n&apos;avez pas vérifié votre compte, cliquez sur le bouton ci-dessous pour renvoyer l&apos;email de vérification.
                   </p>
-                  <Link to="/login" className="btn btn-sm btn-light d-inline-block" style={{ fontWeight: 600 }}>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="btn btn-light w-100 mb-2"
+                    style={{ fontWeight: 600, fontSize: '14px', padding: '10px' }}
+                  >
+                    {resendLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-envelope-fill me-2"></i>
+                        Renvoyer l&apos;email de vérification
+                      </>
+                    )}
+                  </button>
+                  <Link to="/login" className="btn btn-sm btn-outline-light w-100" style={{ fontWeight: 600 }}>
                     <i className="bi bi-box-arrow-in-right me-1"></i>
                     {t('goToLogin') || 'Aller à la connexion'}
                   </Link>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Message de succès du renvoi */}
+          {resendSuccess && (
+            <div className="alert alert-success py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+              <div className="d-flex align-items-center gap-2">
+                <i className="bi bi-check-circle-fill"></i>
+                <span style={{ fontWeight: 600 }}>{resendSuccess}</span>
+              </div>
             </div>
           )}
 

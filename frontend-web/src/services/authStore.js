@@ -118,6 +118,17 @@ const useAuthStore = create(
         }
       },
 
+      // Renvoyer l'email de vérification
+      resendVerificationEmail: async (email) => {
+        try {
+          const response = await authService.resendVerification(email);
+          return { success: true, message: response.data?.message || 'Email envoyé' };
+        } catch (err) {
+          const errorMessage = err.response?.data?.error?.message || err.message || 'Erreur lors de l\'envoi';
+          return { success: false, error: errorMessage };
+        }
+      },
+
       // Initialiser depuis localStorage
       initialize: () => {
         const accessToken = localStorage.getItem('access_token');
