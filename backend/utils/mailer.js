@@ -71,23 +71,17 @@ async function sendPasswordResetEmail(to, resetUrl) {
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
         <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
           <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-            <!-- Logo -->
-            <div style="text-align: center; margin-bottom: 32px;">
-              <img src="${logoUrl}" alt="SUPFile Logo" style="max-width: 120px; height: auto; margin-bottom: 16px;" />
-              <div style="display: inline-block; margin-top: 8px;">
-                <span style="color: #1e293b; font-size: 28px; font-weight: bold; background: linear-gradient(135deg, #3B82F6, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">SUPFile</span>
-              </div>
-            </div>
-
+            
             <!-- Titre -->
-            <h1 style="color: #1e293b; font-size: 24px; text-align: center; margin-bottom: 16px;">
-              Réinitialisation de mot de passe
+            <h1 style="color: #1e293b; font-size: 26px; text-align: center; margin-bottom: 16px; font-weight: 700;">
+              🔐 Réinitialisation de votre mot de passe
             </h1>
 
-            <!-- Message -->
-            <p style="color: #64748b; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 32px;">
-              Vous avez demandé à réinitialiser votre mot de passe.<br>
-              Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
+            <!-- Message principal -->
+            <p style="color: #64748b; font-size: 16px; line-height: 1.8; text-align: center; margin-bottom: 24px;">
+              Bonjour,<br><br>
+              Vous avez demandé à réinitialiser le mot de passe de votre compte <strong>SUPFile</strong>.<br>
+              Pour définir un nouveau mot de passe sécurisé, cliquez sur le bouton ci-dessous.
             </p>
 
             <!-- Bouton -->
@@ -116,17 +110,30 @@ async function sendPasswordResetEmail(to, resetUrl) {
               </p>
             </div>
 
-            <!-- Avertissement -->
-            <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-              Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.<br>
-              Votre mot de passe restera inchangé.
+            <!-- Avertissement sécurité -->
+            <div style="background: #FEE2E2; border-left: 4px solid #EF4444; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="color: #991B1B; font-size: 13px; margin: 0; line-height: 1.6;">
+                <strong>🛡️ Sécurité :</strong> Si vous n'avez pas demandé cette réinitialisation, ignorez cet email et votre mot de passe restera inchangé. Nous vous recommandons de vérifier l'activité de votre compte.
+              </p>
+            </div>
+
+            <!-- Support -->
+            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin: 0;">
+              Besoin d'aide ? Contactez notre support à <a href="mailto:support@supfile.com" style="color: #3B82F6; text-decoration: none;">support@supfile.com</a>
             </p>
           </div>
 
-          <!-- Footer -->
-          <div style="text-align: center; margin-top: 24px;">
-            <p style="color: #94a3b8; font-size: 12px;">
-              © ${new Date().getFullYear()} ${appName}. Tous droits réservés.
+          <!-- Footer avec logo -->
+          <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <img src="${logoUrl}" alt="SUPFile" style="max-width: 80px; height: auto; margin-bottom: 12px; opacity: 0.8;" />
+            <p style="color: #1e293b; font-size: 18px; font-weight: 700; margin: 0 0 8px 0;">
+              SUPFile
+            </p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+              Votre espace de stockage cloud sécurisé
+            </p>
+            <p style="color: #cbd5e1; font-size: 11px; margin: 12px 0 0 0;">
+              © ${new Date().getFullYear()} SUPFile. Tous droits réservés.
             </p>
           </div>
         </div>
