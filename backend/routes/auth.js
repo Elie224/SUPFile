@@ -16,6 +16,15 @@ router.post('/refresh', authController.refresh);
 // POST /api/auth/logout
 router.post('/logout', authController.logout);
 
+// POST /api/auth/forgot-password
+router.post('/forgot-password', authController.forgotPassword);
+
+// GET /api/auth/verify-reset-token/:token
+router.get('/verify-reset-token/:token', authController.verifyResetToken);
+
+// POST /api/auth/reset-password
+router.post('/reset-password', authController.resetPassword);
+
 // Routes OAuth - Initiation
 router.get('/google', initiateOAuth('google'));
 router.get('/github', initiateOAuth('github'));

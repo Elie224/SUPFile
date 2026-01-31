@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const { Schema } = mongoose;
 
 const UserSchema = new Schema({
@@ -14,6 +15,9 @@ const UserSchema = new Schema({
   is_active: { type: Boolean, default: true },
   is_admin: { type: Boolean, default: false },
   last_login_at: Date,
+  // Champs pour réinitialisation de mot de passe
+  reset_password_token: { type: String },
+  reset_password_expires: { type: Date },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -148,6 +152,95 @@ const UserModel = {
 
   async updatePreferences(id, preferences) {
     await User.findByIdAndUpdate(id, { preferences });
+  },
+
+  /**
+   * Génère un token de réinitialisation de mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Object} Token et expiration
+   */
+  async generateResetToken(email) {
+    const user = await User.findOne({ email });
+    if (!user) return null;
+
+    // Générer un token aléatoire
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash le token pour le stocker en base
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Expiration dans 1 heure
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await User.findByIdAndUpdate(user._id, {
+      reset_password_token: hashedToken,
+      reset_password_expires: expiresAt,
+    });
+
+    return {
+      token: resetToken, // On retourne le token non hashé pour l'envoyer par email
+      expiresAt,
+      userId: user._id.toString(),
+    };
+  },
+
+  /**
+   * Vérifie un token de réinitialisation
+   * @param {string} token - Token reçu
+   * @returns {Object|null} Utilisateur si token valide
+   */
+  async verifyResetToken(token) {
+    // Hash le token reçu pour comparaison
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      reset_password_token: hashedToken,
+      reset_password_expires: { $gt: new Date() },
+    }).lean();
+
+    if (!user) return null;
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+    };
+  },
+
+  /**
+   * Réinitialise le mot de passe avec un token valide
+   * @param {string} token - Token de réinitialisation
+   * @param {string} newPasswordHash - Nouveau mot de passe hashé
+   * @returns {boolean} Succès ou échec
+   */
+  async resetPassword(token, newPasswordHash) {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      reset_password_token: hashedToken,
+      reset_password_expires: { $gt: new Date() },
+    });
+
+    if (!user) return false;
+
+    user.password_hash = newPasswordHash;
+    user.reset_password_token = undefined;
+    user.reset_password_expires = undefined;
+    await user.save();
+
+    return true;
+  },
+
+  /**
+   * Met à jour le mot de passe d'un utilisateur
+   * @param {string} id - ID de l'utilisateur
+   * @param {string} passwordHash - Nouveau mot de passe hashé
+   */
+  async updatePassword(id, passwordHash) {
+    await User.findByIdAndUpdate(id, { 
+      password_hash: passwordHash,
+      reset_password_token: undefined,
+      reset_password_expires: undefined,
+    });
   },
 
   /**

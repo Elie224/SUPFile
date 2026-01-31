@@ -105,7 +105,7 @@ export default function Login() {
               />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <label htmlFor="password" className="form-label">
                 <i className="bi bi-lock-fill me-2"></i>
                 {t('password')}
@@ -121,6 +121,21 @@ export default function Login() {
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
+            </div>
+
+            {/* Lien mot de passe oublié */}
+            <div className="mb-4 text-end">
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  color: 'var(--primary-color)', 
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                Mot de passe oublié ?
+              </Link>
             </div>
 
             <button
