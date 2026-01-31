@@ -182,15 +182,20 @@ export default function Login() {
                 <span>{error}</span>
               </div>
               {emailNotVerified && email?.trim() && (
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={resendLoading}
-                  className="btn btn-outline-light btn-sm mt-2"
-                  style={{ fontSize: '12px' }}
-                >
-                  {resendLoading ? (t('sending') || 'Envoi...') : (t('resendVerification') || 'Renvoyer l\'email de vérification')}
-                </button>
+                <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.3)' }}>
+                  <p className="small mb-1" style={{ opacity: 0.95 }}>
+                    {t('emailNotVerifiedHint') || 'Votre compte n\'est pas encore vérifié. Cliquez sur le lien reçu par email, ou renvoyez l\'email ci-dessous.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="btn btn-outline-light btn-sm"
+                    style={{ fontSize: '12px' }}
+                  >
+                    {resendLoading ? (t('sending') || 'Envoi...') : (t('resendVerification') || 'Renvoyer l\'email de vérification')}
+                  </button>
+                </div>
               )}
             </div>
           )}
