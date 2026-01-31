@@ -756,17 +756,15 @@ export default function Settings() {
             {saving ? t('saving') : t('changePassword')}
           </button>
         </form>
-      </section>
 
-
-      {/* Double authentification (2FA) */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>
+        {/* Double authentification (2FA) - dans la même section Sécurité */}
+        <hr style={{ margin: '28px 0 24px', borderColor: 'var(--border-color)' }} />
+        <h3 style={{ marginBottom: 12, fontSize: '1.25em', color: 'var(--text-color)' }}>
           🔐 Double authentification (2FA)
-        </h2>
-        <p style={{ marginBottom: 20, color: 'var(--text-secondary)' }}>
+        </h3>
+        <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: '0.95em' }}>
           Renforcez la sécurité de votre compte en activant la double authentification. 
-          Vous devrez entrer un code depuis votre application d'authentification à chaque connexion.
+          Vous devrez entrer un code depuis votre application (Google Authenticator, Authy…) à chaque connexion.
         </p>
 
         {!twoFactorEnabled ? (
@@ -977,7 +975,7 @@ export default function Settings() {
         )}
       </section>
 
-      {/* Déconnexion */}
+      {/* Déconnexion - section séparée */}
       <section style={{ padding: 24, backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🚪 {t('logout')}</h2>
         <p style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
