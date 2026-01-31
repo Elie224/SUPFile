@@ -13,12 +13,13 @@ import offlineDB from './services/offlineDB';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 
-// Lazy loading des pages pour améliorer les performances
+// Dashboard en import direct : évite blocage "Chargement..." si le chunk lazy ne charge pas (Netlify, cache, 404)
+import Dashboard from './pages/Dashboard';
+// Lazy loading des autres pages
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthProxy = lazy(() => import('./pages/OAuthProxy'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Files = lazy(() => import('./pages/Files'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Preview = lazy(() => import('./pages/Preview'));
