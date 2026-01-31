@@ -161,10 +161,10 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="page-container" style={{ padding: 'clamp(12px, 3vw, 24px)', maxWidth: '1400px', margin: '0 auto' }}>
       <h1 style={{ 
-        fontSize: '28px',
-        marginBottom: '24px',
+        fontSize: 'clamp(1.25rem, 4vw, 1.75rem)',
+        marginBottom: 'clamp(16px, 3vw, 24px)',
         fontWeight: '700',
         color: 'var(--text-color)'
       }}>⚙️ Administration</h1>
@@ -186,9 +186,9 @@ export default function Admin() {
       {stats && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
-          marginBottom: '32px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 'clamp(12px, 2vw, 20px)',
+          marginBottom: 'clamp(20px, 3vw, 32px)'
         }}>
           <div style={{
             padding: '20px',
