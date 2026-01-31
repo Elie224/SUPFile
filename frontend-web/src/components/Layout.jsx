@@ -15,12 +15,12 @@ export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Quand on est sur /dashboard, déclencher GET /api/dashboard depuis le Layout (toujours monté) pour que la requête parte
+  // GET /api/dashboard une fois quand on arrive sur la page (pas à chaque re-render si user change de référence)
   useEffect(() => {
     if (location.pathname === '/dashboard' && user) {
       dashboardService.getStats().catch(() => {});
     }
-  }, [location.pathname, user]);
+  }, [location.pathname, user?.id]);
 
   // Fermer les menus quand on change de page
   useEffect(() => {
