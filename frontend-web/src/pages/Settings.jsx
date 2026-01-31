@@ -107,12 +107,17 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
+      console.log('Mise à jour du profil:', { email, display_name: displayName });
       const response = await userService.updateProfile({ email, display_name: displayName });
+      console.log('Réponse:', response);
       showMessage('success', 'Profil mis à jour avec succès');
       if (setUser && response.data.data) {
         setUser({ ...user, ...response.data.data });
       }
+      // Recharger les données pour s'assurer que tout est à jour
+      await loadUserData();
     } catch (err) {
+      console.error('Erreur mise à jour profil:', err);
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setSaving(false);
@@ -169,6 +174,16 @@ export default function Settings() {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     
+    if (!currentPassword) {
+      showMessage('error', 'Veuillez entrer votre mot de passe actuel');
+      return;
+    }
+    
+    if (!newPassword) {
+      showMessage('error', 'Veuillez entrer un nouveau mot de passe');
+      return;
+    }
+    
     if (newPassword !== confirmPassword) {
       showMessage('error', 'Les mots de passe ne correspondent pas');
       return;
@@ -182,12 +197,15 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
+      console.log('Changement de mot de passe...');
       await userService.changePassword(currentPassword, newPassword);
+      console.log('Mot de passe changé avec succès');
       showMessage('success', 'Mot de passe changé avec succès');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
+      console.error('Erreur changement mot de passe:', err);
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setSaving(false);
@@ -437,7 +455,12 @@ export default function Settings() {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => setTheme('light')}
+              onClick={() => {
+                setTheme('light');
+                // Appliquer immédiatement le thème
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+              }}
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
@@ -458,7 +481,12 @@ export default function Settings() {
             </button>
             <button
               type="button"
-              onClick={() => setTheme('dark')}
+              onClick={() => {
+                setTheme('dark');
+                // Appliquer immédiatement le thème
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+              }}
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
