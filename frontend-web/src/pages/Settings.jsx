@@ -441,15 +441,16 @@ export default function Settings() {
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
-                border: theme === 'light' ? '2px solid #2196F3' : '1px solid var(--border-color)',
-                backgroundColor: theme === 'light' ? '#E3F2FD' : 'var(--bg-secondary)',
-                color: theme === 'light' ? '#1E293B' : 'var(--text-color)',
+                border: theme === 'light' ? '2px solid #60a5fa' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'light' ? 'rgba(96, 165, 250, 0.2)' : 'var(--bg-tertiary)',
+                color: theme === 'light' ? '#60a5fa' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 minWidth: 120,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                fontWeight: theme === 'light' ? 600 : 400,
               }}
             >
               <span>🌞</span>
@@ -461,15 +462,16 @@ export default function Settings() {
               style={{
                 padding: '10px 20px',
                 borderRadius: 8,
-                border: theme === 'dark' ? '2px solid #2196F3' : '1px solid var(--border-color)',
-                backgroundColor: theme === 'dark' ? '#1E293B' : 'var(--bg-secondary)',
-                color: theme === 'dark' ? 'white' : 'var(--text-color)',
+                border: theme === 'dark' ? '2px solid #60a5fa' : '1px solid var(--border-color)',
+                backgroundColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.2)' : 'var(--bg-tertiary)',
+                color: theme === 'dark' ? '#60a5fa' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 minWidth: 120,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                fontWeight: theme === 'dark' ? 600 : 400,
               }}
             >
               <span>🌙</span>
