@@ -479,12 +479,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
-                                    'Fichiers récents',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                                  const Expanded(
+                                    child: Text(
+                                      'Fichiers récents',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => context.go('/files'),
+                                    child: const Text('Voir tout'),
                                   ),
                                 ],
                               ),
@@ -517,6 +523,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   }
                                   
                                   return ListTile(
+                                    onTap: () => context.go('/preview/${file['id']}'),
                                     leading: Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
@@ -525,13 +532,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                       child: Icon(icon, color: iconColor, size: 20),
                                     ),
-                                      title: Text(file['name'] ?? ''),
-                                      subtitle: Text(_formatBytes(file['size'] ?? 0)),
-                                      trailing: Text(
-                                        DateTime.parse(file['updated_at'])
-                                            .toString()
-                                            .substring(0, 10),
-                                      ),
+                                    title: Text(file['name'] ?? ''),
+                                    subtitle: Text(_formatBytes(file['size'] ?? 0)),
+                                    trailing: Text(
+                                      DateTime.parse(file['updated_at'])
+                                          .toString()
+                                          .substring(0, 10),
+                                    ),
                                   );
                                 })
                               else

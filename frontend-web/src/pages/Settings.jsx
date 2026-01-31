@@ -392,10 +392,14 @@ export default function Settings() {
   };
 
 
-  // Calculer le pourcentage brut et formaté - Corriger l'incohérence : si used === 0, alors 0%
-  const quotaPercentageRaw = quotaLimit > 0 && quotaUsed > 0 ? (quotaUsed / quotaLimit) * 100 : 0;
-  const quotaPercentage = quotaUsed === 0 ? 0 : (quotaPercentageRaw < 1 
-    ? Math.max(0.01, parseFloat(quotaPercentageRaw.toFixed(2)))
+  // Calcul du pourcentage : sécurisé (pas de division par zéro, plafonné à 100 %)
+  const quotaLimitNum = Number(quotaLimit) || 1;
+  const quotaUsedNum = Number(quotaUsed) || 0;
+  const quotaPercentageRaw = quotaLimitNum > 0 && quotaUsedNum >= 0
+    ? Math.min(100, (quotaUsedNum / quotaLimitNum) * 100)
+    : 0;
+  const quotaPercentage = quotaUsedNum === 0 ? 0 : (quotaPercentageRaw < 1
+    ? parseFloat(quotaPercentageRaw.toFixed(2))
     : Math.round(quotaPercentageRaw));
   const quotaColor = quotaPercentageRaw >= 90 ? '#f44336' : quotaPercentageRaw >= 75 ? '#ff9800' : '#4caf50';
 
@@ -491,28 +495,30 @@ export default function Settings() {
               <div style={{ marginTop: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                    {formatBytes(quotaUsed)} / {formatBytes(quotaLimit)}
+                    {formatBytes(quotaUsedNum)} / {formatBytes(quotaLimitNum)}
                   </span>
                   <span style={{ color: 'var(--text-secondary)' }}>
-                    {quotaUsed === 0 ? '0' : (quotaPercentageRaw < 1 
-                      ? quotaPercentageRaw.toFixed(2) 
-                      : quotaPercentage)}%
+                    {quotaUsedNum === 0 ? '0' : (quotaPercentageRaw < 1
+                      ? quotaPercentageRaw.toFixed(2)
+                      : Math.round(quotaPercentageRaw))}%
                   </span>
                 </div>
-                <div style={{
-                  width: '100%',
-                  height: 12,
-                  backgroundColor: 'var(--bg-hover)',
-                  borderRadius: 6,
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}>
+                <div
+                  className="storage-progress-track"
+                  style={{
+                    width: '100%',
+                    height: 12,
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
                   <div style={{
-                    width: `${quotaUsed > 0 ? Math.max(quotaPercentageRaw, 0.1) : 0}%`,
+                    width: `${quotaUsedNum > 0 ? Math.max(quotaPercentageRaw, 0.1) : 0}%`,
                     height: '100%',
                     backgroundColor: quotaColor,
                     transition: 'width 0.3s ease',
-                    minWidth: quotaUsed > 0 ? '3px' : '0'
+                    minWidth: quotaUsedNum > 0 ? '3px' : '0'
                   }} />
                 </div>
               </div>

@@ -133,6 +133,51 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
+  /// Affiche les détails techniques (taille, date de modification, type MIME)
+  void _showTechnicalDetails() {
+    if (_file == null) return;
+    final f = _file!;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Détails techniques',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            _detailRow('Nom', f.name),
+            _detailRow('Taille', f.formattedSize),
+            _detailRow('Type MIME', f.mimeType ?? 'Non spécifié'),
+            _detailRow(
+              'Date de modification',
+              f.updatedAt.toIso8601String().substring(0, 19).replaceFirst('T', ' '),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Expanded(
+            child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Télécharge et sauvegarde le fichier sur l'appareil
   Future<void> _downloadFile() async {
     if (_file == null) return;
@@ -268,6 +313,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
         ),
         title: Text(_file!.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: _showTechnicalDetails,
+            tooltip: 'Détails techniques',
+          ),
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: _downloadFile,

@@ -6,6 +6,8 @@ class FolderItem {
   final bool isDeleted;
   final DateTime createdAt;
   final DateTime updatedAt;
+  /// True si le dossier a été partagé avec moi (partage interne)
+  final bool sharedWithMe;
   
   FolderItem({
     required this.id,
@@ -15,6 +17,7 @@ class FolderItem {
     required this.isDeleted,
     required this.createdAt,
     required this.updatedAt,
+    this.sharedWithMe = false,
   });
   
   factory FolderItem.fromJson(Map<String, dynamic> json) {
@@ -52,6 +55,7 @@ class FolderItem {
       isDeleted: json['is_deleted'] == true,
       createdAt: parseDate(json['created_at']?.toString(), DateTime.now()),
       updatedAt: parseDate(json['updated_at']?.toString(), DateTime.now()),
+      sharedWithMe: json['shared_with_me'] == true,
     );
   }
   

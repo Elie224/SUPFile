@@ -777,17 +777,41 @@ export default function Files() {
                     fontWeight: '500',
                     transition: 'color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
-                  onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
+                  onMouseEnter={(e) => { e.target.style.color = 'var(--primary-hover)'; }}
+                  onMouseLeave={(e) => { e.target.style.color = 'var(--primary-color)'; }}
                 >
                   {t('root')}
                 </span>
-                {breadcrumbs.map((name, idx) => (
-                  <React.Fragment key={idx}>
-                    <span style={{ color: 'var(--text-muted)' }}>/</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>{name}</span>
-                  </React.Fragment>
-                ))}
+                {breadcrumbs.map((name, idx) => {
+                  const isLast = idx === breadcrumbs.length - 1;
+                  const folder = idx < folderHistory.length ? folderHistory[idx] : currentFolder;
+                  const isClickable = !isLast && folder;
+                  return (
+                    <React.Fragment key={idx}>
+                      <span style={{ color: 'var(--text-muted)' }}>/</span>
+                      {isClickable ? (
+                        <span
+                          onClick={() => {
+                            setFolderHistory(folderHistory.slice(0, idx));
+                            setCurrentFolder(folder);
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            color: 'var(--primary-color)',
+                            fontWeight: '500',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseEnter={(e) => { e.target.style.color = 'var(--primary-hover)'; }}
+                          onMouseLeave={(e) => { e.target.style.color = 'var(--primary-color)'; }}
+                        >
+                          {name}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: isLast ? '600' : 'normal' }}>{name}</span>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1470,6 +1494,11 @@ export default function Files() {
                         >
                           <i className="bi bi-folder-fill text-warning me-2" style={{ fontSize: '20px' }}></i>
                           {item.name}
+                          {item.shared_with_me && (
+                            <span style={{ marginLeft: '8px', fontSize: '11px', backgroundColor: 'var(--primary-color)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontWeight: '500' }}>
+                              {t('sharedWithMe') || 'Partagé avec moi'}
+                            </span>
+                          )}
                         </span>
                       ) : (
                         <span

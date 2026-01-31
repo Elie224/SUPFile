@@ -520,12 +520,35 @@ class _FilesScreenState extends State<FilesScreen> {
               size: 24,
             ),
           ),
-          title: Text(
-            folder.name,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  folder.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (folder.sharedWithMe)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Partagé avec moi',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue.shade800,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),

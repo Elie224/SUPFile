@@ -7,8 +7,8 @@
 │                    COUCHE PRÉSENTATION                        │
 │                                                               │
 │  ┌─────────────────────┐         ┌──────────────────────┐   │
-│  │   Frontend Web      │         │   Mobile App (Expo)  │   │
-│  │   React + Vite      │         │   React Native       │   │
+│  │   Frontend Web      │         │   Mobile App        │   │
+│  │   React + Vite      │         │   Flutter            │   │
 │  │                     │         │                      │   │
 │  │ - File Manager      │         │ - Navigation         │   │
 │  │ - Dashboard         │         │ - Upload/Download    │   │
@@ -39,18 +39,18 @@
 │  └──────────────────────────────────────────────────────┘    │
 └──────┬──────────────────────────────────────┬─────────────────┘
        │                                      │
-       │ SQL Queries / ORM                    │ File I/O
+       │ Mongoose / MongoDB                   │ File I/O
        │                                      │
 ┌──────▼──────────────────┐      ┌───────────▼──────────────┐
-│   PostgreSQL (BDD)      │      │  Docker Volume           │
+│   MongoDB (BDD)          │      │  Docker Volume           │
 │                         │      │  (File Storage)          │
-│  Tables:                │      │                          │
+│  Collections:            │      │                          │
 │  - users                │      │  /uploads/               │
 │  - folders              │      │  └─ user1/               │
 │  - files                │      │  └─ user2/               │
 │  - shares               │      │  └─ ...                  │
-│  - sessions (optional)  │      │                          │
-│                         │      │  (5GB per user)          │
+│  - sessions (optional)   │      │  (quota par user)        │
+│                         │      │                          │
 └─────────────────────────┘      └──────────────────────────┘
 ```
 
@@ -64,11 +64,11 @@
 - Gestion d'état (Zustand)
 - Responsive design (mobile-first)
 
-**Mobile (React Native + Expo)**
-- Même API client que web
-- Navigation native
-- Permission system (caméra, stockage, etc.)
-- Offline support (optionnel - bonus)
+**Mobile (Flutter)**
+- Même API REST que le web
+- Navigation native (iOS / Android)
+- Gestion des permissions (stockage, caméra)
+- Support hors ligne (cache, session persistée)
 
 ### 2.2 Logique métier (API)
 
@@ -91,15 +91,15 @@ exports.login = async (req, res) => {
 
 ### 2.3 Persistance (BDD + Stockage)
 
-**PostgreSQL**
-- Métadonnées (utilisateurs, structure de dossiers)
-- Indices pour performances rapides
-- Transactions pour intégrité
+**MongoDB**
+- Métadonnées (utilisateurs, dossiers, fichiers, partages)
+- Schéma flexible (Mongoose), index pour les requêtes fréquentes
+- Pas de schéma SQL ; collections : users, folders, files, shares, sessions
 
 **Stockage physique (Docker Volume)**
 - Fichiers réels stockés sur `/uploads`
-- Chemin relatif stocké en BDD
-- Gestion du quota (30 Go par utilisateur)
+- Chemin physique stocké dans la collection `files`
+- Quota par utilisateur (ex. 30 Go)
 
 ---
 
@@ -616,27 +616,26 @@ External user receives link
 
 ```yaml
 services:
-  db (PostgreSQL)
+  db (MongoDB 6)
     → volume db_data pour persistance
-    → healthcheck pour readiness
+    → auth via MONGO_INITDB_*
   
   backend (Node.js)
     → volume backend_data pour uploads
-    → depends_on db (healthcheck)
-    → env vars depuis .env
+    → depends_on db
+    → variables d'environnement depuis .env
   
   frontend (React/Vite)
     → livereload en dev
-    → dist/ volume en prod
-  
-  mobile (Expo)
-    → tunnel Expo pour testing
+    → build dist/ en prod
 ```
+
+L’application mobile Flutter se build et s’exécute en dehors de Docker (APK / iOS).
 
 ### 9.2 Volumes
 
 ```
-db_data       → /var/lib/postgresql/data
+db_data       → /data/db (MongoDB)
 backend_data  → /usr/src/app/uploads
 ```
 
@@ -646,26 +645,53 @@ backend_data  → /usr/src/app/uploads
 
 | Couche | Technologie | Justification |
 |--------|-------------|---------------|
-| **Backend** | Node.js + Express | Léger, performant, asynchrone |
-| **Frontend Web** | React + Vite | Réactif, SPA, dev experience |
-| **Mobile** | React Native + Expo | Code sharing, support iOS/Android |
-| **BDD** | PostgreSQL | Relationnel, fiable, queryable |
-| **Auth** | JWT + bcryptjs | Standard, without session server |
-| **File Upload** | Multer | Middleware fiable et populaire |
-| **Zip** | Archiver | Génération efficace en stream |
-| **Image** | Sharp | Redimensionnement léger |
-| **Containerization** | Docker | Portabilité, isolation, CI/CD |
+| **Backend** | Node.js + Express | Léger, asynchrone, écosystème npm riche |
+| **Frontend Web** | React + Vite | SPA réactive, bon outillage (HMR, build rapide) |
+| **Mobile** | Flutter (Dart) | Une codebase pour iOS et Android, performances natives |
+| **BDD** | MongoDB | Schéma flexible, scalabilité horizontale, adapté aux métadonnées fichiers |
+| **Auth** | JWT + bcryptjs | Sans session serveur, standard pour les API REST |
+| **Upload** | Multer | Middleware standard pour multipart/form-data |
+| **Zip** | Archiver | Génération de ZIP en stream |
+| **Image** | Sharp | Redimensionnement et optimisation d’images |
+| **Conteneurisation** | Docker | Portabilité, reproductibilité, déploiement simplifié |
 
 ---
 
-## Next Steps
+## 11. Justification des choix technologiques
 
-1. Implémenter les modèles BDD (migrations SQL)
-2. Créer les routes d'authentification
-3. Ajouter middlewares (auth, validation)
-4. Implémenter upload/download
-5. Créer l'UI web basique
-6. Tester end-to-end
+### Backend : Node.js + Express
+- **Asynchrone** : adapté aux I/O (fichiers, BDD, appels externes) sans bloquer le thread.
+- **Écosystème** : Multer, JWT, Mongoose, Sharp, etc. permettent de livrer rapidement.
+- **API REST** : un seul backend pour le web et le mobile.
+
+### Frontend Web : React + Vite
+- **React** : composants réutilisables, état prévisible, large adoption.
+- **Vite** : temps de démarrage et de build courts, HMR fluide en développement.
+
+### Mobile : Flutter
+- **Une codebase** : même projet pour Android et iOS, moins de duplication.
+- **Performances** : rendu natif (Skia), pas de bridge JavaScript.
+- **UI cohérente** : Material / Cupertino et widgets personnalisables.
+
+### Base de données : MongoDB
+- **Document store** : structure (users, dossiers, fichiers, partages) modélisable en documents, avec références (ObjectId).
+- **Évolution** : ajout de champs (2FA, préférences, etc.) sans migrations SQL.
+- **Atlas** : offre managée pour la production et la scalabilité.
+
+### Authentification : JWT
+- **Stateless** : pas de session côté serveur, adapté aux API et au scale-out.
+- **Multi-client** : même token pour web et mobile.
+- **Refresh token** : renouvellement sans re-saisie du mot de passe.
+
+### Fichiers : volume Docker + métadonnées en BDD
+- **Volume** : fichiers sur disque (ou NFS/S3 en prod), pas en BDD.
+- **Métadonnées en MongoDB** : nom, taille, type MIME, chemin, quota, corbeille, partages.
+
+---
+
+## 12. Diagrammes UML (résumé)
+
+Des diagrammes détaillés (cas d’utilisation, schéma relationnel / logique BDD) sont disponibles dans le document **`docs/DIAGRAMMES_UML.md`** (Mermaid et descriptions).
 
 ---
 

@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const FileModel = require('../models/fileModel');
 const FolderModel = require('../models/folderModel');
+const ShareModel = require('../models/shareModel');
 const UserModel = require('../models/userModel');
 const config = require('../config');
 const { AppError } = require('../middlewares/errorHandler');
@@ -113,16 +114,25 @@ async function listFiles(req, res, next) {
 
     const folderId = folder_id === 'root' || !folder_id ? null : folder_id;
 
-    // Vérifier que le dossier appartient à l'utilisateur
+    let effectiveOwnerId = userId;
+    let isSharedFolder = false;
+
+    // Vérifier accès au dossier : propriétaire ou partage interne (dossier partagé avec moi)
     if (folderId) {
       const folder = await FolderModel.findById(folderId);
       if (!folder) {
         return res.status(404).json({ error: { message: 'Folder not found' } });
       }
-      
-      // Vérifier que le dossier appartient à l'utilisateur
-      if (!compareObjectIds(folder.owner_id, userId)) {
-        return errorResponse(res, 'Access denied', 403);
+      if (compareObjectIds(folder.owner_id, userId)) {
+        effectiveOwnerId = userId;
+      } else {
+        const internalShares = await ShareModel.findBySharedWith(userId);
+        const sharedFolder = internalShares.find(s => s.folder_id && s.folder_id.toString() === folderId.toString());
+        if (!sharedFolder) {
+          return errorResponse(res, 'Access denied', 403);
+        }
+        effectiveOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
+        isSharedFolder = true;
       }
     }
 
@@ -130,19 +140,42 @@ async function listFiles(req, res, next) {
     const skipNum = parseInt(skip);
     const limitNum = parseInt(limit);
     
-    // Récupérer en parallèle avec pagination optimisée
+    // Récupérer en parallèle avec pagination optimisée (contenu du propriétaire effectif)
     const [files, folders, totalFiles, totalFolders] = await Promise.all([
-      FileModel.findByOwner(userId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
-      FolderModel.findByOwner(userId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
-      FileModel.countByOwner(userId, folderId, false),
-      FolderModel.countByOwner(userId, folderId, false),
+      FileModel.findByOwner(effectiveOwnerId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
+      FolderModel.findByOwner(effectiveOwnerId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
+      FileModel.countByOwner(effectiveOwnerId, folderId, false),
+      FolderModel.countByOwner(effectiveOwnerId, folderId, false),
     ]);
 
     // Combiner et trier (tri déjà fait côté DB, mais combiner pour l'affichage)
-    const items = [
-      ...folders.map(f => ({ ...f, type: 'folder' })),
-      ...files.map(f => ({ ...f, type: 'file' })),
+    let items = [
+      ...folders.map(f => ({ ...f, type: 'folder', shared_with_me: isSharedFolder })),
+      ...files.map(f => ({ ...f, type: 'file', shared_with_me: isSharedFolder })),
     ];
+
+    // À la racine : ajouter les dossiers partagés avec moi (ils apparaissent dans la racine du destinataire)
+    let sharedFoldersCount = 0;
+    if (!folderId && skipNum === 0) {
+      const internalShares = await ShareModel.findBySharedWith(userId);
+      const folderShareIds = internalShares
+        .filter(s => s.folder_id)
+        .map(s => s.folder_id.toString());
+      const uniqueFolderIds = [...new Set(folderShareIds)];
+      if (uniqueFolderIds.length > 0) {
+        const sharedFolders = await Promise.all(
+          uniqueFolderIds.map(fid => FolderModel.findById(fid))
+        );
+        const validShared = sharedFolders.filter(Boolean);
+        sharedFoldersCount = validShared.length;
+        const sharedItems = validShared.map(f => ({
+          ...f,
+          type: 'folder',
+          shared_with_me: true,
+        }));
+        items = [...sharedItems, ...items];
+      }
+    }
 
     // Trier à nouveau pour combiner fichiers et dossiers (si nécessaire)
     if (sort_by === 'name') {
@@ -154,7 +187,7 @@ async function listFiles(req, res, next) {
       });
     }
 
-    const total = totalFiles + totalFolders;
+    const total = totalFiles + totalFolders + sharedFoldersCount;
 
     res.status(200).json({
       data: {

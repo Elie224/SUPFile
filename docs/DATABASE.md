@@ -2,17 +2,36 @@
 
 ## Vue d'ensemble
 
-La base de données PostgreSQL stocke toutes les métadonnées de l'application :
-- Utilisateurs et authentification
-- Arborescence des dossiers
-- Métadonnées des fichiers
-- Informations de partage
+Le projet utilise **MongoDB** (driver Mongoose). La base stocke les métadonnées de l'application :
+- Utilisateurs et authentification (collection `users`)
+- Arborescence des dossiers (collection `folders`)
+- Métadonnées des fichiers (collection `files`)
+- Partages publics et internes (collection `shares`)
+- Sessions / refresh tokens (collection `sessions`)
 
-Les fichiers eux-mêmes sont stockés dans un volume Docker, pas en BDD.
+Les fichiers binaires sont stockés sur le système de fichiers (volume Docker `/uploads`), pas en BDD. Seul le chemin (`file_path`) est enregistré dans `files`.
+
+**Diagrammes UML** (cas d'utilisation et schéma relationnel logique) : voir **`docs/DIAGRAMMES_UML.md`**.
 
 ---
 
-## Tables détaillées
+## Collections MongoDB (résumé)
+
+| Collection | Rôle |
+|------------|------|
+| **users** | Comptes utilisateurs, OAuth, quota, préférences, 2FA |
+| **folders** | Dossiers, `owner_id`, `parent_id` (arborescence) |
+| **files** | Fichiers, `folder_id`, `owner_id`, `file_path`, corbeille (`is_deleted`) |
+| **shares** | Partages : `share_type` (public/internal), `public_token`, `shared_with_user_id`, expiration, mot de passe |
+| **sessions** | Refresh tokens pour révocation |
+
+Les schémas exacts (champs, index) sont définis dans `backend/models/` (userModel.js, folderModel.js, fileModel.js, shareModel.js, sessionModel.js).
+
+---
+
+## Structure logique (équivalent « tables »)
+
+La description suivante utilise un style SQL pour faciliter la lecture ; l’implémentation réelle est en **collections MongoDB** avec ObjectId et références Mongoose.
 
 ### 1. `users`
 
