@@ -179,7 +179,7 @@ async function sendVerificationEmail(to, verifyUrl, firstName = '') {
     subject: `${appName} - Vérifiez votre adresse email`,
     html,
     attachments,
-    text: `SUPFile - Vérification de votre email\n\n${greeting}\n\nCliquez pour vérifier votre adresse et activer votre compte :\n${verifyUrl}\n\nCe lien expire dans 24 heures.\n\n© ${new Date().getFullYear()} SUPFile`,
+    text: `SUPFile - Vérification de votre email\n\n${greeting}\n\nCliquez pour vérifier votre adresse et activer votre compte :\n${verifyUrl}\n\nCe lien expire dans 15 minutes.\n\n© ${new Date().getFullYear()} SUPFile`,
   };
 
   try {
