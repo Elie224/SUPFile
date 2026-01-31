@@ -674,17 +674,13 @@ export default function Settings() {
         </button>
       </section>
 
-      {/* Sécurité : 2FA en premier, puis mot de passe */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🔒 {t('security')}</h2>
-
-        {/* Double authentification (2FA) - en premier pour être visible sans scroll */}
-        <h3 style={{ marginBottom: 12, fontSize: '1.25em', color: 'var(--text-color)' }}>
+      {/* Section dédiée 2FA - visible entre Préférences et Sécurité */}
+      <section id="2fa" style={{ marginBottom: 32, padding: 24, backgroundColor: '#f0fdf4', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', border: '1px solid #86efac' }}>
+        <h2 style={{ marginBottom: 12, fontSize: '1.5em', color: 'var(--text-color)' }}>
           🔐 Double authentification (2FA)
-        </h3>
+        </h2>
         <p style={{ marginBottom: 20, color: 'var(--text-secondary)', fontSize: '0.95em' }}>
-          Renforcez la sécurité de votre compte en activant la double authentification. 
-          Vous devrez entrer un code depuis votre application (Google Authenticator, Authy…) à chaque connexion.
+          Renforcez la sécurité de votre compte. À chaque connexion, entrez un code depuis Google Authenticator ou Authy.
         </p>
 
         {!twoFactorEnabled ? (
@@ -893,9 +889,11 @@ export default function Settings() {
             </form>
           </div>
         )}
+      </section>
 
-        <hr style={{ margin: '28px 0 24px', borderColor: 'var(--border-color)' }} />
-        <h3 style={{ marginBottom: 12, fontSize: '1.25em', color: 'var(--text-color)' }}>{t('changePassword')}</h3>
+      {/* Sécurité - mot de passe */}
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🔒 {t('security')}</h2>
         <form onSubmit={handleChangePassword}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('currentPassword')}</label>
