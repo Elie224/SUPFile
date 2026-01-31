@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
+import { dashboardService } from '../services/api';
 import Logo from './Logo';
 import Footer from './Footer';
 import SyncIndicator from './SyncIndicator';
@@ -13,6 +14,13 @@ export default function Layout({ children }) {
   const { t, language } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Quand on est sur /dashboard, déclencher GET /api/dashboard depuis le Layout (toujours monté) pour que la requête parte
+  useEffect(() => {
+    if (location.pathname === '/dashboard' && user) {
+      dashboardService.getStats().catch(() => {});
+    }
+  }, [location.pathname, user]);
 
   // Fermer les menus quand on change de page
   useEffect(() => {
