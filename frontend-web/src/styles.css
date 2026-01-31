@@ -284,9 +284,43 @@
   color: #ffffff !important;
 }
 
-/* Alertes */
+/* Alertes - Styles complets pour mode sombre */
 [data-theme="dark"] .alert {
-  color: var(--text-color) !important;
+  color: #ffffff !important;
+  border-width: 1px;
+}
+
+[data-theme="dark"] .alert-warning {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #fcd34d !important;
+}
+
+[data-theme="dark"] .alert-warning strong {
+  color: #fde68a !important;
+}
+
+[data-theme="dark"] .alert-success {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #86efac !important;
+}
+
+[data-theme="dark"] .alert-danger {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .alert-info {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .alert i,
+[data-theme="dark"] .alert .bi {
+  color: inherit !important;
 }
 
 /* Navigation tabs */
