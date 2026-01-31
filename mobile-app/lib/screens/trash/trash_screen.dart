@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/api_service.dart';
+import '../../services/sync_service.dart';
+import '../../services/offline_storage_service.dart';
 import '../../providers/files_provider.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
+import '../../utils/constants.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -19,6 +22,7 @@ class _TrashScreenState extends State<TrashScreen> {
   List<FolderItem> _folders = [];
   bool _isLoading = true;
   String? _error;
+  bool _fromCache = false;
 
   @override
   void initState() {
@@ -30,32 +34,87 @@ class _TrashScreenState extends State<TrashScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _fromCache = false;
     });
+
+    final syncService = SyncService();
+    if (!syncService.isOnline) {
+      try {
+        await OfflineStorageService.init();
+        final cachedFiles = OfflineStorageService.getUserMeta('trashFiles');
+        final cachedFolders = OfflineStorageService.getUserMeta('trashFolders');
+        if (mounted) {
+          final filesList = cachedFiles is List
+              ? (cachedFiles)
+                  .map((e) => FileItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                  .toList()
+              : <FileItem>[];
+          final foldersList = cachedFolders is List
+              ? (cachedFolders)
+                  .map((e) => FolderItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                  .toList()
+              : <FolderItem>[];
+          setState(() {
+            _files = filesList;
+            _folders = foldersList;
+            _isLoading = false;
+            _fromCache = true;
+          });
+        }
+        return;
+      } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _error = 'Hors ligne. Connectez-vous pour afficher la corbeille.';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     try {
       final filesResponse = await _apiService.listTrashFiles();
       final foldersResponse = await _apiService.listTrashFolders();
 
       if (filesResponse.statusCode == 200 && foldersResponse.statusCode == 200) {
+        final filesItems = (filesResponse.data['data']['items'] ?? []) as List<dynamic>;
+        final foldersItems = (foldersResponse.data['data']['items'] ?? []) as List<dynamic>;
+        await OfflineStorageService.setUserMeta('trashFiles', filesItems);
+        await OfflineStorageService.setUserMeta('trashFolders', foldersItems);
+        if (mounted) {
+          setState(() {
+            _files = filesItems
+                .map((item) => FileItem.fromJson(Map<String, dynamic>.from(item as Map)))
+                .toList();
+            _folders = foldersItems
+                .map((item) => FolderItem.fromJson(Map<String, dynamic>.from(item as Map)))
+                .toList();
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      try {
+        final cachedFiles = OfflineStorageService.getUserMeta('trashFiles');
+        final cachedFolders = OfflineStorageService.getUserMeta('trashFolders');
+        if (cachedFiles is List && cachedFolders is List && mounted) {
+          setState(() {
+            _files = (cachedFiles)
+                .map((e) => FileItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+            _folders = (cachedFolders)
+                .map((e) => FolderItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+            _fromCache = true;
+          });
+        }
+      } catch (_) {}
+      if (mounted) {
         setState(() {
-          _files = (filesResponse.data['data']['items'] ?? [])
-              .map((item) => FileItem.fromJson(item))
-              .toList()
-              .cast<FileItem>();
-          
-          _folders = (foldersResponse.data['data']['items'] ?? [])
-              .map((item) => FolderItem.fromJson(item))
-              .toList()
-              .cast<FolderItem>();
-          
+          _error = _fromCache ? null : e.toString();
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
     }
   }
 
@@ -344,7 +403,32 @@ class _TrashScreenState extends State<TrashScreen> {
                     ],
                   ),
                 )
-              : _files.isEmpty && _folders.isEmpty
+              : Column(
+                  children: [
+                    if (_fromCache)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppConstants.warningColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Données en cache (hors ligne)',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: _files.isEmpty && _folders.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -460,6 +544,9 @@ class _TrashScreenState extends State<TrashScreen> {
                         },
                       ),
                     ),
+                  ),
+                ],
+              ),
     );
   }
 }

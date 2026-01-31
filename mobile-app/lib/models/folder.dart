@@ -56,6 +56,20 @@ class FolderItem {
   }
   
   bool get isRoot => parentId == null;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      '_id': id,
+      'name': name,
+      'parent_id': parentId,
+      'owner_id': ownerId,
+      'is_deleted': isDeleted,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'type': 'folder',
+    };
+  }
 }
 
 

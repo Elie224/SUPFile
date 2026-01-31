@@ -1,8 +1,62 @@
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'logo.png', 'manifest.json'],
+      manifest: {
+        name: 'SUPFile - Cloud Storage',
+        short_name: 'SUPFile',
+        description: 'Plateforme de stockage cloud sécurisée pour vos fichiers. Fonctionne hors ligne.',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#502A88',
+        orientation: 'any',
+        icons: [
+          {
+            src: '/logo.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        categories: ['productivity', 'utilities']
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          }
+        ],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//]
+      },
+      devOptions: {
+        enabled: true
+      }
+    })
+  ],
   server: {
     port: 3000,
     host: '0.0.0.0',

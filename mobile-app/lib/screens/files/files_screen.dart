@@ -11,6 +11,9 @@ import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/constants.dart';
 import '../../utils/input_validator.dart';
+import '../../services/sync_service.dart';
+import '../../widgets/offline_banner.dart';
+import '../../widgets/sync_indicator.dart';
 import 'image_gallery_screen.dart';
 
 class FilesScreen extends StatefulWidget {
@@ -269,10 +272,13 @@ class _FilesScreenState extends State<FilesScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Breadcrumbs (Fil d'Ariane) amélioré
-          if (_breadcrumbs.isNotEmpty || widget.folderId != null)
+      body: Consumer<SyncService>(
+        builder: (context, sync, _) {
+          return Column(
+            children: [
+              sync.isOnline ? const SizedBox.shrink() : const OfflineBanner(),
+              // Breadcrumbs (Fil d'Ariane) amélioré
+              if (_breadcrumbs.isNotEmpty || widget.folderId != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -385,7 +391,13 @@ class _FilesScreenState extends State<FilesScreen> {
                   child: _buildSortedList(filesProvider),
                 ),
             ),
-        ],
+              sync.pendingCount > 0 ? const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: SyncIndicator(),
+              ) : const SizedBox.shrink(),
+            ],
+          );
+        },
       ),
     );
   }

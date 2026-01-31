@@ -9,7 +9,9 @@ class User {
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final String? oauthProvider;
-  
+  final bool twoFactorEnabled;
+  final bool isAdmin;
+
   User({
     required this.id,
     required this.email,
@@ -21,6 +23,8 @@ class User {
     required this.createdAt,
     this.lastLoginAt,
     this.oauthProvider,
+    this.twoFactorEnabled = false,
+    this.isAdmin = false,
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
@@ -56,6 +60,9 @@ class User {
       throw FormatException('User quotas must be >= 0');
     }
     
+    final twoFactorEnabled = json['two_factor_enabled'] == true;
+    final isAdmin = json['is_admin'] == true;
+
     return User(
       id: id,
       email: email,
@@ -67,9 +74,11 @@ class User {
       createdAt: parseDate(json['created_at']?.toString()) ?? DateTime.now(),
       lastLoginAt: parseDate(json['last_login_at']?.toString()),
       oauthProvider: json['oauth_provider']?.toString(),
+      twoFactorEnabled: twoFactorEnabled,
+      isAdmin: isAdmin,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -82,6 +91,8 @@ class User {
       'created_at': createdAt.toIso8601String(),
       'last_login_at': lastLoginAt?.toIso8601String(),
       'oauth_provider': oauthProvider,
+      'two_factor_enabled': twoFactorEnabled,
+      'is_admin': isAdmin,
     };
   }
   

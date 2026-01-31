@@ -4,20 +4,51 @@ import { useAuthStore } from '../services/authStore';
 import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import StorageChart from '../components/StorageChart';
+import offlineDB from '../services/offlineDB';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fromCache, setFromCache] = useState(false);
   const { t, language } = useLanguage();
 
   const loadDashboard = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      try {
+        await offlineDB.init();
+        const cached = await offlineDB.getUserMeta('dashboardStats');
+        if (cached) {
+          setStats(cached);
+          setFromCache(true);
+        }
+      } catch (err) {
+        console.warn('[Dashboard] Cache hors ligne indisponible:', err);
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await dashboardService.getStats();
-      setStats(response.data.data);
+      const data = response.data.data;
+      setStats(data);
+      setFromCache(false);
+      try {
+        await offlineDB.setUserMeta('dashboardStats', data);
+      } catch (e) {
+        console.warn('[Dashboard] Impossible de mettre en cache les stats:', e);
+      }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
+      try {
+        const cached = await offlineDB.getUserMeta('dashboardStats');
+        if (cached) {
+          setStats(cached);
+          setFromCache(true);
+        }
+      } catch (e) {}
     } finally {
       setLoading(false);
     }
@@ -54,6 +85,16 @@ export default function Dashboard() {
 
   return (
     <div className="container-fluid p-3 p-md-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {fromCache && (
+        <div
+          className="alert alert-warning mb-3 d-flex align-items-center gap-2"
+          role="alert"
+          style={{ fontSize: '14px' }}
+        >
+          <i className="bi bi-cloud-download"></i>
+          <span>Données chargées depuis le cache local (mode hors ligne). Les chiffres peuvent ne pas être à jour.</span>
+        </div>
+      )}
       {/* En-tête */}
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h1 className="h2 mb-0 d-flex align-items-center gap-2">

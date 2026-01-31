@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
+import { offlineFileService, offlineFolderService } from '../services/offlineFileService';
+import syncService from '../services/syncService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 
@@ -64,8 +66,13 @@ export default function Files() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fileService.list(currentFolder?.id || null);
+      const response = await offlineFileService.list(currentFolder?.id || null);
       const items = response.data.data.items || [];
+      
+      // Afficher si les données viennent du cache
+      if (response.fromCache) {
+        toast.info('📦 Données chargées depuis le cache local (mode hors ligne)');
+      }
       
       // Logs pour diagnostiquer la structure des items
       console.log('========================================');
@@ -158,7 +165,7 @@ export default function Files() {
         setUploadProgress({ ...progress });
         
         try {
-          await fileService.upload(
+          const result = await offlineFileService.upload(
             file, 
             currentFolder?.id || null,
             (percent) => {
@@ -166,14 +173,19 @@ export default function Files() {
               setUploadProgress({ ...progress });
             }
           );
+          
           progress[file.name] = 100;
           setUploadProgress({ ...progress });
           successCount++;
+          
+          if (result.mode === 'offline') {
+            toast.info(`📦 ${file.name} sera uploadé lors de la prochaine synchronisation`);
+          }
         } catch (fileErr) {
           console.error(`Upload failed for ${file.name}:`, fileErr);
           const errorMsg = fileErr.response?.data?.error?.message || fileErr.message || t('uploadError');
           setError(`${t('error')} ${file.name}: ${errorMsg}`);
-          progress[file.name] = -1; // Marquer comme échoué
+          progress[file.name] = -1;
           setUploadProgress({ ...progress });
           failCount++;
         }
@@ -360,13 +372,17 @@ export default function Files() {
     
     setCreatingFolder(true);
     try {
-      await folderService.create(trimmedName, currentFolder?.id || null);
+      const result = await offlineFolderService.create(trimmedName, currentFolder?.id || null);
       setNewFolderName('');
       setShowNewFolder(false);
       await loadFiles();
-      // Message de succès
       setError(null);
-      toast.success(`Dossier "${trimmedName}" créé avec succès`);
+      
+      if (result.mode === 'offline') {
+        toast.info(`📦 Dossier "${trimmedName}" créé localement. Sera synchronisé en ligne.`);
+      } else {
+        toast.success(`Dossier "${trimmedName}" créé avec succès`);
+      }
     } catch (err) {
       console.error('Failed to create folder:', err);
       const errorMessage = err.response?.data?.error?.message || err.message || t('createFolderError');
@@ -433,10 +449,11 @@ export default function Files() {
     setItemToDelete(null);
     
     try {
+      let result;
       if (itemType === 'folder') {
-        await folderService.delete(itemId);
+        result = await offlineFolderService.delete(itemId);
       } else {
-        await fileService.delete(itemId);
+        result = await offlineFileService.delete(itemId);
       }
       
       console.log('✅ Deletion successful!');
@@ -444,7 +461,11 @@ export default function Files() {
       // Recharger la liste après suppression
       await loadFiles();
       
-      toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
+      if (result.mode === 'offline') {
+        toast.info(`📦 "${itemName}" supprimé localement. Sera synchronisé en ligne.`);
+      } else {
+        toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
+      }
     } catch (err) {
       console.error('❌ Deletion error:', err);
       console.error('Error details:', {
@@ -806,6 +827,42 @@ export default function Files() {
               <i className="bi bi-upload me-2"></i>
               {t('upload')}
             </label>
+            <button
+              onClick={async () => {
+                if (navigator.onLine) {
+                  await syncService.fullSync();
+                  await loadFiles();
+                  toast.success('Synchronisation terminée');
+                } else {
+                  toast.info('Hors ligne - La synchronisation se fera automatiquement en ligne');
+                }
+              }}
+              aria-label="Synchroniser"
+              style={{ 
+                padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)', 
+                backgroundColor: '#9C27B0', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer',
+                fontSize: 'clamp(13px, 2vw, 15px)',
+                fontWeight: '600',
+                boxShadow: '0 2px 4px rgba(156, 39, 176, 0.3)',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#7B1FA2';
+                e.target.style.boxShadow = '0 4px 8px rgba(156, 39, 176, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#9C27B0';
+                e.target.style.boxShadow = '0 2px 4px rgba(156, 39, 176, 0.3)';
+              }}
+            >
+              <i className="bi bi-arrow-repeat me-2"></i>
+              Sync
+            </button>
             <button
               onClick={() => setShowNewFolder(!showNewFolder)}
               aria-label={t('newFolder') || 'Nouveau dossier'}

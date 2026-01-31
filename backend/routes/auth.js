@@ -10,6 +10,9 @@ router.post('/signup', validate(signupSchema), authController.signup);
 // POST /api/auth/login
 router.post('/login', validate(loginSchema), authController.login);
 
+// POST /api/auth/verify-2fa-login - Vérification 2FA après login
+router.post('/verify-2fa-login', authController.verify2FALogin);
+
 // POST /api/auth/refresh
 router.post('/refresh', authController.refresh);
 

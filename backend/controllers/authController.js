@@ -160,6 +160,19 @@ async function login(req, res, next) {
       return res.status(401).json({ error: { message: 'Invalid credentials' } });
     }
 
+    // Vérifier si le 2FA est activé
+    if (user.two_factor_enabled) {
+      // Ne pas générer de tokens, demander le code 2FA
+      return res.status(200).json({ 
+        data: { 
+          requires_2fa: true,
+          user_id: user.id,
+          email: user.email
+        }, 
+        message: 'Code 2FA requis' 
+      });
+    }
+
     // Mettre à jour last_login_at AVANT de récupérer les données utilisateur
     await User.updateLastLogin(user.id);
 
@@ -203,6 +216,86 @@ async function login(req, res, next) {
         } 
       });
     }
+    next(err);
+  }
+}
+
+async function verify2FALogin(req, res, next) {
+  try {
+    const { userId, token } = req.body;
+
+    if (!userId || !token) {
+      return res.status(400).json({ error: { message: 'ID utilisateur et code 2FA requis' } });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.two_factor_enabled) {
+      return res.status(400).json({ error: { message: 'Utilisateur non trouvé ou 2FA non activé' } });
+    }
+
+    // Vérifier le code 2FA
+    const speakeasy = require('speakeasy');
+    
+    // Vérifier si c'est un code de secours
+    const isBackupCode = user.two_factor_backup_codes && user.two_factor_backup_codes.includes(token);
+    
+    let verified = false;
+    if (isBackupCode) {
+      // Utiliser le code de secours
+      verified = await User.useBackupCode(userId, token);
+    } else {
+      // Vérifier le token TOTP
+      verified = speakeasy.totp.verify({
+        secret: user.two_factor_secret,
+        encoding: 'base32',
+        token: token,
+        window: 2
+      });
+    }
+
+    if (!verified) {
+      return res.status(401).json({ error: { message: 'Code 2FA invalide' } });
+    }
+
+    // Code valide, générer les tokens
+    await User.updateLastLogin(user.id);
+
+    const payload = { id: user.id, email: user.email };
+    const access_token = generateAccessToken(payload);
+    const refresh_token = generateRefreshToken(payload);
+
+    // Persist session
+    try {
+      const userAgent = req.get('user-agent') || null;
+      const ip = req.ip || req.headers['x-forwarded-for'] || null;
+      await Session.createSession({ userId: user.id, refreshToken: refresh_token, userAgent, ipAddress: ip, deviceName: null, expiresIn: config.jwt.refreshExpiresIn });
+    } catch (e) {
+      console.error('Failed to create session on 2FA login:', e.message || e);
+    }
+
+    // Récupérer les données utilisateur mises à jour
+    const updatedUser = await User.findById(user.id);
+
+    const safeUser = {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      display_name: updatedUser.display_name,
+      avatar_url: updatedUser.avatar_url,
+      quota_used: updatedUser.quota_used,
+      quota_limit: updatedUser.quota_limit,
+      preferences: updatedUser.preferences,
+      is_admin: updatedUser.is_admin || false,
+      two_factor_enabled: updatedUser.two_factor_enabled,
+      created_at: updatedUser.created_at,
+      last_login_at: updatedUser.last_login_at || new Date(),
+    };
+
+    res.status(200).json({ 
+      data: { user: safeUser, access_token, refresh_token }, 
+      message: 'Connexion 2FA réussie' 
+    });
+  } catch (err) {
+    console.error('2FA login error:', err);
     next(err);
   }
 }
@@ -430,6 +523,7 @@ async function resetPassword(req, res, next) {
 module.exports = {
   signup,
   login,
+  verify2FALogin,
   refresh,
   logout,
   forgotPassword,

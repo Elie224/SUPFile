@@ -21,6 +21,14 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  // Double authentification (2FA)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
   
   // Statistiques
   const [quotaUsed, setQuotaUsed] = useState(0);
@@ -46,6 +54,7 @@ export default function Settings() {
       setEmail(userData.email || '');
       setDisplayName(userData.display_name || '');
       setAvatarUrl(userData.avatar_url || '');
+      setTwoFactorEnabled(userData.two_factor_enabled || false);
       // Préférences
       const prefs = userData.preferences || {};
       setTheme(prefs.theme || 'light');
@@ -239,6 +248,130 @@ export default function Settings() {
       showMessage('success', 'Préférences mises à jour avec succès');
     } catch (err) {
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Démarrer la configuration du 2FA
+  const handleSetup2FA = async () => {
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const token = localStorage.getItem('access_token');
+      
+      const response = await fetch(`${API_URL}/api/2fa/setup`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setQrCode(data.data.qrCode);
+        setSecret(data.data.secret);
+        setBackupCodes(data.data.backupCodes);
+        setShow2FASetup(true);
+      } else {
+        showMessage('error', data.error?.message || 'Erreur lors de la configuration du 2FA');
+      }
+    } catch (err) {
+      showMessage('error', 'Erreur: ' + (err.message || 'Impossible de configurer le 2FA'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Vérifier et activer le 2FA
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    
+    if (!verificationCode) {
+      showMessage('error', 'Veuillez entrer le code de vérification');
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const token = localStorage.getItem('access_token');
+      
+      const response = await fetch(`${API_URL}/api/2fa/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: verificationCode,
+          secret: secret,
+          backupCodes: backupCodes
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTwoFactorEnabled(true);
+        setShow2FASetup(false);
+        setVerificationCode('');
+        showMessage('success', 'Double authentification activée avec succès');
+        await loadUserData();
+      } else {
+        showMessage('error', data.error?.message || 'Code de vérification invalide');
+      }
+    } catch (err) {
+      showMessage('error', 'Erreur: ' + (err.message || 'Impossible de vérifier le code'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Désactiver le 2FA
+  const handleDisable2FA = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    
+    if (!disablePassword) {
+      showMessage('error', 'Veuillez entrer votre mot de passe');
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const token = localStorage.getItem('access_token');
+      
+      const response = await fetch(`${API_URL}/api/2fa/disable`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: disablePassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTwoFactorEnabled(false);
+        setDisablePassword('');
+        showMessage('success', 'Double authentification désactivée');
+        await loadUserData();
+      } else {
+        showMessage('error', data.error?.message || 'Mot de passe incorrect');
+      }
+    } catch (err) {
+      showMessage('error', 'Erreur: ' + (err.message || 'Impossible de désactiver le 2FA'));
     } finally {
       setSaving(false);
     }
@@ -611,6 +744,224 @@ export default function Settings() {
         </form>
       </section>
 
+
+      {/* Double authentification (2FA) */}
+      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>
+          🔐 Double authentification (2FA)
+        </h2>
+        <p style={{ marginBottom: 20, color: 'var(--text-secondary)' }}>
+          Renforcez la sécurité de votre compte en activant la double authentification. 
+          Vous devrez entrer un code depuis votre application d'authentification à chaque connexion.
+        </p>
+
+        {!twoFactorEnabled ? (
+          <>
+            {!show2FASetup ? (
+              <button
+                onClick={handleSetup2FA}
+                disabled={saving}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontSize: '1em',
+                  fontWeight: 'bold',
+                  opacity: saving ? 0.6 : 1
+                }}
+              >
+                {saving ? 'Configuration...' : 'Activer le 2FA'}
+              </button>
+            ) : (
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: 20, borderRadius: 8 }}>
+                <h3 style={{ marginBottom: 16, color: 'var(--text-color)' }}>Configuration du 2FA</h3>
+                
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ marginBottom: 12, color: 'var(--text-secondary)' }}>
+                    1. Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)
+                  </p>
+                  {qrCode && (
+                    <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                      <img src={qrCode} alt="QR Code 2FA" style={{ maxWidth: 200, border: '2px solid var(--border-color)', borderRadius: 8 }} />
+                    </div>
+                  )}
+                  <p style={{ fontSize: '0.9em', color: 'var(--text-muted)', marginBottom: 8 }}>
+                    Ou entrez manuellement ce code :
+                  </p>
+                  <code style={{ 
+                    display: 'block', 
+                    padding: 12, 
+                    backgroundColor: 'var(--bg-color)', 
+                    borderRadius: 4, 
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all',
+                    color: 'var(--text-color)'
+                  }}>
+                    {secret}
+                  </code>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ marginBottom: 12, color: 'var(--text-secondary)' }}>
+                    2. Sauvegardez ces codes de secours (à utiliser si vous perdez l'accès à votre application) :
+                  </p>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
+                    gap: 8,
+                    padding: 12,
+                    backgroundColor: 'var(--bg-color)',
+                    borderRadius: 4
+                  }}>
+                    {backupCodes.map((code, idx) => (
+                      <code key={idx} style={{ 
+                        padding: 8, 
+                        backgroundColor: 'var(--bg-secondary)', 
+                        borderRadius: 4,
+                        textAlign: 'center',
+                        fontFamily: 'monospace',
+                        fontSize: '0.9em',
+                        color: 'var(--text-color)'
+                      }}>
+                        {code}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+
+                <form onSubmit={handleVerify2FA}>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                      3. Entrez le code à 6 chiffres de votre application :
+                    </label>
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="123456"
+                      maxLength="6"
+                      style={{
+                        padding: 12,
+                        width: '100%',
+                        maxWidth: 200,
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        fontSize: '1.2em',
+                        textAlign: 'center',
+                        letterSpacing: '0.3em',
+                        fontFamily: 'monospace',
+                        backgroundColor: 'var(--bg-color)',
+                        color: 'var(--text-color)'
+                      }}
+                      required
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <button
+                      type="submit"
+                      disabled={saving || verificationCode.length !== 6}
+                      style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 8,
+                        cursor: (saving || verificationCode.length !== 6) ? 'not-allowed' : 'pointer',
+                        fontSize: '1em',
+                        fontWeight: 'bold',
+                        opacity: (saving || verificationCode.length !== 6) ? 0.6 : 1
+                      }}
+                    >
+                      {saving ? 'Vérification...' : 'Activer'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShow2FASetup(false);
+                        setVerificationCode('');
+                        setQrCode('');
+                        setSecret('');
+                        setBackupCodes([]);
+                      }}
+                      style={{
+                        padding: '12px 24px',
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-color)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontSize: '1em',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ backgroundColor: 'var(--bg-secondary)', padding: 20, borderRadius: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <span style={{ fontSize: '2em' }}>✅</span>
+              <div>
+                <p style={{ fontWeight: 'bold', color: 'var(--text-color)', marginBottom: 4 }}>
+                  Double authentification activée
+                </p>
+                <p style={{ fontSize: '0.9em', color: 'var(--text-secondary)' }}>
+                  Votre compte est protégé par la double authentification
+                </p>
+              </div>
+            </div>
+            
+            <form onSubmit={handleDisable2FA}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                  Entrez votre mot de passe pour désactiver le 2FA :
+                </label>
+                <input
+                  type="password"
+                  value={disablePassword}
+                  onChange={(e) => setDisablePassword(e.target.value)}
+                  placeholder="Votre mot de passe"
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    maxWidth: 300,
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 8,
+                    fontSize: '1em',
+                    backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-color)'
+                  }}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontSize: '1em',
+                  fontWeight: 'bold',
+                  opacity: saving ? 0.6 : 1
+                }}
+              >
+                {saving ? 'Désactivation...' : 'Désactiver le 2FA'}
+              </button>
+            </form>
+          </div>
+        )}
+      </section>
 
       {/* Déconnexion */}
       <section style={{ padding: 24, backgroundColor: 'var(--bg-secondary)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>

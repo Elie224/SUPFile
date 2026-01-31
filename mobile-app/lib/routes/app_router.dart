@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
+import '../screens/auth/reset_password_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/files/files_screen.dart';
 import '../screens/files/preview_screen.dart';
@@ -12,13 +14,25 @@ import '../screens/settings/settings_screen.dart';
 import '../screens/share/share_screen.dart';
 import '../screens/share/public_share_screen.dart';
 import '../screens/trash/trash_screen.dart';
+import '../screens/admin/admin_screen.dart';
+import '../screens/intro/intro_screen.dart';
+import '../screens/offline/offline_screen.dart';
 import '../providers/auth_provider.dart';
+import '../models/file.dart';
 
 class AppRouter {
   static GoRouter createRouter(BuildContext context) {
     return GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/',
       routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const IntroScreen(),
+        ),
+        GoRoute(
+          path: '/offline',
+          builder: (context, state) => const OfflineScreen(),
+        ),
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
@@ -26,6 +40,17 @@ class AppRouter {
         GoRoute(
           path: '/signup',
           builder: (context, state) => const SignupScreen(),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          builder: (context, state) => const ForgotPasswordScreen(),
+        ),
+        GoRoute(
+          path: '/reset-password',
+          builder: (context, state) {
+            final token = state.uri.queryParameters['token'];
+            return ResetPasswordScreen(token: token);
+          },
         ),
         GoRoute(
           path: '/dashboard',
@@ -76,6 +101,10 @@ class AppRouter {
           builder: (context, state) => const TrashScreen(),
         ),
         GoRoute(
+          path: '/admin',
+          builder: (context, state) => const AdminScreen(),
+        ),
+        GoRoute(
           path: '/share',
           builder: (context, state) {
             final fileId = state.uri.queryParameters['file'];
@@ -95,7 +124,12 @@ class AppRouter {
       redirect: (context, state) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final isLoggedIn = authProvider.isAuthenticated;
-        final isLoginRoute = state.matchedLocation == '/login' || state.matchedLocation == '/signup';
+        final isPublicRoute = state.matchedLocation == '/' ||
+            state.matchedLocation == '/offline' ||
+            state.matchedLocation == '/login' ||
+            state.matchedLocation == '/signup' ||
+            state.matchedLocation == '/forgot-password' ||
+            state.matchedLocation.startsWith('/reset-password');
         final isPublicShareRoute = state.matchedLocation.startsWith('/share/') && 
                                    state.pathParameters.containsKey('token');
         
@@ -104,11 +138,13 @@ class AppRouter {
           return null;
         }
         
-        if (!isLoggedIn && !isLoginRoute) {
+        if (!isLoggedIn && !isPublicRoute) {
           return '/login';
         }
-        
-        if (isLoggedIn && isLoginRoute) {
+
+        if (isLoggedIn && (state.matchedLocation == '/' || state.matchedLocation == '/login' ||
+            state.matchedLocation == '/signup' || state.matchedLocation == '/forgot-password' ||
+            state.matchedLocation.startsWith('/reset-password'))) {
           return '/dashboard';
         }
         

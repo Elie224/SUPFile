@@ -17,12 +17,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _twoFactorCodeController = TextEditingController();
   bool _obscurePassword = true;
+  bool _show2FAStep = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _twoFactorCodeController.dispose();
     super.dispose();
   }
 
@@ -88,15 +91,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    final success = await authProvider.login(
+    final result = await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
 
-    if (success) {
-      if (mounted) {
-        context.go('/dashboard');
-      }
+    if (result == AuthProvider.loginResultSuccess) {
+      if (mounted) context.go('/dashboard');
+    } else if (result == AuthProvider.loginResultRequires2FA) {
+      if (mounted) setState(() => _show2FAStep = true);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -106,6 +109,33 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleVerify2FA() async {
+    final code = _twoFactorCodeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Entrez le code à 6 chiffres ou un code de secours'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.verify2FALogin(code);
+
+    if (success && mounted) {
+      context.go('/dashboard');
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Code 2FA invalide'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -137,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Form(
+              child: _show2FAStep ? _build2FAStep() : Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -259,7 +289,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => context.go('/forgot-password'),
+                      child: Text(
+                        'Mot de passe oublié ?',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     // Lien vers inscription
                     TextButton(
                       onPressed: () => context.go('/signup'),
@@ -343,6 +384,99 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _build2FAStep() {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 40),
+        const SupFileLogo(size: 120, showIcon: true, useGradient: true),
+        const SizedBox(height: 8),
+        Text(
+          'Code de vérification',
+          style: TextStyle(
+            fontSize: 16,
+            color: isDark ? Colors.grey[300] : Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (authProvider.pending2FAEmail != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            authProvider.pending2FAEmail!,
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.grey[400] : Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+        const SizedBox(height: 24),
+        TextFormField(
+          controller: _twoFactorCodeController,
+          keyboardType: TextInputType.number,
+          maxLength: 8,
+          decoration: const InputDecoration(
+            labelText: 'Code à 6 chiffres ou code de secours',
+            prefixIcon: Icon(Icons.security),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+          ),
+          onFieldSubmitted: (_) => _handleVerify2FA(),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                AppConstants.supinfoPurple,
+                AppConstants.supinfoPurpleLight,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ElevatedButton(
+            onPressed: authProvider.isLoading ? null : _handleVerify2FA,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: authProvider.isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppConstants.supinfoWhite),
+                    ),
+                  )
+                : const Text('Vérifier', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () => setState(() {
+            _show2FAStep = false;
+            _twoFactorCodeController.clear();
+          }),
+          child: Text(
+            'Retour à la connexion',
+            style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+          ),
+        ),
+      ],
     );
   }
 

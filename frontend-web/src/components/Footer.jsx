@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -19,6 +20,10 @@ export default function Footer() {
         color: 'var(--text-muted)'
       }}>
         © {currentYear} SUPFile. Tous droits réservés.
+        {' · '}
+        <Link to="/offline" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Mode hors ligne
+        </Link>
       </div>
     </footer>
   );

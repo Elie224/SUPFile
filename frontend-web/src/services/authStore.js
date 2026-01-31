@@ -43,6 +43,18 @@ const useAuthStore = create(
         set({ loading: true, error: null });
         try {
           const response = await authService.login(email, password);
+          
+          // Vérifier si le 2FA est requis
+          if (response.data.data.requires_2fa) {
+            set({ loading: false });
+            return { 
+              success: false, 
+              requires_2fa: true,
+              user_id: response.data.data.user_id,
+              email: response.data.data.email
+            };
+          }
+          
           const { user, access_token, refresh_token } = response.data.data;
           
           set({
