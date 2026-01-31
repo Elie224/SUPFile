@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const twoFactorController = require('../controllers/twoFactorController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 
 /**
  * @route   GET /api/2fa/status
