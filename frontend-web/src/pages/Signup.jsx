@@ -3,13 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import Logo from '../components/Logo';
+import { COUNTRIES } from '../utils/countries';
 
 export default function Signup() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const { signup } = useAuthStore();
   const navigate = useNavigate();
@@ -25,10 +30,10 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
-    // Validation
-    if (!email || !password || !confirmPassword) {
-      setError(t('fillAllFields'));
+    if (!firstName?.trim() || !lastName?.trim() || !country || !email || !password || !confirmPassword) {
+      setError(t('fillAllFields') || 'Veuillez remplir tous les champs.');
       return;
     }
 
@@ -45,10 +50,14 @@ export default function Signup() {
 
     setLoading(true);
 
-    const result = await signup(email, password);
+    const result = await signup(email, password, firstName.trim(), lastName.trim(), country);
     
     if (result.success) {
-      navigate('/dashboard');
+      if (result.requiresVerification) {
+        setSuccessMessage(t('signupVerifyEmail') || 'Compte créé. Un email de vérification a été envoyé à votre adresse. Cliquez sur le lien pour activer votre compte, puis connectez-vous.');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       setError(result.error || t('signupFailed'));
     }
@@ -70,6 +79,14 @@ export default function Signup() {
             <p className="text-muted mb-0" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{t('signup')}</p>
           </div>
 
+          {/* Message de succès (vérification email) */}
+          {successMessage && (
+            <div className="alert alert-success d-flex align-items-center gap-2 py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+              <i className="bi bi-envelope-check-fill"></i>
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           {/* Message d'erreur */}
           {error && (
             <div className="alert alert-danger d-flex align-items-center gap-2 py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
@@ -79,7 +96,52 @@ export default function Signup() {
           )}
 
           {/* Formulaire d'inscription */}
+          {!successMessage && (
           <form onSubmit={handleSubmit}>
+            <div className="mb-2">
+              <label htmlFor="firstName" className="form-label small mb-1">{t('firstName') || 'Prénom'}</label>
+              <input
+                type="text"
+                id="firstName"
+                className="form-control form-control-sm"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                disabled={loading}
+                placeholder="Jean"
+                autoComplete="given-name"
+              />
+            </div>
+            <div className="mb-2">
+              <label htmlFor="lastName" className="form-label small mb-1">{t('lastName') || 'Nom'}</label>
+              <input
+                type="text"
+                id="lastName"
+                className="form-control form-control-sm"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                disabled={loading}
+                placeholder="Dupont"
+                autoComplete="family-name"
+              />
+            </div>
+            <div className="mb-2">
+              <label htmlFor="country" className="form-label small mb-1">{t('country') || 'Pays'}</label>
+              <select
+                id="country"
+                className="form-select form-select-sm"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                required
+                disabled={loading}
+              >
+                <option value="">{t('selectCountry') || 'Choisir un pays'}</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
             <div className="mb-2">
               <label htmlFor="email" className="form-label small mb-1">{t('email')}</label>
               <input
@@ -147,8 +209,18 @@ export default function Signup() {
               )}
             </button>
           </form>
+          )}
 
-          {/* Séparateur */}
+          {successMessage && (
+            <div className="text-center mb-2">
+              <Link to="/login" className="btn btn-primary" style={{ minHeight: '40px', fontSize: '14px', fontWeight: 600 }}>
+                {t('goToLogin') || 'Aller à la connexion'}
+              </Link>
+            </div>
+          )}
+
+          {/* Séparateur - masqué après succès */}
+          {!successMessage && (
           <div className="d-flex align-items-center my-2">
             <div className="flex-grow-1" style={{ height: '1px', backgroundColor: 'var(--border-color)' }}></div>
             <span className="px-2 text-muted" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{t('or')}</span>

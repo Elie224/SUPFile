@@ -48,7 +48,7 @@ const configurePassport = () => {
           const user = await UserModel.findById(dbUser._id.toString());
           return done(null, user);
         } else {
-          // Créer un nouvel utilisateur OAuth
+          // Créer un nouvel utilisateur OAuth (email considéré comme vérifié par le fournisseur)
           const newUser = new UserSchema({
             email,
             oauth_provider: 'google',
@@ -56,6 +56,8 @@ const configurePassport = () => {
             display_name: profile.displayName,
             avatar_url: profile.photos?.[0]?.value,
             password_hash: null,
+            email_verified: true,
+            email_verified_at: new Date(),
           });
           
           const saved = await newUser.save();
@@ -162,6 +164,8 @@ const configurePassport = () => {
             display_name: displayName,
             avatar_url: profile.photos?.[0]?.value,
             password_hash: null,
+            email_verified: true,
+            email_verified_at: new Date(),
           });
           
           const saved = await newUser.save();

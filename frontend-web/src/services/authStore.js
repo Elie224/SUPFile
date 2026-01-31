@@ -13,26 +13,14 @@ const useAuthStore = create(
       /** Mis à true quand le store a été rehydraté depuis le localStorage (permet la nav hors ligne). */
       _hasHydrated: false,
 
-      // Inscription
-      signup: async (email, password) => {
+      // Inscription (après succès, l'utilisateur doit vérifier son email avant de se connecter)
+      signup: async (email, password, first_name, last_name, country) => {
         set({ loading: true, error: null });
         try {
-          const response = await authService.signup(email, password);
-          const { user, access_token, refresh_token } = response.data.data;
-          
-          set({
-            user,
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            loading: false,
-            error: null,
-          });
-
-          // Sauvegarder les tokens dans localStorage
-          localStorage.setItem('access_token', access_token);
-          localStorage.setItem('refresh_token', refresh_token);
-
-          return { success: true };
+          const response = await authService.signup(email, password, first_name, last_name, country);
+          set({ loading: false, error: null });
+          const message = response.data?.message || 'Compte créé. Vérifiez votre email pour activer votre compte.';
+          return { success: true, requiresVerification: true, message };
         } catch (err) {
           const errorMessage = err.response?.data?.error?.message || err.message || 'L\'inscription a échoué';
           set({ loading: false, error: errorMessage });
@@ -74,8 +62,9 @@ const useAuthStore = create(
           return { success: true };
         } catch (err) {
           const errorMessage = err.response?.data?.error?.message || err.message || 'La connexion a échoué';
+          const emailNotVerified = err.response?.status === 403 && err.response?.data?.error?.code === 'EMAIL_NOT_VERIFIED';
           set({ loading: false, error: errorMessage });
-          return { success: false, error: errorMessage };
+          return { success: false, error: errorMessage, emailNotVerified: !!emailNotVerified };
         }
       },
 

@@ -164,13 +164,17 @@ downloadClient.interceptors.response.use(
 
 // Services d'authentification
 export const authService = {
-  signup: (email, password) =>
-    apiClient.post('/auth/signup', { email, password }),
+  signup: (email, password, first_name, last_name, country) =>
+    apiClient.post('/auth/signup', { email, password, first_name, last_name, country }),
   login: (email, password) =>
     apiClient.post('/auth/login', { email, password }),
   refresh: (refreshToken) =>
     apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
   logout: (refreshToken) => apiClient.post('/auth/logout', { refresh_token: refreshToken }),
+  verifyEmail: (token) =>
+    apiClient.get('/auth/verify-email', { params: { token } }),
+  resendVerification: (email) =>
+    apiClient.post('/auth/resend-verification', { email }),
 };
 
 // Services fichiers

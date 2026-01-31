@@ -1,6 +1,9 @@
 // Schémas de validation Joi
 const Joi = require('joi');
 
+// Liste des pays valides (backend/config/countries.js)
+const { isValidCountry } = require('../config/countries');
+
 // Schéma pour l'inscription
 const signupSchema = Joi.object({
   email: Joi.string()
@@ -27,6 +30,36 @@ const signupSchema = Joi.object({
     .optional()
     .messages({
       'any.only': 'Passwords do not match',
+    }),
+  first_name: Joi.string()
+    .min(1)
+    .max(100)
+    .required()
+    .trim()
+    .messages({
+      'any.required': 'First name is required',
+      'string.min': 'First name is required',
+    }),
+  last_name: Joi.string()
+    .min(1)
+    .max(100)
+    .required()
+    .trim()
+    .messages({
+      'any.required': 'Last name is required',
+      'string.min': 'Last name is required',
+    }),
+  country: Joi.string()
+    .required()
+    .custom((value, helpers) => {
+      if (!isValidCountry(value)) {
+        return helpers.error('any.invalid');
+      }
+      return value.trim();
+    }, 'valid country')
+    .messages({
+      'any.required': 'Country is required',
+      'any.invalid': 'Please select a valid country',
     }),
 }).unknown(true);
 

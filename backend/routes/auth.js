@@ -22,6 +22,13 @@ router.post('/logout', authController.logout);
 // POST /api/auth/forgot-password
 router.post('/forgot-password', authController.forgotPassword);
 
+// Vérification d'email (GET pour lien cliqué, POST pour appel front)
+router.get('/verify-email', authController.verifyEmail);
+router.post('/verify-email', authController.verifyEmail);
+
+// Renvoyer l'email de vérification
+router.post('/resend-verification', authController.resendVerification);
+
 // GET /api/auth/verify-reset-token/:token
 router.get('/verify-reset-token/:token', authController.verifyResetToken);
 

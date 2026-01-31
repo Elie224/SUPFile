@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
+import { authService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import Logo from '../components/Logo';
 
@@ -8,7 +9,10 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [searchParams] = useSearchParams();
   
   // 2FA
@@ -19,6 +23,14 @@ export default function Login() {
   const { login } = useAuthStore();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+
+  // Message de succès après vérification email
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') {
+      setSuccessMessage(t('emailVerifiedSuccess') || 'Email vérifié. Vous pouvez vous connecter.');
+      setError('');
+    }
+  }, [searchParams, t]);
 
   // Vérifier les erreurs OAuth dans l'URL
   useEffect(() => {
@@ -51,6 +63,8 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
+    setEmailNotVerified(false);
     setLoading(true);
 
     // Validation basique
@@ -65,15 +79,31 @@ export default function Login() {
     if (result.success) {
       navigate('/dashboard');
     } else if (result.requires_2fa) {
-      // Le 2FA est requis
       setRequires2FA(true);
       setUserId2FA(result.user_id);
       setError('');
+      setEmailNotVerified(false);
     } else {
       setError(result.error || t('loginFailed'));
+      setEmailNotVerified(!!result.emailNotVerified);
     }
     
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email?.trim()) return;
+    setResendLoading(true);
+    setError('');
+    try {
+      await authService.resendVerification(email.trim());
+      setSuccessMessage(t('resendVerificationSent') || 'Un nouvel email de vérification a été envoyé. Vérifiez votre boîte de réception.');
+      setEmailNotVerified(false);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.message || 'Erreur lors de l\'envoi.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const handleVerify2FA = async (e) => {
@@ -136,11 +166,32 @@ export default function Login() {
             <p className="text-muted mb-0" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{t('login')}</p>
           </div>
 
+          {/* Message de succès (ex. après vérification email) */}
+          {successMessage && (
+            <div className="alert alert-success d-flex align-items-center gap-2 py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+              <i className="bi bi-check-circle-fill"></i>
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           {/* Message d'erreur */}
           {error && (
-            <div className="alert alert-danger d-flex align-items-center gap-2 py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
-              <i className="bi bi-exclamation-triangle-fill"></i>
-              <span>{error}</span>
+            <div className="alert alert-danger py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+              <div className="d-flex align-items-center gap-2">
+                <i className="bi bi-exclamation-triangle-fill"></i>
+                <span>{error}</span>
+              </div>
+              {emailNotVerified && email?.trim() && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="btn btn-outline-light btn-sm mt-2"
+                  style={{ fontSize: '12px' }}
+                >
+                  {resendLoading ? (t('sending') || 'Envoi...') : (t('resendVerification') || 'Renvoyer l\'email de vérification')}
+                </button>
+              )}
             </div>
           )}
 
