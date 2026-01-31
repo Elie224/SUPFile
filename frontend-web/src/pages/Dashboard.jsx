@@ -117,18 +117,18 @@ export default function Dashboard() {
           <div className="col-12">
             <div className="card shadow-md mb-4 fade-in">
               <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2">
+                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
                   <i className="bi bi-hdd-stack text-primary"></i>
                   {t('storageSpace') || 'Espace de stockage'}
                 </h5>
               </div>
               <div className="card-body">
                 <div className="d-flex justify-content-between mb-3 flex-wrap gap-2">
-                  <span className="text-muted">
-                    <strong>{t('used')}:</strong> {formatBytes(stats.quota.used)}
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--text-color)' }}>{t('used')}:</strong> {formatBytes(stats.quota.used)}
                   </span>
-                  <span className="text-muted">
-                    <strong>{t('available')}:</strong> {formatBytes(stats.quota.available)}
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--text-color)' }}>{t('available')}:</strong> {formatBytes(stats.quota.available)}
                   </span>
                 </div>
                 {(() => {
@@ -141,7 +141,7 @@ export default function Dashboard() {
                   const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
                   
                   return (
-                    <div className="progress" style={{ height: '28px' }}>
+                    <div className="progress" style={{ height: '28px', backgroundColor: 'var(--bg-hover)' }}>
                       {barWidth > 0 && (
                         <div 
                           className={`progress-bar bg-${barColor}`}
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     </div>
                   );
                 })()}
-                <small className="text-muted d-block text-center mt-2">
+                <small className="d-block text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
                   {stats.quota.used === 0 
                     ? `0% ${t('usedOf')} ${formatBytes(stats.quota.limit)}`
                     : `${stats.quota.percentage < 1 
@@ -173,7 +173,7 @@ export default function Dashboard() {
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
               <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2">
+                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
                   <i className="bi bi-pie-chart text-primary"></i>
                   {t('breakdownByType') || 'Répartition par type'}
                 </h5>
@@ -200,15 +200,15 @@ export default function Dashboard() {
                   return (
                     <div key={item.key} className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="small fw-medium d-flex align-items-center gap-2">
+                        <span className="small fw-medium d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
                           <i className={`bi ${item.icon}`} style={{ color: item.color }}></i>
                           {item.label}
                         </span>
-                        <span className="small text-muted fw-semibold">
+                        <span className="small fw-semibold" style={{ color: 'var(--text-secondary)' }}>
                           {formatBytes(item.value)}
                         </span>
                       </div>
-                      <div className="progress" style={{ height: '24px' }}>
+                      <div className="progress" style={{ height: '24px', backgroundColor: 'var(--bg-hover)' }}>
                         <div 
                           className="progress-bar"
                           role="progressbar" 
@@ -226,7 +226,7 @@ export default function Dashboard() {
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
               <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2">
+                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
                   <i className="bi bi-clock-history text-primary"></i>
                   {t('recentFiles') || 'Fichiers récents'}
                 </h5>
@@ -254,8 +254,8 @@ export default function Dashboard() {
                         >
                           <i className="bi bi-file-earmark text-primary"></i>
                           <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                            <div className="fw-medium text-truncate">{file.name}</div>
-                            <small className="text-muted">
+                            <div className="fw-medium text-truncate" style={{ color: 'var(--text-color)' }}>{file.name}</div>
+                            <small style={{ color: 'var(--text-secondary)' }}>
                               {formatBytes(file.size)} • {new Date(file.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR')}
                             </small>
                           </div>
