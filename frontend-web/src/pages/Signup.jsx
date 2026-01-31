@@ -79,7 +79,7 @@ export default function Signup() {
 
           {/* Formulaire d'inscription */}
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
+            <div className="mb-2">
               <label htmlFor="email" className="form-label">
                 <i className="bi bi-envelope me-2"></i>
                 {t('email')}
@@ -97,7 +97,7 @@ export default function Signup() {
               />
             </div>
 
-            <div className="mb-3">
+            <div className="mb-2">
               <label htmlFor="password" className="form-label">
                 <i className="bi bi-lock-fill me-2"></i>
                 {t('password')}
@@ -119,7 +119,7 @@ export default function Signup() {
               </small>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-2">
               <label htmlFor="confirmPassword" className="form-label">
                 <i className="bi bi-lock-fill me-2"></i>
                 {t('confirmPassword') || 'Confirmer le mot de passe'}
@@ -139,7 +139,7 @@ export default function Signup() {
 
             <button
               type="submit"
-              className="btn btn-primary w-100 mb-3"
+              className="btn btn-primary w-100 mb-2"
               disabled={loading}
               style={{ minHeight: '48px', fontSize: '16px', fontWeight: 600 }}
             >
@@ -165,7 +165,7 @@ export default function Signup() {
           </div>
 
           {/* Boutons OAuth */}
-          <div className="d-flex flex-column gap-2 mb-3">
+          <div className="d-flex flex-column gap-2 mb-2">
             {/* Google OAuth */}
             <button
               type="button"
