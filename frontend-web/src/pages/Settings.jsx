@@ -92,7 +92,21 @@ export default function Settings() {
         setUser({ ...userData, preferences: userData.preferences });
       }
     } catch (err) {
-      showMessage('error', 'Erreur lors du chargement des données');
+      // Hors ligne ou erreur réseau : afficher les données du store pour permettre la navigation
+      if (user) {
+        const storedUser = user;
+        setEmail(storedUser.email || '');
+        setDisplayName(storedUser.display_name || '');
+        setAvatarUrl(storedUser.avatar_url || '');
+        setTwoFactorEnabled(!!storedUser.two_factor_enabled);
+        const prefs = storedUser.preferences || {};
+        setTheme(prefs.theme || 'light');
+        setAccountCreated('');
+        setLastLogin('Jamais');
+        showMessage('', 'Données en cache (hors ligne). Activer la 2FA nécessite une connexion.');
+      } else {
+        showMessage('error', 'Erreur lors du chargement des données');
+      }
     } finally {
       setLoading(false);
     }
