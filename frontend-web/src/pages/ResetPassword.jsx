@@ -119,9 +119,10 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-secondary)' }}>
-      <div className="card shadow-lg fade-in" style={{ width: '100%', maxWidth: '450px', border: 'none', borderRadius: '16px', backgroundColor: 'var(--bg-color)' }}>
-        <div className="card-body p-4 p-md-5">
+    <div className="auth-page-background">
+      <div className="auth-card-container">
+        <div className="card auth-card shadow-lg fade-in" style={{ width: '100%', maxWidth: '420px', border: 'none', borderRadius: '12px' }}>
+          <div className="card-body p-3 p-md-4">
           {success ? (
             /* Message de succès */
             <div className="text-center">
@@ -180,8 +181,8 @@ export default function ResetPassword() {
           ) : (
             <>
               {/* Logo / Titre */}
-              <div className="text-center mb-4">
-                <Logo size="large" style={{ marginBottom: '16px' }} />
+              <div className="text-center mb-3">
+                <Logo size="large" style={{ marginBottom: '8px', maxWidth: '80px' }} />
                 <h1 className="h3 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
                   Nouveau mot de passe
                 </h1>
@@ -225,7 +226,7 @@ export default function ResetPassword() {
                   </small>
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-2">
                   <label htmlFor="confirmPassword" className="form-label" style={{ color: 'var(--text-color)' }}>
                     <i className="bi bi-lock-fill me-2"></i>
                     Confirmer le mot de passe
@@ -283,6 +284,7 @@ export default function ResetPassword() {
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

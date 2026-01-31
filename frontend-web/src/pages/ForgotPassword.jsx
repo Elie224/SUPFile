@@ -46,13 +46,14 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-secondary)' }}>
-      <div className="card shadow-lg fade-in" style={{ width: '100%', maxWidth: '450px', border: 'none', borderRadius: '16px', backgroundColor: 'var(--bg-color)' }}>
-        <div className="card-body p-4 p-md-5">
+    <div className="auth-page-background">
+      <div className="auth-card-container">
+        <div className="card auth-card shadow-lg fade-in" style={{ width: '100%', maxWidth: '420px', border: 'none', borderRadius: '12px' }}>
+          <div className="card-body p-3 p-md-4">
           {/* Logo / Titre */}
-          <div className="text-center mb-4">
-            <Logo size="large" style={{ marginBottom: '16px' }} />
-            <h1 className="h3 mb-2" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
+          <div className="text-center mb-3">
+            <Logo size="large" style={{ marginBottom: '8px', maxWidth: '80px' }} />
+            <h1 className="h3 mb-1" style={{ fontWeight: 700, color: 'var(--text-color)' }}>
               Mot de passe oublié ?
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
@@ -157,6 +158,7 @@ export default function ForgotPassword() {
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

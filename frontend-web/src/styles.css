@@ -152,6 +152,12 @@ body {
   
   /* Couleurs primaires plus vives en mode sombre */
   --primary-color: #60a5fa;
+  
+  /* Background pour pages d'authentification - Thème sombre */
+  --auth-bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
+  --auth-bg-pattern: radial-gradient(circle at 20% 50%, rgba(96, 165, 250, 0.08) 0%, transparent 50%),
+                     radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                     radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
   --primary-hover: #3b82f6;
   --primary-light: #93c5fd;
 }
@@ -1018,6 +1024,84 @@ button, a, .btn {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================
+   PAGES D'AUTHENTIFICATION - BACKGROUNDS
+   ============================================ */
+.auth-page-background {
+  position: relative;
+  min-height: 100vh;
+  background: var(--auth-bg-gradient);
+  overflow: hidden;
+}
+
+.auth-page-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--auth-bg-pattern);
+  animation: authPatternMove 20s ease-in-out infinite;
+}
+
+.auth-page-background::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 60px,
+    rgba(255, 255, 255, 0.02) 60px,
+    rgba(255, 255, 255, 0.02) 120px
+  );
+  animation: authPatternRotate 60s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes authPatternMove {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, 20px) scale(1.05);
+  }
+}
+
+@keyframes authPatternRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-card-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px 0;
+}
+
+.auth-card {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .auth-card {
+  background: rgba(17, 24, 39, 0.85) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Loading spinner */
