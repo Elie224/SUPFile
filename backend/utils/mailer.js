@@ -53,6 +53,8 @@ async function sendPasswordResetEmail(to, resetUrl) {
 
   const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
   const appName = 'SUPFile';
+  const frontendUrl = process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'http://localhost:3000';
+  const logoUrl = `${frontendUrl}/logo.png`;
 
   const mailOptions = {
     from: `"${appName}" <${fromEmail}>`,
@@ -71,8 +73,9 @@ async function sendPasswordResetEmail(to, resetUrl) {
           <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
             <!-- Logo -->
             <div style="text-align: center; margin-bottom: 32px;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #3B82F6, #8B5CF6); padding: 16px 24px; border-radius: 12px;">
-                <span style="color: white; font-size: 24px; font-weight: bold;">SUPFile</span>
+              <img src="${logoUrl}" alt="SUPFile Logo" style="max-width: 120px; height: auto; margin-bottom: 16px;" />
+              <div style="display: inline-block; margin-top: 8px;">
+                <span style="color: #1e293b; font-size: 28px; font-weight: bold; background: linear-gradient(135deg, #3B82F6, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">SUPFile</span>
               </div>
             </div>
 
