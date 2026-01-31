@@ -57,9 +57,10 @@ export default function Signup() {
   };
 
   return (
-    <div className="container-fluid d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-secondary)', padding: '20px 0' }}>
-      <div className="card shadow-lg fade-in" style={{ width: '100%', maxWidth: '420px', border: 'none', borderRadius: '12px', backgroundColor: 'var(--bg-color)' }}>
-        <div className="card-body p-3 p-md-4">
+    <div className="auth-page-background">
+      <div className="auth-card-container">
+        <div className="card auth-card shadow-lg fade-in" style={{ width: '100%', maxWidth: '420px', border: 'none', borderRadius: '12px' }}>
+          <div className="card-body p-3 p-md-4">
           {/* Logo / Titre */}
           <div className="text-center mb-3">
             <Logo size="large" style={{ marginBottom: '8px', maxWidth: '80px' }} />
@@ -239,6 +240,7 @@ export default function Signup() {
               ← Retour à la présentation de SUPFile
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
