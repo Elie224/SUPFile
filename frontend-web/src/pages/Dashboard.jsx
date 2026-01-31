@@ -16,10 +16,12 @@ export default function Dashboard() {
   const { t, language } = useLanguage();
 
   const loadDashboard = useCallback(async () => {
+    if (typeof window !== 'undefined') console.log('[Dashboard] loadDashboard called');
     setError(null);
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       try {
-        await offlineDB.init();
+        const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), ms));
+        await Promise.race([offlineDB.init(), timeout(5000)]);
         const cached = await offlineDB.getUserMeta('dashboardStats');
         if (cached) {
           setStats(cached);
@@ -36,8 +38,10 @@ export default function Dashboard() {
     }
 
     try {
+      if (typeof window !== 'undefined') console.log('[Dashboard] GET /api/dashboard sending...');
       const response = await dashboardService.getStats();
       const data = response.data.data;
+      if (typeof window !== 'undefined') console.log('[Dashboard] GET /api/dashboard OK', data?.total_files);
       setStats(data);
       setFromCache(false);
       try {
@@ -62,8 +66,9 @@ export default function Dashboard() {
   }, [t]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') console.log('[Dashboard] mounted');
     loadDashboard();
-    // Filet de sécurité : après 25 s, sortir du chargement même si la requête n'a pas répondu (ex. ancien build sans timeout axios)
+    // Filet de sécurité : après 15 s, sortir du chargement (requête bloquée, CORS, timeout, ou ancien build)
     const safetyTimer = setTimeout(() => {
       setLoading((prev) => {
         if (prev) {
@@ -72,7 +77,7 @@ export default function Dashboard() {
         }
         return prev;
       });
-    }, 25000);
+    }, 15000);
     return () => clearTimeout(safetyTimer);
   }, [loadDashboard, t]);
 

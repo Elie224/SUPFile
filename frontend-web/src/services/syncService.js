@@ -5,6 +5,7 @@
 
 import offlineDB from './offlineDB';
 import { fileService, folderService } from './api';
+import { API_URL } from '../config';
 
 class SyncService {
   constructor() {
@@ -68,7 +69,6 @@ class SyncService {
           // Télécharger le contenu du fichier si pas trop gros (< 10 MB)
           if (file.size && file.size < 10 * 1024 * 1024) {
             try {
-              const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
               const token = localStorage.getItem('access_token');
               const response = await fetch(`${API_URL}/api/files/${file.id}/download`, {
                 headers: { 'Authorization': `Bearer ${token}` }

@@ -7,6 +7,7 @@ const { calculateRealQuotaUsed, syncQuotaUsed } = require('../utils/quota');
 async function getDashboard(req, res, next) {
   try {
     const userId = req.user.id;
+    console.log('[Dashboard] GET /api/dashboard', { userId: userId?.toString?.() || userId, timestamp: new Date().toISOString() });
 
     const user = await UserModel.findById(userId);
     if (!user) {
