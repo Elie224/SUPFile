@@ -56,6 +56,7 @@ export default function Intro() {
   const navigate = useNavigate();
   const { user, accessToken } = useAuthStore();
   const [currentPage, setCurrentPage] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'light';
     return localStorage.getItem('theme') || 'light';
@@ -354,15 +355,29 @@ export default function Intro() {
           .page-content { animation: fadeIn 0.5s ease-out; }
           .btn-hover:hover { transform: translateY(-2px); }
           
+          /* Desktop: afficher thème + auth dans le header ; mobile: afficher hamburger */
+          .intro-header-actions-desktop {
+            display: flex;
+          }
+          .intro-header-hamburger {
+            display: none;
+          }
+          @media (max-width: 767px) {
+            .intro-header-actions-desktop {
+              display: none !important;
+            }
+            .intro-header-hamburger {
+              display: flex !important;
+              align-items: center;
+              justify-content: center;
+            }
+          }
           /* Responsive Mobile */
           @media (max-width: 767px) {
             .intro-header-wrapper {
-              flex-wrap: wrap !important;
+              flex-wrap: nowrap !important;
               padding: 12px 16px !important;
               gap: 12px !important;
-            }
-            .intro-theme-toggle-wrapper {
-              display: none !important;
             }
             .intro-auth-btns-wrapper {
               gap: 8px !important;
@@ -419,8 +434,8 @@ export default function Intro() {
           <span style={styles.logoText} className="intro-logo-text">SUPFile</span>
         </div>
 
-        <div style={styles.headerRight}>
-          {/* Theme toggle */}
+        {/* Desktop: thème + boutons auth */}
+        <div style={styles.headerRight} className="intro-header-actions-desktop">
           <div style={styles.themeToggle} className="intro-theme-toggle-wrapper">
             <button
               style={styles.themeBtn(theme === 'light')}
@@ -437,8 +452,6 @@ export default function Intro() {
               🌙 Sombre
             </button>
           </div>
-
-          {/* Auth buttons */}
           <div style={styles.authBtns} className="intro-auth-btns-wrapper">
             <button
               style={styles.btnLogin}
@@ -456,7 +469,133 @@ export default function Intro() {
             </button>
           </div>
         </div>
+
+        {/* Mobile: bouton hamburger */}
+        <div className="intro-header-hamburger">
+          <button
+            type="button"
+            aria-label="Ouvrir le menu"
+            onClick={() => setMenuOpen(true)}
+            style={{
+              padding: '10px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+            }}
+            className="btn-hover"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
       </header>
+
+      {/* Menu mobile (drawer) : thème + auth */}
+      {menuOpen && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 999,
+              animation: 'fadeIn 0.2s ease-out',
+            }}
+          />
+          <div
+            role="dialog"
+            aria-label="Menu"
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 'min(320px, 100vw)',
+              maxWidth: '100%',
+              backgroundColor: theme === 'dark' ? '#1e293b' : '#fff',
+              boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+              animation: 'fadeIn 0.25s ease-out',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                aria-label="Fermer le menu"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  padding: '8px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>
+              Menu
+            </div>
+            <div>
+              <div style={{ marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                Thème
+              </div>
+              <div style={styles.themeToggle}>
+                <button
+                  style={styles.themeBtn(theme === 'light')}
+                  onClick={() => { setTheme('light'); }}
+                  className="btn-hover"
+                >
+                  ☀️ Clair
+                </button>
+                <button
+                  style={styles.themeBtn(theme === 'dark')}
+                  onClick={() => { setTheme('dark'); }}
+                  className="btn-hover"
+                >
+                  🌙 Sombre
+                </button>
+              </div>
+            </div>
+            <div>
+              <div style={{ marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
+                Compte
+              </div>
+              <div style={{ ...styles.authBtns, flexDirection: 'column' }} className="intro-auth-btns-wrapper">
+                <button
+                  style={styles.btnLogin}
+                  onClick={() => { setMenuOpen(false); navigate('/login'); }}
+                  className="btn-hover"
+                >
+                  Se connecter
+                </button>
+                <button
+                  style={styles.btnSignup}
+                  onClick={() => { setMenuOpen(false); navigate('/signup'); }}
+                  className="btn-hover"
+                >
+                  Créer un compte
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Main content */}
       <main style={styles.main}>
