@@ -674,91 +674,11 @@ export default function Settings() {
         </button>
       </section>
 
-      {/* Mot de passe */}
+      {/* Sécurité : 2FA en premier, puis mot de passe */}
       <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🔒 {t('security')}</h2>
-        <form onSubmit={handleChangePassword}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('currentPassword')}</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              style={{
-                padding: 12,
-                width: '100%',
-                maxWidth: 400,
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                fontSize: '1em',
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)'
-              }}
-              required
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('newPassword')}</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              style={{
-                padding: 12,
-                width: '100%',
-                maxWidth: 400,
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                fontSize: '1em',
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)'
-              }}
-              required
-              minLength={8}
-              placeholder={t('newPassword') || 'Nouveau mot de passe'}
-            />
-          </div>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('confirmPassword')}</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              style={{
-                padding: 12,
-                width: '100%',
-                maxWidth: 400,
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                fontSize: '1em',
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)'
-              }}
-              required
-              minLength={8}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: '1em',
-              fontWeight: 'bold',
-              opacity: saving ? 0.6 : 1
-            }}
-          >
-            {saving ? t('saving') : t('changePassword')}
-          </button>
-        </form>
 
-        {/* Double authentification (2FA) - dans la même section Sécurité */}
-        <hr style={{ margin: '28px 0 24px', borderColor: 'var(--border-color)' }} />
+        {/* Double authentification (2FA) - en premier pour être visible sans scroll */}
         <h3 style={{ marginBottom: 12, fontSize: '1.25em', color: 'var(--text-color)' }}>
           🔐 Double authentification (2FA)
         </h3>
@@ -973,6 +893,88 @@ export default function Settings() {
             </form>
           </div>
         )}
+
+        <hr style={{ margin: '28px 0 24px', borderColor: 'var(--border-color)' }} />
+        <h3 style={{ marginBottom: 12, fontSize: '1.25em', color: 'var(--text-color)' }}>{t('changePassword')}</h3>
+        <form onSubmit={handleChangePassword}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('currentPassword')}</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              style={{
+                padding: 12,
+                width: '100%',
+                maxWidth: 400,
+                border: '1px solid var(--border-color)',
+                borderRadius: 8,
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
+              }}
+              required
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('newPassword')}</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              style={{
+                padding: 12,
+                width: '100%',
+                maxWidth: 400,
+                border: '1px solid var(--border-color)',
+                borderRadius: 8,
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
+              }}
+              required
+              minLength={8}
+              placeholder={t('newPassword') || 'Nouveau mot de passe'}
+            />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>{t('confirmPassword')}</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={{
+                padding: 12,
+                width: '100%',
+                maxWidth: 400,
+                border: '1px solid var(--border-color)',
+                borderRadius: 8,
+                fontSize: '1em',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
+              }}
+              required
+              minLength={8}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: 8,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontSize: '1em',
+              fontWeight: 'bold',
+              opacity: saving ? 0.6 : 1
+            }}
+          >
+            {saving ? t('saving') : t('changePassword')}
+          </button>
+        </form>
       </section>
 
       {/* Déconnexion - section séparée */}
