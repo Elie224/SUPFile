@@ -119,7 +119,12 @@ async function signup(req, res, next) {
     }
     // Si c'est une erreur de validation Mongoose (email déjà utilisé)
     if (err.name === 'MongoServerError' && err.code === 11000) {
-      return res.status(409).json({ error: { message: 'Email already in use' } });
+      return res.status(409).json({
+        error: {
+          message: 'Cet email est déjà utilisé. Si vous n\'avez pas vérifié votre compte, allez sur la page de connexion pour renvoyer l\'email de vérification.',
+          code: 'EMAIL_ALREADY_EXISTS',
+        },
+      });
     }
     next(err);
   }

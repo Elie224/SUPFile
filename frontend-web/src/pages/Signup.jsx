@@ -60,6 +60,9 @@ export default function Signup() {
       }
     } else {
       setError(result.error || t('signupFailed'));
+      if (result.emailAlreadyUsed) {
+        setSuccessMessage('');
+      }
     }
     
     setLoading(false);
@@ -100,9 +103,16 @@ export default function Signup() {
 
           {/* Message d'erreur */}
           {error && (
-            <div className="alert alert-danger d-flex align-items-center gap-2 py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
-              <i className="bi bi-exclamation-triangle-fill"></i>
-              <span>{error}</span>
+            <div className="alert alert-danger py-2 mb-2" role="alert" style={{ fontSize: '13px' }}>
+              <div className="d-flex align-items-center gap-2">
+                <i className="bi bi-exclamation-triangle-fill"></i>
+                <span>{error}</span>
+              </div>
+              {(error.includes('déjà') || error.includes('already')) && (
+                <Link to="/login" className="btn btn-sm btn-outline-light mt-2 d-inline-block">
+                  {t('goToLogin') || 'Aller à la connexion'} — Renvoyer l&apos;email de vérification
+                </Link>
+              )}
             </div>
           )}
 
