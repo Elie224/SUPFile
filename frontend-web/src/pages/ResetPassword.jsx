@@ -89,6 +89,10 @@ export default function ResetPassword() {
 
       if (response.ok) {
         setSuccess(true);
+        // Redirection automatique vers la page de connexion après 3 secondes
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
       } else {
         setError(data.error?.message || 'Une erreur est survenue');
       }
@@ -133,12 +137,15 @@ export default function ResetPassword() {
                 <i className="bi bi-check-lg" style={{ fontSize: '40px', color: 'white' }}></i>
               </div>
               <h2 className="h4 mb-3" style={{ color: 'var(--text-color)' }}>Mot de passe réinitialisé !</h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-                Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                Votre mot de passe a été modifié avec succès.
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+                Redirection automatique vers la page de connexion dans 3 secondes...
               </p>
               <Link to="/login" className="btn btn-primary w-100" style={{ minHeight: '48px', borderRadius: '10px' }}>
                 <i className="bi bi-box-arrow-in-right me-2"></i>
-                Se connecter
+                Se connecter maintenant
               </Link>
             </div>
           ) : !tokenValid ? (
