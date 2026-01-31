@@ -54,7 +54,7 @@ function errorHandler(err, req, res, next) {
 
   // En-têtes CORS sur les réponses d'erreur (sinon le navigateur bloque et affiche "No Access-Control-Allow-Origin")
   const origin = req.get('Origin');
-  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('localhost'))) {
+  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('.fly.dev') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');

@@ -12,6 +12,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 20000, // 20 s : éviter chargement infini si le backend ne répond pas (CORS, crash, etc.)
 });
 
 // Instance séparée pour les uploads (sans Content-Type par défaut)

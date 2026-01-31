@@ -1,29 +1,25 @@
-# Script pour voir tous les logs recents
-# Executez ce script depuis le dossier backend
-
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "TOUS LES LOGS RECENTS" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Gray
+# Script pour voir tous les logs recents (sans stream, sort apres affichage)
+# Executez depuis le dossier backend : .\voir-tous-logs.ps1
+# Ou depuis la racine : .\backend\voir-tous-logs.ps1
 
 $appName = "supfile"
 
-Write-Host "`n[*] Recuperation des 50 dernieres lignes de logs..." -ForegroundColor Yellow
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "LOGS RECENTS - APP: $appName" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Gray
+Write-Host "`n[*] Recuperation des logs (--no-tail)..." -ForegroundColor Yellow
 
 try {
-    $allLogs = flyctl logs --app $appName 2>&1 | Select-Object -Last 50
-    
-    if ($allLogs) {
-        Write-Host "`n[OK] Logs recuperes:" -ForegroundColor Green
-        $allLogs | ForEach-Object {
-            Write-Host $_ -ForegroundColor Gray
-        }
-    } else {
-        Write-Host "`n[ATTENTION] Aucun log trouve" -ForegroundColor Yellow
+    # --no-tail : affiche le buffer puis quitte (pas de stream infini)
+    & fly logs --app $appName --no-tail
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`n[ERREUR] fly logs a echoue (code $LASTEXITCODE)" -ForegroundColor Red
+        Write-Host "Verifiez : fly auth whoami  et  fly apps list" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "`n[ERREUR] Impossible de recuperer les logs: $_" -ForegroundColor Red
 }
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "[OK] Verification terminee" -ForegroundColor Green
+Write-Host "[OK] Termine" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Gray

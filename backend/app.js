@@ -1,19 +1,38 @@
 const express = require('express');
 const app = express();
+const config = require('./config');
+const cors = require('cors');
 
 // Fly.io : écouter immédiatement sur /health pour que le health check réussisse
 app.set('trust proxy', 1);
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 
+// CORS et prévolée OPTIONS AVANT listen() pour que toute requête (y compris preflight) ait les en-têtes
+app.use(cors(config.cors));
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.get('Origin') || '';
+    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
+    if (allowOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
+  }
+  next();
+});
+
 function loadRestOfApp() {
-  const cors = require('cors');
-const helmet = require('helmet');
-const path = require('path');
-const fs = require('fs').promises;
-const session = require('express-session');
-const passport = require('passport');
-const config = require('./config');
+  const helmet = require('helmet');
+  const path = require('path');
+  const fs = require('fs').promises;
+  const session = require('express-session');
+  const passport = require('passport');
 const { errorHandler } = require('./middlewares/errorHandler');
 const { generalLimiter, authLimiter, uploadLimiter, shareLimiter } = require('./middlewares/rateLimiter');
 const { sanitizeQuery, validateName } = require('./middlewares/security');
@@ -104,7 +123,7 @@ app.use(cors(config.cors));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.get('Origin') || '';
-    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.includes('localhost');
+    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
     const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
     if (allowOrigin) {
       res.setHeader('Access-Control-Allow-Origin', allowOrigin);
@@ -343,7 +362,7 @@ app.use('/api/2fa', require('./routes/twoFactor'));
  */
 app.use((req, res) => {
   const origin = req.get('Origin');
-  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('localhost'))) {
+  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('.fly.dev') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -463,7 +482,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 let server = app.listen(PORT, '0.0.0.0', () => {
   console.log('✓ Listening on 0.0.0.0:' + PORT);
-  loadRestOfApp();
+  // Différer le chargement pour que /health réponde immédiatement au health check Fly
+  setImmediate(() => loadRestOfApp());
 });
 server.on('error', (err) => {
   console.error('✗ Server error:', err.message);
