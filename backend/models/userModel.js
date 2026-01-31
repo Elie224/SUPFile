@@ -191,7 +191,7 @@ const UserModel = {
 
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 h
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
 
     await User.findByIdAndUpdate(user._id, {
       email_verification_token: hashedToken,

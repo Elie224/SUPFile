@@ -13,11 +13,11 @@ import offlineDB from './services/offlineDB';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 
-// Dashboard en import direct : évite blocage "Chargement..." si le chunk lazy ne charge pas (Netlify, cache, 404)
+// Imports directs pour les pages critiques (évite blocage/erreur si le chunk lazy ne charge pas après déploiement)
 import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 // Lazy loading des autres pages
-const Login = lazy(() => import('./pages/Login'));
-const Signup = lazy(() => import('./pages/Signup'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const OAuthProxy = lazy(() => import('./pages/OAuthProxy'));
 const Files = lazy(() => import('./pages/Files'));
