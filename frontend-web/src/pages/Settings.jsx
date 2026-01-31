@@ -510,7 +510,8 @@ export default function Settings() {
                     height: 12,
                     borderRadius: 6,
                     overflow: 'hidden',
-                    position: 'relative'
+                    position: 'relative',
+                    backgroundColor: 'var(--progress-track-bg)'
                   }}
                 >
                   <div style={{
