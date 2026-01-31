@@ -89,7 +89,7 @@ export default function Login() {
 
           {/* Formulaire de connexion */}
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
+            <div className="mb-2">
               <label htmlFor="email" className="form-label">
                 <i className="bi bi-envelope me-2"></i>
                 {t('email')}
@@ -107,7 +107,7 @@ export default function Login() {
               />
             </div>
 
-            <div className="mb-3">
+            <div className="mb-2">
               <label htmlFor="password" className="form-label">
                 <i className="bi bi-lock-fill me-2"></i>
                 {t('password')}
@@ -126,7 +126,7 @@ export default function Login() {
             </div>
 
             {/* Lien mot de passe oublié */}
-            <div className="mb-4 text-end">
+            <div className="mb-2 text-end">
               <Link 
                 to="/forgot-password" 
                 style={{ 
@@ -142,7 +142,7 @@ export default function Login() {
 
             <button
               type="submit"
-              className="btn btn-primary w-100 mb-3"
+              className="btn btn-primary w-100 mb-2"
               disabled={loading}
               style={{ minHeight: '48px', fontSize: '16px', fontWeight: 600 }}
             >
@@ -168,7 +168,7 @@ export default function Login() {
           </div>
 
           {/* Boutons OAuth */}
-          <div className="d-flex flex-column gap-2 mb-3">
+          <div className="d-flex flex-column gap-2 mb-2">
             {/* Google OAuth */}
             <button
               type="button"
