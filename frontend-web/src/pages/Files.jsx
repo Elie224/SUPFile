@@ -1419,28 +1419,10 @@ export default function Files() {
                     });
                   }
                   
-                  // Vérifier si c'est le dossier Root système
-                  // Le backend retourne les dossiers avec type: 'folder' et peut avoir parent_id ou parentId
+                  // Dossier à la racine : parent_id null (Renommer et Supprimer autorisés)
                   const parentId = item.parent_id !== undefined ? item.parent_id : (item.parentId !== undefined ? item.parentId : null);
                   const folderName = item.name || '';
-                  
-                  // Le dossier Root système a le nom exact "Root" (case-insensitive) et parent_id === null
-                  // Les dossiers normaux à la racine ont aussi parent_id === null, mais ne sont pas "Root"
-                  const isRootFolder = itemType === 'folder' && 
-                    (folderName.toLowerCase() === 'root') && 
-                    (parentId === null || parentId === undefined);
-                  
-                  // Debug: logger pour vérifier la détection (toujours actif pour diagnostiquer)
-                  if (itemType === 'folder') {
-                    console.log('Folder debug:', {
-                      name: folderName,
-                      parent_id: parentId,
-                      parentId: item.parentId,
-                      isRootFolder,
-                      itemType,
-                      item: item
-                    });
-                  }
+                  const isRootFolder = false; // Plus de restriction : on peut renommer/supprimer le dossier racine
                   
                   return (
                   <tr 
@@ -1819,17 +1801,14 @@ export default function Files() {
                           setEditingItem({ ...item, type: itemType, id: itemId });
                           setEditName(item.name);
                         }}
-                        disabled={isRootFolder}
                         className="btn btn-outline-secondary btn-sm"
                         style={{
                           padding: '6px 12px',
                           fontSize: '0.9em',
                           display: 'inline-flex',
-                          alignItems: 'center',
-                          opacity: isRootFolder ? 0.5 : 1,
-                          cursor: isRootFolder ? 'not-allowed' : 'pointer'
+                          alignItems: 'center'
                         }}
-                        title={isRootFolder ? (t('cannotRenameRoot') || 'Impossible de renommer la racine') : t('rename')}
+                        title={t('rename')}
                       >
                         <i className="bi bi-pencil me-1"></i>
                         {t('rename')}
@@ -1856,23 +1835,16 @@ export default function Files() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (!isRootFolder) {
-                            deleteItem({ ...item, type: itemType, id: itemId });
-                          } else {
-                            toast.warning(t('cannotDeleteRoot') || 'Impossible de supprimer la racine');
-                          }
+                          deleteItem({ ...item, type: itemType, id: itemId });
                         }}
-                        disabled={isRootFolder}
                         className="btn btn-outline-danger btn-sm"
                         style={{
                           padding: '6px 12px',
                           fontSize: '0.9em',
                           display: 'inline-flex',
-                          alignItems: 'center',
-                          opacity: isRootFolder ? 0.5 : 1,
-                          cursor: isRootFolder ? 'not-allowed' : 'pointer'
+                          alignItems: 'center'
                         }}
-                        title={isRootFolder ? (t('cannotDeleteRoot') || 'Impossible de supprimer la racine') : t('delete')}
+                        title={t('delete')}
                       >
                         <i className="bi bi-trash me-1"></i>
                         {t('delete')}

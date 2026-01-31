@@ -134,7 +134,6 @@ const translations = {
     all: 'Tous',
     allTypes: 'Tous les types',
     allFormats: 'Tous les formats',
-    files: 'Fichiers',
     folders: 'Dossiers',
     file: 'Fichier',
     folder: 'Dossier',
@@ -152,16 +151,8 @@ const translations = {
     endDate: 'Date de fin',
     view: 'Voir',
     searchError: 'Erreur lors de la recherche',
-    
-    // Trash
-    trashEmpty: 'La corbeille est vide',
-    itemsInTrash: 'élément dans la corbeille',
-    itemsInTrashPlural: 'éléments dans la corbeille',
-    deletedOn: 'Supprimé le',
     restore: 'Restaurer',
-    restoreSuccess: 'restauré avec succès',
-    restoreError: 'Erreur lors de la restauration',
-    
+
     // Settings
     accountInfo: 'Informations du compte',
     profile: 'Profil',
@@ -344,7 +335,6 @@ const translations = {
     all: 'All',
     allTypes: 'All types',
     allFormats: 'All formats',
-    files: 'Files',
     folders: 'Folders',
     file: 'File',
     folder: 'Folder',
@@ -362,16 +352,8 @@ const translations = {
     endDate: 'End date',
     view: 'View',
     searchError: 'Search error',
-    
-    // Trash
-    trashEmpty: 'Trash is empty',
-    itemsInTrash: 'item in trash',
-    itemsInTrashPlural: 'items in trash',
-    deletedOn: 'Deleted on',
     restore: 'Restore',
-    restoreSuccess: 'restored successfully',
-    restoreError: 'Error during restoration',
-    
+
     // Settings
     accountInfo: 'Account Information',
     profile: 'Profile',
