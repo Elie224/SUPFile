@@ -41,7 +41,7 @@ export default function Files() {
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
-  const [downloadingFolder, setDownloadingFolder] = useState(null); // ID du dossier en cours de téléchargement
+  const [downloadingFolder, setDownloadingFolder] = useState(null);
   const [draggedItem, setDraggedItem] = useState(null); // Élément en cours de drag & drop (déplacement)
 
   // Charger le dossier depuis les paramètres URL au montage
@@ -1516,39 +1516,36 @@ export default function Files() {
                                 toast.error(t('downloadError') || 'ID du dossier invalide');
                                 return;
                               }
+                              const token = localStorage.getItem('access_token');
+                              if (!token) {
+                                toast.warning(t('mustBeConnected') || 'Vous devez être connecté.');
+                                return;
+                              }
                               setDownloadingFolder(itemId);
                               try {
-                                const token = localStorage.getItem('access_token');
-                                if (!token) {
-                                  toast.warning(t('mustBeConnected') || 'Vous devez être connecté.');
-                                  return;
-                                }
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 const response = await fetch(`${API_URL}/api/folders/${encodeURIComponent(id)}/download`, {
                                   method: 'GET',
                                   headers: { Authorization: `Bearer ${token}` }
                                 });
                                 if (!response.ok) {
-                                  const contentType = response.headers.get('Content-Type') || '';
-                                  let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
-                                  if (contentType.includes('application/json')) {
+                                  const ct = response.headers.get('Content-Type') || '';
+                                  let msg = t('downloadError') || 'Erreur lors du téléchargement';
+                                  if (ct.includes('application/json')) {
                                     try {
                                       const data = await response.json();
-                                      errorMsg = data?.error?.message || errorMsg;
-                                      if (data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
-                                        errorMsg = data.error.message;
-                                      }
+                                      msg = data?.error?.message || msg;
                                     } catch (_) {}
                                   }
-                                  if (response.status === 403) errorMsg = t('accessDenied') || 'Accès refusé';
-                                  if (response.status === 404) errorMsg = errorMsg || (t('folderNotFound') || 'Dossier non trouvé');
-                                  if (response.status === 503) errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
-                                  toast.error(errorMsg);
+                                  if (response.status === 403) msg = t('accessDenied') || 'Accès refusé';
+                                  if (response.status === 404) msg = msg || (t('folderNotFound') || 'Dossier non trouvé');
+                                  if (response.status === 503) msg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
+                                  toast.error(msg);
                                   return;
                                 }
                                 const blob = await response.blob();
                                 if (!blob || blob.size === 0) {
-                                  toast.error(t('downloadError') || 'Le fichier ZIP est vide ou indisponible.');
+                                  toast.error(t('downloadError') || 'Le fichier ZIP est vide.');
                                   return;
                                 }
                                 const url = window.URL.createObjectURL(blob);
@@ -1562,8 +1559,7 @@ export default function Files() {
                                 }, 100);
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
-                                const msg = err && err.message ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement');
-                                console.warn('[Supfile] Téléchargement ZIP:', msg);
+                                const msg = (err && err.message) ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement');
                                 toast.error(msg);
                               } finally {
                                 try { setDownloadingFolder(null); } catch (_) {}
@@ -1584,7 +1580,7 @@ export default function Files() {
                               gap: 4,
                               opacity: downloadingFolder === itemId ? 0.7 : 1
                             }}
-                            title={downloadingFolder === itemId ? (t('downloading') || 'Téléchargement en cours...') : t('downloadZip')}
+                            title={downloadingFolder === itemId ? (t('downloading') || 'Téléchargement...') : t('downloadZip')}
                           >
                             {downloadingFolder === itemId ? (
                               <>

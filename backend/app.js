@@ -456,16 +456,17 @@ process.on('unhandledRejection', (reason, promise) => {
 
 /**
  * Démarre le serveur HTTP.
- * Fly.io : listen() immédiatement pour que le health check passe tout de suite, puis loadRestOfApp() en setImmediate.
+ * Fly.io : monter toutes les routes AVANT listen() pour éviter un crash en setImmediate (ensureProductionSecrets, etc.)
+ * qui ferait croire à Fly que l'app n'écoute pas.
  */
 let server;
 
 if (process.env.NODE_ENV === 'test') {
   loadRestOfApp();
 } else {
+  loadRestOfApp();
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log('✓ Listening on 0.0.0.0:' + PORT);
-    setImmediate(() => loadRestOfApp());
   });
   server.on('error', (err) => {
     console.error('✗ Server error:', err.message);

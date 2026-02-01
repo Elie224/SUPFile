@@ -5,10 +5,10 @@ const { authMiddleware, optionalAuthMiddleware } = require('../middlewares/authM
 const { validate, createFolderSchema, renameSchema } = require('../middlewares/validation');
 const { validateObjectId } = require('../middlewares/security');
 
-// Télécharger un dossier (peut être public avec token de partage - DOIT être avant authMiddleware)
+// Télécharger un dossier en ZIP (auth ou partage public avec ?token=)
 router.get('/:id/download', optionalAuthMiddleware, validateObjectId, foldersController.downloadFolder);
 
-// Routes protégées (toutes les autres routes nécessitent une authentification)
+// Routes protégées
 router.use(authMiddleware);
 
 // Lister les dossiers (GET /api/folders?parent_id=xxx) - avant validateObjectId

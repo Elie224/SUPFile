@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
+import { API_URL } from '../config';
 
 export default function Share() {
   const { token } = useParams();
@@ -59,52 +60,28 @@ export default function Share() {
     
     try {
       const resource = share.resource;
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-      
-      // Construire l'URL avec le token et le mot de passe si nécessaire
       const params = new URLSearchParams();
       params.append('token', token);
       if (password && password.trim() !== '') {
         params.append('password', password);
       }
-      
-      const downloadUrl = resource.type === 'file' 
-        ? `${apiUrl}/api/files/${resource.id}/download?${params.toString()}`
-        : `${apiUrl}/api/folders/${resource.id}/download?${params.toString()}`;
-      
-      // Pour les fichiers, utiliser fetch pour gérer les erreurs
-      if (resource.type === 'file') {
-        const response = await fetch(downloadUrl);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: { message: 'Erreur lors du téléchargement' } }));
-          throw new Error(errorData.error?.message || `Erreur ${response.status}`);
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = resource.name || 'download';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        // Pour les dossiers, utiliser fetch pour gérer le blob
-        const response = await fetch(downloadUrl);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: { message: 'Erreur lors du téléchargement' } }));
-          throw new Error(errorData.error?.message || `Erreur ${response.status}`);
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${resource.name || 'folder'}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      const downloadUrl = resource.type === 'file'
+        ? `${API_URL}/api/files/${resource.id}/download?${params.toString()}`
+        : `${API_URL}/api/folders/${resource.id}/download?${params.toString()}`;
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: { message: 'Erreur lors du téléchargement' } }));
+        throw new Error(errorData.error?.message || `Erreur ${response.status}`);
       }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = resource.type === 'folder' ? `${resource.name || 'dossier'}.zip` : (resource.name || 'download');
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
       toast.error(err.message || 'Erreur lors du téléchargement');
@@ -119,9 +96,7 @@ export default function Share() {
     
     try {
       setLoading(true);
-      // Recharger le partage avec le mot de passe
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-      const response = await fetch(`${apiUrl}/api/share/${token}?password=${encodeURIComponent(password)}`);
+      const response = await fetch(`${API_URL}/api/share/${token}?password=${encodeURIComponent(password)}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -197,7 +172,7 @@ export default function Share() {
           onClick={handleDownload}
           style={{ padding: '12px 24px', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 16 }}
         >
-          Télécharger {resource.type === 'folder' ? 'le dossier (ZIP)' : 'le fichier'}
+          {resource.type === 'folder' ? 'Télécharger le dossier (ZIP)' : 'Télécharger le fichier'}
         </button>
       </div>
     </div>

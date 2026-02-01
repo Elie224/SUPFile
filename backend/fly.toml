@@ -28,7 +28,7 @@ primary_region = 'cdg'
   processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "120s"
+    grace_period = "60s"
     interval = "10s"
     method = "GET"
     timeout = "10s"

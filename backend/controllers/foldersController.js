@@ -201,209 +201,124 @@ async function deleteFolder(req, res, next) {
   }
 }
 
-// Télécharger un dossier en ZIP
+// Télécharger un dossier en ZIP (authentifié ou partage public avec token)
 async function downloadFolder(req, res, next) {
-  const folderIdParam = req.params?.id;
   try {
-    if (process.env.NODE_ENV === 'production') {
-      console.log('[downloadFolder] start folderId=', folderIdParam);
-    }
-    const userId = req.user?.id; // Peut être undefined pour les partages publics
+    const userId = req.user?.id ?? req.user?._id;
     const { id } = req.params;
     const { token, password } = req.query;
-
-    // Vérifier que l'ID est valide (ObjectId MongoDB = 24 caractères hex)
-    if (!id || typeof id !== 'string' || id.length !== 24) {
-      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
-    }
-
-    // Vérifier que l'ID est bien un ObjectId valide avant la requête MongoDB
     const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+
+    if (!id || typeof id !== 'string' || id.length !== 24 || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
-    
-    // Convertir l'ID en ObjectId pour la requête
     let folderId;
     try {
       folderId = new mongoose.Types.ObjectId(id);
-    } catch (err) {
+    } catch {
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
-    
+
     const folder = await FolderModel.findById(folderId);
     if (!folder) {
-      // Vérifier si c'est un problème de connexion MongoDB
       if (mongoose.connection.readyState !== 1) {
         return res.status(503).json({ error: { message: 'Database connection error' } });
       }
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
 
-    // Vérifier la propriété ou le partage public
-    let hasAccess = false;
     const folderOwnerId = String(folder.owner_id || '');
-
-    // Vérifier si l'utilisateur est le propriétaire
-    if (userId) {
-      const userOwnerId = String(userId);
-      if (folderOwnerId === userOwnerId) {
-        hasAccess = true;
-      }
+    let hasAccess = false;
+    if (userId && String(userId) === folderOwnerId) {
+      hasAccess = true;
     }
-    
-    // Si pas propriétaire, vérifier le partage public
     if (!hasAccess && token) {
-      const ShareModel = require('../models/shareModel');
       const share = await ShareModel.findByToken(token);
-      
       if (share) {
         const shareFolderId = share.folder_id?.toString ? share.folder_id.toString() : share.folder_id;
-        const folderId = id?.toString ? id.toString() : id;
-        
-        if (shareFolderId === folderId) {
-          // Vérifier si le partage est expiré ou désactivé
+        const idStr = id.toString ? id.toString() : id;
+        if (shareFolderId === idStr) {
           if (share.expires_at && new Date(share.expires_at) < new Date()) {
             return res.status(410).json({ error: { message: 'Share expired' } });
           }
           if (share.is_active === false) {
             return res.status(403).json({ error: { message: 'Share deactivated' } });
           }
-          // Vérifier le mot de passe si requis
           if (share.password_hash) {
-            if (!password) {
-              return res.status(401).json({ error: { message: 'Password required' } });
-            }
+            if (!password) return res.status(401).json({ error: { message: 'Password required' } });
             const bcrypt = require('bcryptjs');
             const isValid = await bcrypt.compare(password, share.password_hash);
-            if (!isValid) {
-              return res.status(401).json({ error: { message: 'Invalid password' } });
-            }
+            if (!isValid) return res.status(401).json({ error: { message: 'Invalid password' } });
           }
           hasAccess = true;
         }
       }
     }
-    
     if (!hasAccess) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    // folderOwnerId déjà défini plus haut (pour récupérer les fichiers du dossier)
-    // Récupérer récursivement tous les fichiers du dossier
-    async function getAllFiles(folderId, basePath = '') {
-      const files = await FileModel.findByFolder(folderId, false);
-      const subfolders = await FolderModel.findByOwner(folderOwnerId, folderId, false);
-      
+    async function getAllFiles(fid, basePath = '') {
+      const files = await FileModel.findByFolder(fid, false);
+      const subfolders = await FolderModel.findByOwner(folderOwnerId, fid, false);
       const result = [];
-      
       for (const file of files) {
         result.push({ ...file, path: `${basePath}/${file.name}` });
       }
-      
-      for (const subfolder of subfolders) {
-        const subFiles = await getAllFiles(subfolder.id, `${basePath}/${subfolder.name}`);
+      for (const sub of subfolders) {
+        const subFiles = await getAllFiles(sub.id, `${basePath}/${sub.name}`);
         result.push(...subFiles);
       }
-      
       return result;
     }
 
     const allFiles = await getAllFiles(id, folder.name);
-
-    // Vérifier qu'il y a des fichiers à télécharger
     if (allFiles.length === 0) {
       return res.status(400).json({ error: { message: 'Folder is empty' } });
     }
 
-    // Créer l'archive ZIP
+    // Compter les fichiers présents sur le disque avant de commencer le stream
+    let countAvailable = 0;
+    for (const file of allFiles) {
+      try {
+        await fs.access(file.file_path);
+        countAvailable++;
+      } catch {
+        // ignoré
+      }
+    }
+    if (countAvailable === 0) {
+      return res.status(404).json({
+        error: {
+          message: 'Le dossier ne contient aucun fichier accessible sur le serveur.',
+          code: 'FOLDER_EMPTY_OR_ORPHANED'
+        }
+      });
+    }
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 
-    const archive = archiver('zip', { 
-      zlib: { level: 9 },
-      store: false // Compression activée
-    });
-    
-    // Gérer les erreurs d'archivage
+    const archive = archiver('zip', { zlib: { level: 9 } });
     archive.on('error', (err) => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Archive error:', err);
-      }
-      if (!res.headersSent) {
-        res.status(500).json({ error: { message: 'Failed to create archive' } });
-      }
+      if (!res.headersSent) res.status(500).json({ error: { message: 'Failed to create archive' } });
     });
-
-    // Gérer les warnings d'archivage (ne pas throw : non rattrapable et coupe la connexion)
     archive.on('warning', (err) => {
-      if (err.code !== 'ENOENT') {
-        console.warn('[downloadFolder] archive warning:', err.code, err.message);
-      }
+      if (err.code !== 'ENOENT') console.warn('[downloadFolder] warning:', err.code, err.message);
     });
-
     archive.pipe(res);
 
-    // Ajouter les fichiers à l'archive
-    let filesAdded = 0;
-    let filesSkipped = 0;
-    const skippedFiles = [];
-    
     for (const file of allFiles) {
       try {
-        // Vérifier que le fichier existe
         await fs.access(file.file_path);
-        // Ajouter le fichier à l'archive
         archive.file(file.file_path, { name: file.path });
-        filesAdded++;
-      } catch (err) {
-        // Fichier non trouvé (probablement perdu après redéploiement sur Fly.io)
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[downloadFolder] File not found (skipping):', file.name);
-        }
-        filesSkipped++;
-        skippedFiles.push({
-          name: file.name,
-          path: file.path,
-          reason: 'File not found on server (may have been lost after deployment)'
-        });
-        // Continuer avec les autres fichiers
+      } catch {
+        // Fichier absent sur le disque, on ignore
       }
     }
-
-    // Vérifier qu'au moins un fichier a été ajouté
-    if (filesAdded === 0) {
-      archive.abort();
-      const errorMessage = filesSkipped > 0
-        ? `Le dossier ne contient aucun fichier accessible. ${filesSkipped} fichier(s) trouvé(s) en base de données mais manquant(s) sur le serveur (probablement perdus après un déploiement). Veuillez ré-uploader les fichiers ou utiliser le script de nettoyage pour supprimer les entrées orphelines.`
-        : 'Le dossier ne contient aucun fichier accessible';
-      return res.status(404).json({ 
-        error: { 
-          message: errorMessage,
-          code: 'FOLDER_EMPTY_OR_ORPHANED',
-          details: filesSkipped > 0 ? { 
-            skippedFiles: skippedFiles.map(f => ({ name: f.name, path: f.path })),
-            suggestion: 'Les fichiers ont probablement été perdus après un déploiement. Veuillez ré-uploader les fichiers ou supprimer ce dossier.'
-          } : undefined
-        } 
-      });
-    }
-    
-    // Si certains fichiers ont été ignorés, log en dev uniquement
-    if (filesSkipped > 0 && process.env.NODE_ENV !== 'production') {
-      console.warn(`[downloadFolder] ${filesSkipped} file(s) skipped (missing on server)`);
-    }
-
-    // Finaliser l'archive
     await archive.finalize();
-    if (process.env.NODE_ENV === 'production') {
-      console.log('[downloadFolder] done folderId=', folderIdParam, 'files=', filesAdded);
-    }
   } catch (err) {
-    console.error('[downloadFolder] error folderId=', folderIdParam, err?.message);
-    if (!res.headersSent) {
-      next(err);
-    }
+    if (!res.headersSent) next(err);
   }
 }
 

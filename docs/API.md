@@ -424,14 +424,15 @@ Supprimer un dossier et son contenu.
 
 Télécharger un dossier entier en ZIP.
 
-**Authentification** : Requise
+**Authentification** : Optionnelle (JWT dans `Authorization: Bearer …`) ou partage public avec `?token=…` et éventuellement `?password=…`.
 
-**Query Parameters** :
-- `format` : `zip` (défaut), `tar`
+**Réponse** (200) : Fichier ZIP en streaming (`Content-Type: application/zip`).
 
-**Réponse** (200) : Fichier ZIP en streaming
-
-**Content-Type** : `application/zip`
+**Erreurs** :
+- 400 : ID invalide ou dossier vide
+- 403 : Accès refusé
+- 404 : Dossier non trouvé ou aucun fichier accessible sur le serveur (`FOLDER_EMPTY_OR_ORPHANED`)
+- 503 : Erreur de connexion base de données
 
 ---
 
