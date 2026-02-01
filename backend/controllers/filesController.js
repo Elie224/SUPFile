@@ -458,12 +458,16 @@ async function completeChunkedUpload(req, res, next) {
     const finalPath = path.join(userUploadDir, finalName);
 
     const writeStream = fsSync.createWriteStream(finalPath, { flags: 'w' });
+    let writeStreamError = null;
+    writeStream.on('error', (err) => {
+      writeStreamError = err;
+    });
     for (let i = 0; i < total; i += 1) {
       const chunkPath = path.join(tmpDir, `chunk_${i}`);
       await new Promise((resolve, reject) => {
+        if (writeStreamError) return reject(writeStreamError);
         const readStream = fsSync.createReadStream(chunkPath);
         readStream.on('error', reject);
-        writeStream.on('error', reject);
         readStream.on('end', resolve);
         readStream.pipe(writeStream, { end: false });
       });
@@ -471,7 +475,11 @@ async function completeChunkedUpload(req, res, next) {
     writeStream.end();
 
     // Attendre la fin d'écriture
-    await new Promise((resolve) => writeStream.on('finish', resolve));
+    await new Promise((resolve, reject) => {
+      if (writeStreamError) return reject(writeStreamError);
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
 
     // Vérifier que le fichier existe physiquement
     try {

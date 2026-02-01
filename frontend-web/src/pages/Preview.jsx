@@ -471,6 +471,9 @@ function PdfPreview({ url, token }) {
 // Utilise ?token=xxx dans l'URL pour permettre les Range requests (lecture progressive)
 function VideoPreview({ url, token }) {
   const [error, setError] = useState(null);
+  const [fallbackUrl, setFallbackUrl] = useState(null);
+  const [isFallback, setIsFallback] = useState(false);
+  const [isFallbackLoading, setIsFallbackLoading] = useState(false);
 
   // Construire l'URL avec le token en query param pour streaming natif
   const streamUrl = useMemo(() => {
@@ -479,8 +482,44 @@ function VideoPreview({ url, token }) {
     return `${url}${separator}token=${encodeURIComponent(token)}`;
   }, [url, token]);
 
+  const tryFallback = async () => {
+    if (!url || !token) {
+      setError('Impossible de charger la vidéo. Vérifiez que le fichier existe sur le serveur.');
+      return;
+    }
+    setIsFallbackLoading(true);
+    try {
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error(`Erreur de streaming (${response.status})`);
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setFallbackUrl(objectUrl);
+      setIsFallback(true);
+    } catch (err) {
+      setError(err.message || 'Impossible de charger la vidéo.');
+    } finally {
+      setIsFallbackLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (fallbackUrl) {
+        URL.revokeObjectURL(fallbackUrl);
+      }
+    };
+  }, [fallbackUrl]);
+
   const handleError = (e) => {
     console.error('Video error:', e);
+    if (!isFallback && !isFallbackLoading) {
+      tryFallback();
+      return;
+    }
     setError('Impossible de charger la vidéo. Vérifiez que le fichier existe sur le serveur.');
   };
 
@@ -497,7 +536,7 @@ function VideoPreview({ url, token }) {
       controls
       preload="metadata"
       style={{ maxWidth: '100%', maxHeight: '80vh' }}
-      src={streamUrl}
+      src={fallbackUrl || streamUrl}
       onError={handleError}
     >
       Votre navigateur ne supporte pas la lecture vidéo.
@@ -508,6 +547,9 @@ function VideoPreview({ url, token }) {
 // Composant pour prévisualiser les fichiers audio avec streaming HTTP natif
 function AudioPreview({ url, token }) {
   const [error, setError] = useState(null);
+  const [fallbackUrl, setFallbackUrl] = useState(null);
+  const [isFallback, setIsFallback] = useState(false);
+  const [isFallbackLoading, setIsFallbackLoading] = useState(false);
 
   // Construire l'URL avec le token en query param pour streaming natif
   const streamUrl = useMemo(() => {
@@ -516,8 +558,44 @@ function AudioPreview({ url, token }) {
     return `${url}${separator}token=${encodeURIComponent(token)}`;
   }, [url, token]);
 
+  const tryFallback = async () => {
+    if (!url || !token) {
+      setError('Impossible de charger l\'audio. Vérifiez que le fichier existe sur le serveur.');
+      return;
+    }
+    setIsFallbackLoading(true);
+    try {
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error(`Erreur de streaming (${response.status})`);
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setFallbackUrl(objectUrl);
+      setIsFallback(true);
+    } catch (err) {
+      setError(err.message || 'Impossible de charger l\'audio.');
+    } finally {
+      setIsFallbackLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (fallbackUrl) {
+        URL.revokeObjectURL(fallbackUrl);
+      }
+    };
+  }, [fallbackUrl]);
+
   const handleError = (e) => {
     console.error('Audio error:', e);
+    if (!isFallback && !isFallbackLoading) {
+      tryFallback();
+      return;
+    }
     setError('Impossible de charger l\'audio. Vérifiez que le fichier existe sur le serveur.');
   };
 
@@ -530,7 +608,7 @@ function AudioPreview({ url, token }) {
   }
 
   return (
-    <audio controls preload="metadata" style={{ width: '100%', maxWidth: '600px' }} src={streamUrl} onError={handleError}>
+    <audio controls preload="metadata" style={{ width: '100%', maxWidth: '600px' }} src={fallbackUrl || streamUrl} onError={handleError}>
       Votre navigateur ne supporte pas la lecture audio.
     </audio>
   );
