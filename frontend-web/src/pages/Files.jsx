@@ -5,6 +5,7 @@ import { offlineFileService, offlineFolderService } from '../services/offlineFil
 import syncService from '../services/syncService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
+import { API_URL } from '../config';
 
 export default function Files() {
   const navigate = useNavigate();
@@ -1337,18 +1338,12 @@ export default function Files() {
               </thead>
               <tbody>
                 {sortedItems.map((item, index) => {
+                  if (!item || (item == null)) return null;
                   // S'assurer que le type est bien défini
-                  // Le backend ajoute déjà 'type: folder' ou 'type: file'
-                  // Fallback: si folder_id existe, c'est un fichier, sinon c'est un dossier
                   const itemType = item.type || (item.folder_id !== undefined && item.folder_id !== null ? 'file' : 'folder');
-                  
-                  // Extraire l'ID avec vérification
-                  let itemId = item.id || item._id;
-                  
-                  // Si l'ID n'est pas une string, le convertir
-                  if (itemId && typeof itemId !== 'string') {
-                    itemId = String(itemId);
-                  }
+                  let itemId = item.id ?? item._id;
+                  if (itemId != null && typeof itemId !== 'string') itemId = String(itemId);
+                  if (itemId == null || itemId === '') return null;
                   
                   // Dossier à la racine : parent_id null (Renommer et Supprimer autorisés)
                   const parentId = item.parent_id !== undefined ? item.parent_id : (item.parentId !== undefined ? item.parentId : null);
@@ -1444,15 +1439,12 @@ export default function Files() {
                               e.preventDefault();
                               e.stopPropagation();
                               try {
-                                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
                                 const token = localStorage.getItem('access_token');
-                                
                                 if (!token) {
                                   toast.warning(t('mustBeConnected'));
                                   return;
                                 }
-                                
-                                const response = await fetch(`${apiUrl}/api/files/${itemId}/download`, {
+                                const response = await fetch(`${API_URL}/api/files/${itemId}/download`, {
                                   headers: {
                                     'Authorization': `Bearer ${token}`
                                   }
@@ -1519,85 +1511,60 @@ export default function Files() {
                               e.preventDefault();
                               e.stopPropagation();
                               if (downloadingFolder === itemId) return;
+                              const id = String(itemId || '').trim();
+                              if (!id || id.length !== 24) {
+                                toast.error(t('downloadError') || 'ID du dossier invalide');
+                                return;
+                              }
                               setDownloadingFolder(itemId);
                               try {
-                                try {
-                                  if (!itemId || typeof itemId !== 'string' || itemId.length !== 24) {
-                                    throw new Error(t('downloadError') || 'ID du dossier invalide');
-                                  }
-                                  toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
-                                  const response = await folderService.downloadAsZip(itemId);
-                                  const blob = response?.data;
-                                  if (!blob || !(blob instanceof Blob) || blob.size === 0) {
-                                    const msg = (blob && typeof blob === 'object' && blob.message) ? blob.message : (t('downloadError') || 'Le fichier ZIP est vide ou indisponible.');
-                                    throw new Error(msg);
-                                  }
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `${item?.name ?? 'dossier'}.zip`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  setTimeout(() => {
-                                    try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
-                                  }, 100);
-                                  toast.success(t('downloadSuccess') || 'Téléchargement réussi');
-                                } catch (err) {
-                                  let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
-                                  try {
-                                    if (err.response?.status === 503) {
-                                      errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
-                                    } else if (err.response?.status === 502) {
-                                      errorMsg = t('badGateway') || 'Erreur de passerelle.';
-                                    } else if (!err.response && (err.code === 'ERR_NETWORK' || (err.message && err.message.includes('Network')))) {
-                                      errorMsg = t('networkError') || 'Erreur de connexion au serveur.';
-                                    } else if (err.response?.status === 404) {
-                                      let responseData = null;
-                                      try {
-                                        if (err.response?.data instanceof Blob) {
-                                          const text = await err.response.data.text();
-                                          responseData = JSON.parse(text);
-                                        } else {
-                                          responseData = err.response?.data;
-                                        }
-                                      } catch (_) {}
-                                      if (responseData?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
-                                        errorMsg = responseData?.error?.message || 'Ce dossier ne contient aucun fichier accessible.';
-                                      } else {
-                                        errorMsg = responseData?.error?.message || t('folderNotFound') || 'Dossier non trouvé.';
-                                      }
-                                    } else if (err.response?.status === 403) {
-                                      errorMsg = t('accessDenied') || 'Accès refusé.';
-                                    } else if (err.code === 'ECONNABORTED' || (err.message && (err.message.includes('timeout') || err.message.includes('Timeout')))) {
-                                      errorMsg = t('downloadTimeout') || 'Téléchargement trop long. Le dossier est peut-être trop volumineux.';
-                                    } else if (err.response?.data) {
-                                      if (err.response.data instanceof Blob) {
-                                        try {
-                                          const text = await err.response.data.text();
-                                          const json = JSON.parse(text);
-                                          errorMsg = json?.error?.message || errorMsg;
-                                        } catch (_) {
-                                          if (err.response.status === 403) errorMsg = t('accessDenied') || 'Accès refusé';
-                                        }
-                                      } else {
-                                        errorMsg = err.response.data?.error?.message || errorMsg;
-                                      }
-                                    } else if (err?.message) {
-                                      errorMsg = err.message;
-                                    }
-                                  } catch (_) {
-                                    errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
-                                  }
-                                  console.warn('[Supfile] Téléchargement ZIP:', errorMsg, err?.response?.status ?? err?.message);
-                                  try {
-                                    toast.error(String(errorMsg));
-                                  } catch (_) {}
+                                const token = localStorage.getItem('access_token');
+                                if (!token) {
+                                  toast.warning(t('mustBeConnected') || 'Vous devez être connecté.');
+                                  return;
                                 }
-                              } catch (outerErr) {
-                                console.error('[Supfile] Téléchargement ZIP (erreur inattendue):', outerErr);
-                                try {
-                                  toast.error(String(outerErr?.message || t('downloadError') || 'Erreur lors du téléchargement'));
-                                } catch (_) {}
+                                toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
+                                const response = await fetch(`${API_URL}/api/folders/${encodeURIComponent(id)}/download`, {
+                                  method: 'GET',
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (!response.ok) {
+                                  const contentType = response.headers.get('Content-Type') || '';
+                                  let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
+                                  if (contentType.includes('application/json')) {
+                                    try {
+                                      const data = await response.json();
+                                      errorMsg = data?.error?.message || errorMsg;
+                                      if (data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
+                                        errorMsg = data.error.message;
+                                      }
+                                    } catch (_) {}
+                                  }
+                                  if (response.status === 403) errorMsg = t('accessDenied') || 'Accès refusé';
+                                  if (response.status === 404) errorMsg = errorMsg || (t('folderNotFound') || 'Dossier non trouvé');
+                                  if (response.status === 503) errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
+                                  toast.error(errorMsg);
+                                  return;
+                                }
+                                const blob = await response.blob();
+                                if (!blob || blob.size === 0) {
+                                  toast.error(t('downloadError') || 'Le fichier ZIP est vide ou indisponible.');
+                                  return;
+                                }
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${(item && item.name) ? item.name : 'dossier'}.zip`;
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => {
+                                  try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
+                                }, 100);
+                                toast.success(t('downloadSuccess') || 'Téléchargement réussi');
+                              } catch (err) {
+                                const msg = err && err.message ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement');
+                                console.warn('[Supfile] Téléchargement ZIP:', msg);
+                                toast.error(msg);
                               } finally {
                                 try { setDownloadingFolder(null); } catch (_) {}
                               }
