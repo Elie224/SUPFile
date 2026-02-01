@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
 import { formatBytes } from '../utils/storageUtils';
+import { fileService } from '../services/api';
 
 export default function Preview() {
   const { id } = useParams();
@@ -12,6 +13,7 @@ export default function Preview() {
   const [previewType, setPreviewType] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]); // images dans le même dossier
   const [currentIndex, setCurrentIndex] = useState(0); // index de l'image actuelle dans la galerie
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('access_token'));
 
   useEffect(() => {
     loadFile();
@@ -24,37 +26,25 @@ export default function Preview() {
       
       // D'abord récupérer les infos du fichier pour connaître son type MIME
       const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-      const token = localStorage.getItem('access_token');
       
-      // Récupérer les détails du fichier
-      const fileInfoResponse = await fetch(`${apiUrl}/api/files`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!fileInfoResponse.ok) {
-        throw new Error('Impossible de récupérer les informations du fichier');
+      // Récupérer la liste (peut déclencher un refresh token via axios si besoin)
+      let allItems = [];
+      try {
+        const listResponse = await fileService.list(null);
+        allItems = listResponse.data?.data?.items || [];
+      } catch (listErr) {
+        // Ne pas bloquer si la liste échoue, on tentera le GET /files/:id
       }
-      
-      const fileListData = await fileInfoResponse.json();
-      const allItems = fileListData.data?.items || [];
+
       const fileInfo = allItems.find(f => f.id === id || f._id === id);
       
       if (!fileInfo) {
         // Essayer de récupérer les métadonnées directement via GET /api/files/:id
-        const directResponse = await fetch(`${apiUrl}/api/files/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!directResponse.ok) {
+        const directResponse = await fileService.get(id);
+        const fileMeta = directResponse.data?.data;
+        if (!fileMeta) {
           throw new Error('Fichier non trouvé');
         }
-        
-        const fileData = await directResponse.json();
-        const fileMeta = fileData.data;
         const mimeType = fileMeta.mime_type || '';
         const previewUrl = `${apiUrl}/api/files/${id}/preview`;
         const streamUrl = `${apiUrl}/api/files/${id}/stream`;
@@ -143,6 +133,7 @@ export default function Preview() {
           setGalleryImages([]);
         }
       }
+      setAuthToken(localStorage.getItem('access_token'));
     } catch (err) {
       console.error('Failed to load file:', err);
       setError('Impossible de charger le fichier: ' + err.message);
@@ -210,7 +201,7 @@ export default function Preview() {
   }
 
   const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-  const token = localStorage.getItem('access_token');
+  const token = authToken;
 
   const hasGallery = previewType === 'image' && galleryImages.length > 1;
   const currentImage = hasGallery ? galleryImages[currentIndex] : null;

@@ -120,6 +120,7 @@ export const authService = {
 export const fileService = {
   list: (folderId = null) =>
     apiClient.get('/files', { params: { folder_id: folderId } }),
+  get: (fileId) => apiClient.get(`/files/${fileId}`),
   upload: (file, folderId = null, onProgress = null) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -147,7 +148,7 @@ export const fileService = {
       folder_id: folderId,
     });
   },
-  uploadChunk: ({ uploadId, chunkIndex, totalChunks, chunk }, onProgress = null) => {
+  uploadChunk: ({ uploadId, chunkIndex, totalChunks, chunk, signal }, onProgress = null) => {
     const formData = new FormData();
     formData.append('upload_id', uploadId);
     formData.append('chunk_index', String(chunkIndex));
@@ -162,6 +163,9 @@ export const fileService = {
         );
         onProgress(percentCompleted);
       };
+    }
+    if (signal) {
+      config.signal = signal;
     }
 
     return uploadClient.post('/files/upload/chunk', formData, config);

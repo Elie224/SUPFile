@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
 import { offlineFileService, offlineFolderService } from '../services/offlineFileService';
@@ -27,7 +27,7 @@ export default function Files() {
   const [folderHistory, setFolderHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({});
+  const [uploadTasks, setUploadTasks] = useState({});
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -52,6 +52,10 @@ export default function Files() {
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null); // Élément en cours de drag & drop (déplacement)
+  const uploadControllersRef = useRef({});
+
+  const CHUNK_UPLOAD_THRESHOLD = 20 * 1024 * 1024; // 20 MB
+  const CHUNK_CONCURRENCY = 3;
 
   // Charger le dossier depuis les paramètres URL au montage
   useEffect(() => {
@@ -124,8 +128,226 @@ export default function Files() {
     uploadFiles(files);
   };
 
+  const formatTime = (seconds) => {
+    if (seconds == null || Number.isNaN(seconds) || !Number.isFinite(seconds)) {
+      return '--';
+    }
+    if (seconds <= 0) return '0s';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    if (mins <= 0) return `${secs}s`;
+    const hours = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    if (hours <= 0) return `${mins}m ${secs}s`;
+    return `${hours}h ${remMins}m`;
+  };
+
+  const updateTask = (fileName, patch) => {
+    setUploadTasks(prev => ({
+      ...prev,
+      [fileName]: {
+        ...(prev[fileName] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const createUploadController = (fileName) => {
+    const controller = {
+      paused: false,
+      pauseResolver: null,
+      inflightControllers: new Set(),
+      waitIfPaused() {
+        if (!controller.paused) return Promise.resolve();
+        return new Promise(resolve => {
+          controller.pauseResolver = resolve;
+        });
+      },
+      pause() {
+        if (controller.paused) return;
+        controller.paused = true;
+        controller.inflightControllers.forEach(ctrl => ctrl.abort());
+        controller.inflightControllers.clear();
+        updateTask(fileName, { status: 'paused', paused: true });
+      },
+      resume() {
+        if (!controller.paused) return;
+        controller.paused = false;
+        if (controller.pauseResolver) {
+          controller.pauseResolver();
+          controller.pauseResolver = null;
+        }
+        updateTask(fileName, { status: 'uploading', paused: false });
+      },
+      addAbortController(ctrl) {
+        controller.inflightControllers.add(ctrl);
+      },
+      removeAbortController(ctrl) {
+        controller.inflightControllers.delete(ctrl);
+      },
+    };
+    uploadControllersRef.current[fileName] = controller;
+    return controller;
+  };
+
+  const pauseUpload = (fileName) => {
+    uploadControllersRef.current[fileName]?.pause?.();
+  };
+
+  const resumeUpload = (fileName) => {
+    uploadControllersRef.current[fileName]?.resume?.();
+  };
+
+  const uploadChunkedFile = async (file, folderId) => {
+    const controller = createUploadController(file.name);
+    let speedBps = 0;
+    let lastBytes = 0;
+    let lastTime = Date.now();
+
+    try {
+      const initResponse = await fileService.initChunkedUpload({
+        name: file.name,
+        size: file.size,
+        mimeType: file.type,
+        folderId,
+      });
+
+      const uploadId = initResponse.data?.data?.upload_id;
+      const chunkSize = initResponse.data?.data?.chunk_size;
+      if (!uploadId || !chunkSize) {
+        throw new Error('Initialisation upload chunké échouée');
+      }
+
+      const totalChunks = Math.ceil(file.size / chunkSize);
+      let uploadedChunks = [];
+      try {
+        const status = await fileService.getChunkedUploadStatus(uploadId);
+        uploadedChunks = status.data?.data?.uploaded_chunks || [];
+      } catch {
+        uploadedChunks = [];
+      }
+
+      const completed = new Set(uploadedChunks);
+      const queue = [];
+      for (let i = 0; i < totalChunks; i += 1) {
+        if (!completed.has(i)) {
+          queue.push(i);
+        }
+      }
+
+      const getChunkSize = (index) => {
+        const start = index * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        return end - start;
+      };
+
+      let completedBytes = 0;
+      completed.forEach((idx) => {
+        completedBytes += getChunkSize(idx);
+      });
+
+      const inflightBytes = new Map();
+
+      const updateProgress = () => {
+        const inflightSum = Array.from(inflightBytes.values()).reduce((a, b) => a + b, 0);
+        const totalUploaded = Math.min(file.size, completedBytes + inflightSum);
+        const percent = Math.min(99, Math.round((totalUploaded * 100) / file.size));
+        const now = Date.now();
+        const deltaTime = (now - lastTime) / 1000;
+        if (deltaTime >= 0.5) {
+          const deltaBytes = totalUploaded - lastBytes;
+          const instant = deltaBytes / deltaTime;
+          speedBps = speedBps ? (0.7 * speedBps + 0.3 * instant) : instant;
+          lastBytes = totalUploaded;
+          lastTime = now;
+        }
+        const remainingSeconds = speedBps > 0 ? Math.ceil((file.size - totalUploaded) / speedBps) : null;
+        updateTask(file.name, {
+          progress: percent,
+          status: controller.paused ? 'paused' : 'uploading',
+          speedBps,
+          remainingSeconds,
+          paused: controller.paused,
+        });
+      };
+
+      updateTask(file.name, { status: 'uploading', progress: Math.round((completedBytes * 100) / file.size) || 0 });
+      updateProgress();
+
+      const isAbortError = (err) => err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED';
+
+      const worker = async () => {
+        while (queue.length > 0) {
+          await controller.waitIfPaused();
+          const idx = queue.shift();
+          if (idx == null) return;
+          if (completed.has(idx)) {
+            continue;
+          }
+
+          const start = idx * chunkSize;
+          const end = Math.min(start + chunkSize, file.size);
+          const chunk = file.slice(start, end);
+          const abortController = new AbortController();
+          controller.addAbortController(abortController);
+
+          try {
+            await fileService.uploadChunk(
+              {
+                uploadId,
+                chunkIndex: idx,
+                totalChunks,
+                chunk,
+                signal: abortController.signal,
+              },
+              (chunkPercent) => {
+                inflightBytes.set(idx, (chunkPercent / 100) * chunk.size);
+                updateProgress();
+              },
+            );
+            inflightBytes.delete(idx);
+            completed.add(idx);
+            completedBytes += chunk.size;
+            updateProgress();
+          } catch (err) {
+            inflightBytes.delete(idx);
+            if (isAbortError(err) || controller.paused) {
+              queue.unshift(idx);
+              updateProgress();
+              continue;
+            }
+            throw err;
+          } finally {
+            controller.removeAbortController(abortController);
+          }
+        }
+      };
+
+      const workers = Array.from({ length: CHUNK_CONCURRENCY }, () => worker());
+      await Promise.all(workers);
+
+      if (controller.paused) {
+        await controller.waitIfPaused();
+      }
+
+      const completeResponse = await fileService.completeChunkedUpload({
+        uploadId,
+        totalChunks,
+      });
+
+      updateTask(file.name, { progress: 100, status: 'complete', remainingSeconds: 0 });
+      return completeResponse.data.data;
+    } finally {
+      delete uploadControllersRef.current[file.name];
+    }
+  };
+
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return;
+    if (!navigator.onLine) {
+      setError(t('errorNetwork') || 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+      return;
+    }
     
     // Validation des fichiers avant upload
     const MAX_FILE_SIZE = 30 * 1024 * 1024 * 1024; // 30 GB (quota max)
@@ -151,23 +373,29 @@ export default function Files() {
     try {
       for (const file of files) {
         progress[file.name] = 0;
-        setUploadProgress({ ...progress });
+        updateTask(file.name, { progress: 0, status: 'queued', remainingSeconds: null });
         
         try {
-          const result = await offlineFileService.upload(
-            file, 
-            currentFolder?.id || null,
-            (percent) => {
-              progress[file.name] = percent;
-              setUploadProgress({ ...progress });
-            }
-          );
+          let result;
+          if (file.size >= CHUNK_UPLOAD_THRESHOLD) {
+            updateTask(file.name, { status: 'uploading', progress: 0 });
+            result = await uploadChunkedFile(file, currentFolder?.id || null);
+          } else {
+            result = await offlineFileService.upload(
+              file, 
+              currentFolder?.id || null,
+              (percent) => {
+                progress[file.name] = percent;
+                updateTask(file.name, { progress: percent, status: 'uploading' });
+              }
+            );
+          }
           
           progress[file.name] = 100;
-          setUploadProgress({ ...progress });
+          updateTask(file.name, { progress: 100, status: 'complete', remainingSeconds: 0 });
           successCount++;
           
-          if (result.mode === 'offline') {
+          if (result?.mode === 'offline') {
             toast.info(`📦 ${file.name} sera uploadé lors de la prochaine synchronisation`);
           }
         } catch (fileErr) {
@@ -175,7 +403,7 @@ export default function Files() {
           const errorMsg = fileErr.response?.data?.error?.message || fileErr.message || t('uploadError');
           setError(`${t('error')} ${file.name}: ${errorMsg}`);
           progress[file.name] = -1;
-          setUploadProgress({ ...progress });
+          updateTask(file.name, { progress: -1, status: 'error', error: errorMsg });
           failCount++;
         }
       }
@@ -193,7 +421,7 @@ export default function Files() {
       
       // Effacer la progression après 3 secondes
       setTimeout(() => {
-        setUploadProgress({});
+        setUploadTasks({});
       }, 3000);
     } catch (err) {
       console.error('Upload failed:', err);
@@ -1087,17 +1315,20 @@ export default function Files() {
       )}
 
       {/* Indicateurs de progression upload améliorés */}
-      {uploading && Object.keys(uploadProgress).length > 0 && (
+      {uploading && Object.keys(uploadTasks).length > 0 && (
         <div className="card shadow-md mb-3 fade-in">
           <div className="card-body">
             <h6 className="mb-3 d-flex align-items-center gap-2">
               <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
               {t('uploading') || 'Upload en cours...'}
             </h6>
-            {Object.keys(uploadProgress).map(fileName => {
-              const progress = uploadProgress[fileName];
+            {Object.keys(uploadTasks).map(fileName => {
+              const task = uploadTasks[fileName] || {};
+              const progress = task.progress ?? 0;
               const isComplete = progress === 100;
               const isError = progress === -1;
+              const isPaused = task.status === 'paused';
+              const isUploading = task.status === 'uploading';
               
               return (
                 <div key={fileName} className="mb-3">
@@ -1106,14 +1337,37 @@ export default function Files() {
                       <i className={`bi ${isError ? 'bi-x-circle text-danger' : isComplete ? 'bi-check-circle text-success' : 'bi-upload'} me-1`}></i>
                       {fileName}
                     </span>
-                    <span className={`small fw-semibold ${isError ? 'text-danger' : isComplete ? 'text-success' : 'text-primary'}`}>
-                      {isError ? 'Erreur' : isComplete ? 'Terminé' : `${progress}%`}
-                    </span>
+                    <div className="d-flex align-items-center gap-2">
+                      {!isError && !isComplete && (
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => (isPaused ? resumeUpload(fileName) : pauseUpload(fileName))}
+                        >
+                          <i className={`bi ${isPaused ? 'bi-play-fill' : 'bi-pause-fill'} me-1`}></i>
+                          {isPaused ? 'Reprendre' : 'Pause'}
+                        </button>
+                      )}
+                      <span className={`small fw-semibold ${isError ? 'text-danger' : isComplete ? 'text-success' : isPaused ? 'text-warning' : 'text-primary'}`}>
+                        {isError ? 'Erreur' : isComplete ? 'Terminé' : isPaused ? 'En pause' : `${progress}%`}
+                      </span>
+                    </div>
                   </div>
+                  {!isError && !isComplete && (
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="small text-muted">
+                        Temps restant : {formatTime(task.remainingSeconds)}
+                      </span>
+                      {task.speedBps > 0 && (
+                        <span className="small text-muted">
+                          {formatBytes(task.speedBps)}/s
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {!isError && (
                     <div className="progress" style={{ height: '24px' }}>
                       <div 
-                        className={`progress-bar ${isComplete ? 'bg-success' : 'bg-primary'}`}
+                        className={`progress-bar ${isComplete ? 'bg-success' : isPaused ? 'bg-warning' : 'bg-primary'}`}
                         role="progressbar" 
                         style={{ width: `${Math.max(progress, 0)}%` }}
                       >

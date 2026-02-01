@@ -77,7 +77,8 @@ export const offlineFileService = {
    * Upload d'un fichier
    */
   async upload(file, folderId = null, onProgress = null) {
-    return await syncService.uploadFile(file, folderId, onProgress);
+    // Forcer l'upload en ligne: pas de fallback offline pour éviter "uploadé plus tard"
+    return await syncService.uploadFile(file, folderId, onProgress, { allowOfflineFallback: false });
   },
 
   /**
