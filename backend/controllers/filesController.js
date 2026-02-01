@@ -437,6 +437,10 @@ async function previewFile(req, res, next) {
 // Stream audio/vidéo
 async function streamFile(req, res, next) {
   try {
+    // Authentification requise (via header ou query param ?token=xxx)
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: { message: 'Authentication required' } });
+    }
     const userId = req.user.id;
     const { id } = req.params;
 
@@ -457,15 +461,38 @@ async function streamFile(req, res, next) {
       return res.status(400).json({ error: { message: 'Streaming only available for audio/video files' } });
     }
 
-    // Support des Range requests pour le streaming
+    // Résoudre le chemin absolu du fichier
+    const filePath = path.resolve(file.file_path);
+    
+    // Vérifier que le fichier existe sur le disque
+    let stat;
+    try {
+      stat = await fs.stat(filePath);
+    } catch (err) {
+      logger.logError(err, { context: 'streamFile - file not found on disk', filePath, fileId: id });
+      return res.status(404).json({ error: { message: 'File not found on disk' } });
+    }
+
+    const fileSize = stat.size;
+
+    // Ajouter les headers CORS explicites pour le streaming
+    const origin = req.get('Origin');
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    // Support des Range requests pour le streaming (lecture progressive)
     const range = req.headers.range;
     if (range) {
-      const filePath = path.resolve(file.file_path);
-      const stat = await fs.stat(filePath);
-      const fileSize = stat.size;
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      // Limiter la taille du chunk à 5 Mo pour éviter les timeouts et améliorer la réactivité
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 Mo
+      const requestedEnd = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const end = Math.min(start + CHUNK_SIZE - 1, requestedEnd, fileSize - 1);
       const chunksize = end - start + 1;
 
       res.writeHead(206, {
@@ -476,11 +503,26 @@ async function streamFile(req, res, next) {
       });
 
       const stream = require('fs').createReadStream(filePath, { start, end });
+      stream.on('error', (err) => {
+        logger.logError(err, { context: 'streamFile - read stream error', filePath });
+        if (!res.headersSent) {
+          res.status(500).json({ error: { message: 'Error streaming file' } });
+        }
+      });
       stream.pipe(res);
     } else {
+      // Pas de Range header : envoyer le fichier complet avec streaming
       res.setHeader('Content-Type', file.mime_type);
-      res.setHeader('Content-Length', file.size);
-      res.sendFile(path.resolve(file.file_path));
+      res.setHeader('Content-Length', fileSize);
+      
+      const stream = require('fs').createReadStream(filePath);
+      stream.on('error', (err) => {
+        logger.logError(err, { context: 'streamFile - full read stream error', filePath });
+        if (!res.headersSent) {
+          res.status(500).json({ error: { message: 'Error streaming file' } });
+        }
+      });
+      stream.pipe(res);
     }
   } catch (err) {
     next(err);

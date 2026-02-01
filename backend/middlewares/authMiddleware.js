@@ -66,10 +66,14 @@ async function authMiddleware(req, res, next) {
 
 /**
  * Optionnel : middleware pour les routes publiques qui acceptent optionnellement un token
+ * Accepte le token depuis :
+ *   1. Header Authorization: Bearer <token>
+ *   2. Query param ?token=<token> (utile pour <video src="...?token=xxx">)
  */
 function optionalAuthMiddleware(req, res, next) {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    // Priorité au header, puis au query param
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
 
     if (token) {
       try {

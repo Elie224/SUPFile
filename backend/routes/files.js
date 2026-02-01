@@ -9,6 +9,9 @@ const { uploadLimiter } = require('../middlewares/rateLimiter');
 // Télécharger un fichier (peut être public avec token de partage - DOIT être avant authMiddleware)
 router.get('/:id/download', optionalAuthMiddleware, validateObjectId, filesController.downloadFile);
 
+// Stream audio/vidéo (accepte token en query param pour lecture directe <video src="...?token=xxx">)
+router.get('/:id/stream', optionalAuthMiddleware, validateObjectId, filesController.streamFile);
+
 // Routes protégées (toutes les autres routes nécessitent une authentification)
 router.use(authMiddleware);
 router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
@@ -27,9 +30,6 @@ router.get('/:id', filesController.getFile);
 
 // Prévisualiser un fichier
 router.get('/:id/preview', filesController.previewFile);
-
-// Stream audio/vidéo
-router.get('/:id/stream', filesController.streamFile);
 
 // Mettre à jour un fichier (rename/move)
 router.patch('/:id', filesController.updateFile);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
@@ -476,107 +476,70 @@ function PdfPreview({ url, token }) {
   );
 }
 
-// Composant pour prévisualiser les vidéos avec authentification
+// Composant pour prévisualiser les vidéos avec streaming HTTP natif
+// Utilise ?token=xxx dans l'URL pour permettre les Range requests (lecture progressive)
 function VideoPreview({ url, token }) {
-  const [videoUrl, setVideoUrl] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadVideo = async () => {
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Impossible de charger la vidéo');
-        }
-        
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setVideoUrl(objectUrl);
-      } catch (err) {
-        console.error('Failed to load video:', err);
-        setError(err.message);
-      }
-    };
-    
-    loadVideo();
-    
-    return () => {
-      if (videoUrl) {
-        URL.revokeObjectURL(videoUrl);
-      }
-    };
+  // Construire l'URL avec le token en query param pour streaming natif
+  const streamUrl = useMemo(() => {
+    if (!url || !token) return null;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}token=${encodeURIComponent(token)}`;
   }, [url, token]);
+
+  const handleError = (e) => {
+    console.error('Video error:', e);
+    setError('Impossible de charger la vidéo. Vérifiez que le fichier existe sur le serveur.');
+  };
 
   if (error) {
     return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
   }
 
-  if (!videoUrl) {
+  if (!streamUrl) {
     return <div style={{ padding: 24, textAlign: 'center' }}>Chargement de la vidéo...</div>;
   }
 
   return (
     <video
       controls
+      preload="metadata"
       style={{ maxWidth: '100%', maxHeight: '80vh' }}
-      src={videoUrl}
+      src={streamUrl}
+      onError={handleError}
     >
       Votre navigateur ne supporte pas la lecture vidéo.
     </video>
   );
 }
 
-// Composant pour prévisualiser les fichiers audio avec authentification
+// Composant pour prévisualiser les fichiers audio avec streaming HTTP natif
 function AudioPreview({ url, token }) {
-  const [audioUrl, setAudioUrl] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadAudio = async () => {
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Impossible de charger l\'audio');
-        }
-        
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setAudioUrl(objectUrl);
-      } catch (err) {
-        console.error('Failed to load audio:', err);
-        setError(err.message);
-      }
-    };
-    
-    loadAudio();
-    
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
+  // Construire l'URL avec le token en query param pour streaming natif
+  const streamUrl = useMemo(() => {
+    if (!url || !token) return null;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}token=${encodeURIComponent(token)}`;
   }, [url, token]);
+
+  const handleError = (e) => {
+    console.error('Audio error:', e);
+    setError('Impossible de charger l\'audio. Vérifiez que le fichier existe sur le serveur.');
+  };
 
   if (error) {
     return <div style={{ padding: 24, color: 'red' }}>Erreur: {error}</div>;
   }
 
-  if (!audioUrl) {
+  if (!streamUrl) {
     return <div style={{ padding: 24, textAlign: 'center' }}>Chargement de l'audio...</div>;
   }
 
   return (
-    <audio controls style={{ width: '100%', maxWidth: '600px' }} src={audioUrl}>
+    <audio controls preload="metadata" style={{ width: '100%', maxWidth: '600px' }} src={streamUrl} onError={handleError}>
       Votre navigateur ne supporte pas la lecture audio.
     </audio>
   );
