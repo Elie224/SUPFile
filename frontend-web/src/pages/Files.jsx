@@ -1187,30 +1187,30 @@ export default function Files() {
         onDragLeave={handleDragLeave}
         style={{ 
           minHeight: 'clamp(300px, 50vh, 400px)', 
-          border: isDragOver ? '2px dashed #2196F3' : '2px dashed var(--border-color)',
+          border: isDragOver ? '2px dashed var(--primary-color)' : '2px dashed var(--border-color)',
           backgroundColor: isDragOver ? 'var(--bg-hover)' : 'var(--bg-secondary)',
           borderRadius: '12px',
           padding: 'clamp(16px, 4vw, 32px)',
           transition: 'all 0.3s ease'
         }}
         onDragEnter={(e) => {
-          e.currentTarget.style.borderColor = '#2196F3';
+          e.currentTarget.style.borderColor = 'var(--primary-color)';
           e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
         }}
       >
         {loading ? (
           <div className="text-center p-5">
-            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <div className="spinner-border mb-3" role="status" style={{ width: '3rem', height: '3rem', color: 'var(--primary-color)' }}>
               <span className="visually-hidden">{t('loading') || 'Chargement...'}</span>
             </div>
-            <p className="text-muted">{t('loading') || 'Chargement...'}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t('loading') || 'Chargement...'}</p>
           </div>
         ) : error ? (
           <div className="card shadow-sm border-danger mb-3">
             <div className="card-body text-center p-5">
               <i className="bi bi-exclamation-triangle-fill text-danger" style={{ fontSize: '48px' }}></i>
-              <h5 className="mt-3 text-danger">{t('error') || 'Erreur'}</h5>
-              <p className="text-muted mb-4">{error}</p>
+              <h5 className="mt-3" style={{ color: 'var(--danger-color)' }}>{t('error') || 'Erreur'}</h5>
+              <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>{error}</p>
               <button
                 className="btn btn-primary"
                 onClick={() => {
@@ -1226,9 +1226,9 @@ export default function Files() {
         ) : items.length === 0 ? (
           <div className="card shadow-sm">
             <div className="card-body text-center p-5">
-              <i className="bi bi-folder-x text-muted" style={{ fontSize: '64px' }}></i>
-              <h5 className="mt-3 mb-2 text-muted">{t('emptyFolder') || 'Aucun fichier ou dossier'}</h5>
-              <p className="text-muted mb-4">
+              <i className="bi bi-folder-x" style={{ fontSize: '64px', color: 'var(--text-muted)' }}></i>
+              <h5 className="mt-3 mb-2 fw-semibold" style={{ color: 'var(--text-color)' }}>{t('emptyFolder') || 'Aucun fichier ou dossier'}</h5>
+              <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
                 {t('emptyFolderDescription') || 'Glissez-déposez des fichiers ici ou cliquez sur "Uploader" pour commencer'}
               </p>
               <div className="d-flex justify-content-center gap-2 flex-wrap">
@@ -1464,15 +1464,15 @@ export default function Files() {
                           style={{ 
                             cursor: 'pointer', 
                             fontWeight: '600', 
-                            color: '#2196F3',
+                            color: 'var(--primary-color)',
                             fontSize: '15px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
                             transition: 'color 0.2s'
                           }}
-                          onMouseEnter={(e) => e.target.style.color = '#1976D2'}
-                          onMouseLeave={(e) => e.target.style.color = '#2196F3'}
+                          onMouseEnter={(e) => { e.target.style.color = 'var(--primary-hover)'; }}
+                          onMouseLeave={(e) => { e.target.style.color = 'var(--primary-color)'; }}
                         >
                           <i className="bi bi-folder-fill text-warning me-2" style={{ fontSize: '20px' }}></i>
                           {item.name}
@@ -1494,8 +1494,8 @@ export default function Files() {
                             color: 'var(--text-color)',
                             transition: 'color 0.2s'
                           }}
-                          onMouseEnter={(e) => e.target.style.color = '#2196F3'}
-                          onMouseLeave={(e) => e.target.style.color = 'var(--text-color)'}
+                          onMouseEnter={(e) => { e.target.style.color = 'var(--primary-color)'; }}
+                          onMouseLeave={(e) => { e.target.style.color = 'var(--text-color)'; }}
                         >
                           <i className="bi bi-file-earmark text-primary me-2" style={{ fontSize: '18px' }}></i>
                           {item.name}

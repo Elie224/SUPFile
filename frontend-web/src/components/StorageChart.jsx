@@ -65,7 +65,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
             height: '100%',
           }}
         >
-          <span className="fw-bold" style={{ fontSize: '24px', lineHeight: 1 }}>
+          <span className="fw-bold" style={{ fontSize: '24px', lineHeight: 1, color: 'var(--text-color)' }}>
             {safePercentage === 0
               ? '0%'
               : safePercentage < 1
@@ -74,7 +74,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
                   ? `${safePercentage.toFixed(1)}%`
                   : '100%'}
           </span>
-          <span className="small text-muted" style={{ fontSize: '11px' }}>
+          <span className="small" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
             utilisé
           </span>
         </div>
@@ -83,7 +83,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
       {/* Légende détaillée */}
       {breakdownItems.length > 0 && (
         <div className="mt-3" style={{ width: '100%' }}>
-          <div className="small text-muted mb-2">Répartition:</div>
+          <div className="small mb-2" style={{ color: 'var(--text-secondary)' }}>Répartition:</div>
           {breakdownItems.map((item) => {
             const itemValue = Number(item.value) || 0;
             const itemPercentage = totalBreakdown > 0 && itemValue >= 0
@@ -101,9 +101,9 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
                         borderRadius: '2px',
                       }}
                     ></div>
-                    <span className="small">{item.label}</span>
+                    <span className="small" style={{ color: 'var(--text-color)' }}>{item.label}</span>
                   </div>
-                  <span className="small text-muted">
+                  <span className="small" style={{ color: 'var(--text-secondary)' }}>
                     {formatBytes ? formatBytes(itemValue) : `${(itemValue / 1024 / 1024).toFixed(1)} MB`}
                   </span>
                 </div>

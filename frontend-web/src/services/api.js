@@ -99,6 +99,19 @@ apiClient.interceptors.response.use(
       return Promise.reject(networkError);
     }
     if (error.response?.status === 401) {
+      const code = error.response?.data?.error?.code;
+      const msg = error.response?.data?.error?.message;
+      const setDeletedMsgAndRedirect = (message) => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        sessionStorage.setItem('deleted_account_message', message || 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.');
+        window.location.href = '/login';
+      };
+      // Compte supprimé : ne pas tenter refresh, déconnecter et afficher le message approprié
+      if (code === 'USER_DELETED') {
+        setDeletedMsgAndRedirect(msg || 'Votre compte a été supprimé.');
+        return Promise.reject(error);
+      }
       // Token expiré - essayer de rafraîchir
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
@@ -108,20 +121,19 @@ apiClient.interceptors.response.use(
           localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', refresh_token);
           
-          // Réessayer la requête originale
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return apiClient.request(error.config);
         } catch (refreshError) {
-          // Refresh échoué - rediriger vers login
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          const refreshCode = refreshError.response?.data?.error?.code;
+          const refreshMsg = refreshError.response?.data?.error?.message;
+          if (refreshCode === 'USER_DELETED') {
+            setDeletedMsgAndRedirect(refreshMsg);
+          } else {
+            setDeletedMsgAndRedirect(null);
+          }
         }
       } else {
-        // Pas de refresh token - rediriger vers login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        setDeletedMsgAndRedirect(null);
       }
     }
     return Promise.reject(error);
@@ -129,11 +141,23 @@ apiClient.interceptors.response.use(
 );
 
 // Intercepteur pour gérer les erreurs (notamment 401) - pour downloadClient
+const setDeletedMsgAndRedirectDownload = (message) => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  sessionStorage.setItem('deleted_account_message', message || 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.');
+  window.location.href = '/login';
+};
+
 downloadClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expiré - essayer de rafraîchir
+      const code = error.response?.data?.error?.code;
+      const msg = error.response?.data?.error?.message;
+      if (code === 'USER_DELETED') {
+        setDeletedMsgAndRedirectDownload(msg);
+        return Promise.reject(error);
+      }
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
@@ -141,21 +165,15 @@ downloadClient.interceptors.response.use(
           const { access_token, refresh_token } = response.data.data;
           localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', refresh_token);
-          
-          // Réessayer la requête originale
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return downloadClient.request(error.config);
         } catch (refreshError) {
-          // Refresh échoué - rediriger vers login
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          const refreshCode = refreshError.response?.data?.error?.code;
+          const refreshMsg = refreshError.response?.data?.error?.message;
+          setDeletedMsgAndRedirectDownload(refreshCode === 'USER_DELETED' ? refreshMsg : null);
         }
       } else {
-        // Pas de refresh token - rediriger vers login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        setDeletedMsgAndRedirectDownload(null);
       }
     }
     return Promise.reject(error);
