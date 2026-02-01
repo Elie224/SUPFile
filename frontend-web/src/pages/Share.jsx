@@ -72,8 +72,6 @@ export default function Share() {
         ? `${apiUrl}/api/files/${resource.id}/download?${params.toString()}`
         : `${apiUrl}/api/folders/${resource.id}/download?${params.toString()}`;
       
-      console.log('Downloading from:', downloadUrl);
-      
       // Pour les fichiers, utiliser fetch pour gérer les erreurs
       if (resource.type === 'file') {
         const response = await fetch(downloadUrl);

@@ -1,5 +1,6 @@
 const UserModel = require('../models/userModel');
 const mongoose = require('mongoose');
+const { sanitizeSearchInput } = require('../middlewares/security');
 // S'assurer que les modèles Session, File, Folder, Share sont chargés
 require('../models/sessionModel');
 require('../models/fileModel');
@@ -74,16 +75,17 @@ async function getStats(req, res, next) {
 async function getUsers(req, res, next) {
   try {
     const User = mongoose.models.User || mongoose.model('User');
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 1000);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const search = req.query.search || '';
     const skip = (page - 1) * limit;
 
     const query = {};
-    if (search) {
+    const safeSearch = sanitizeSearchInput(search);
+    if (safeSearch) {
       query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { display_name: { $regex: search, $options: 'i' } }
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { display_name: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 

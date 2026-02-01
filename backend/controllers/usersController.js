@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const UserModel = require('../models/userModel');
 const { AppError } = require('../middlewares/errorHandler');
+const { sanitizeSearchInput } = require('../middlewares/security');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
@@ -233,10 +234,11 @@ async function listUsers(req, res, next) {
     const User = mongoose.models.User;
     
     const query = { is_active: true };
-    if (search) {
+    const safeSearch = sanitizeSearchInput(search);
+    if (safeSearch) {
       query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { display_name: { $regex: search, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } },
+        { display_name: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

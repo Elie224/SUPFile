@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const FileModel = require('../models/fileModel');
+const { sanitizePaginationSort } = require('../middlewares/security');
 const FolderModel = require('../models/folderModel');
 const ShareModel = require('../models/shareModel');
 const UserModel = require('../models/userModel');
@@ -12,6 +13,7 @@ const logger = require('../utils/logger');
 const { compareObjectIds } = require('../utils/objectId');
 const { successResponse, errorResponse } = require('../utils/response');
 const { calculateRealQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
+const mongoose = require('mongoose');
 
 // Configuration multer pour l'upload
 const storage = multer.diskStorage({
@@ -110,9 +112,13 @@ const uploadMiddleware = (req, res, next) => {
 async function listFiles(req, res, next) {
   try {
     const userId = req.user.id;
-    const { folder_id, skip = 0, limit = 50, sort_by = 'name', sort_order = 'asc' } = req.query;
+    const { folder_id } = req.query;
+    const { sortBy: sort_by, sortOrder: sort_order, skip, limit } = sanitizePaginationSort(req.query);
 
-    const folderId = folder_id === 'root' || !folder_id ? null : folder_id;
+    let folderId = folder_id === 'root' || !folder_id ? null : folder_id;
+    if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+      return res.status(400).json({ error: { message: 'Invalid folder_id format' } });
+    }
 
     let effectiveOwnerId = userId;
     let isSharedFolder = false;
@@ -142,8 +148,8 @@ async function listFiles(req, res, next) {
     
     // Récupérer en parallèle avec pagination optimisée (contenu du propriétaire effectif)
     const [files, folders, totalFiles, totalFolders] = await Promise.all([
-      FileModel.findByOwner(effectiveOwnerId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
-      FolderModel.findByOwner(effectiveOwnerId, folderId, false, { skip: skipNum, limit: limitNum, sortBy: sort_by, sortOrder: sort_order }),
+      FileModel.findByOwner(effectiveOwnerId, folderId, false, { skip, limit, sortBy: sort_by, sortOrder: sort_order }),
+      FolderModel.findByOwner(effectiveOwnerId, folderId, false, { skip, limit, sortBy: sort_by, sortOrder: sort_order }),
       FileModel.countByOwner(effectiveOwnerId, folderId, false),
       FolderModel.countByOwner(effectiveOwnerId, folderId, false),
     ]);
@@ -156,7 +162,7 @@ async function listFiles(req, res, next) {
 
     // À la racine : ajouter les dossiers partagés avec moi (ils apparaissent dans la racine du destinataire)
     let sharedFoldersCount = 0;
-    if (!folderId && skipNum === 0) {
+    if (!folderId && skip === 0) {
       const internalShares = await ShareModel.findBySharedWith(userId);
       const folderShareIds = internalShares
         .filter(s => s.folder_id)
@@ -194,9 +200,9 @@ async function listFiles(req, res, next) {
         items,
         pagination: {
           total,
-          skip: skipNum,
-          limit: limitNum,
-          hasMore: (skipNum + limitNum) < total,
+          skip,
+          limit,
+          hasMore: (skip + limit) < total,
         },
       },
     });
@@ -254,7 +260,9 @@ async function uploadFile(req, res, next) {
     try {
       await fs.access(req.file.path);
     } catch (accessErr) {
-      console.error('Uploaded file not accessible:', req.file.path);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Uploaded file not accessible');
+      }
       await fs.unlink(req.file.path).catch(() => {});
       return res.status(500).json({ error: { message: 'Failed to save file' } });
     }
@@ -575,7 +583,9 @@ async function restoreFile(req, res, next) {
     
     res.status(200).json({ message: 'File restored' });
   } catch (err) {
-    console.error('Error restoring file:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error restoring file:', err);
+    }
     next(err);
   }
 }
@@ -605,8 +615,9 @@ async function listTrash(req, res, next) {
       },
     });
   } catch (err) {
-    console.error('Error listing trash files:', err);
-    console.error('Error details:', err.message, err.stack);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error listing trash files:', err);
+    }
     next(err);
   }
 }

@@ -1,5 +1,11 @@
-// Script pour tester la configuration OAuth
+// Script pour tester la configuration OAuth (à n'exécuter qu'en développement)
 require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('Ce script ne doit pas être exécuté en production (risque d\'exposition de la configuration).');
+  process.exit(1);
+}
+
 const config = require('../config');
 
 console.log('=== Configuration OAuth ===\n');

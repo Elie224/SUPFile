@@ -11,11 +11,13 @@ if (!mongoUri) {
   module.exports = mongoose;
   module.exports.isConnected = () => false;
   module.exports.waitForConnection = () => Promise.reject(new Error('MONGO_URI not set'));
-  return;
+} else {
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔄 Attempting to connect to MongoDB...');
+  console.log('📍 Connection URI:', mongoUri.replace(/:[^:]*@/, ':****@'));
+} else {
+  console.log('🔄 Connecting to MongoDB...');
 }
-
-console.log('🔄 Attempting to connect to MongoDB...');
-console.log('📍 Connection URI:', mongoUri.replace(/:[^:]*@/, ':****@'));
 
 mongoose.set('strictQuery', false);
 
@@ -62,7 +64,11 @@ mongoose.connection.on('connected', () => {
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('✗ MongoDB error:', err.message || err);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('✗ MongoDB error:', err.message || err);
+  } else {
+    console.error('✗ MongoDB error');
+  }
 });
 
 mongoose.connection.on('disconnected', () => {
@@ -82,3 +88,4 @@ mongoose.connection.on('connecting', () => {
 module.exports = mongoose;
 module.exports.isConnected = isConnected;
 module.exports.waitForConnection = waitForConnection;
+}

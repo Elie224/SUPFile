@@ -178,8 +178,10 @@ app.use(generalLimiter);
 app.use(sanitizeQuery);
 
 // Session middleware pour OAuth (doit être avant Passport)
+// En production, aucun fallback : ensureProductionSecrets() a déjà vérifié SESSION_SECRET ou JWT_SECRET
+const sessionSecret = process.env.SESSION_SECRET || config.jwt.secret;
 app.use(session({
-  secret: process.env.SESSION_SECRET || config.jwt.secret || 'supfile-session-secret-change-in-production',
+  secret: process.env.NODE_ENV === 'production' ? sessionSecret : (sessionSecret || 'supfile-session-secret-change-in-production'),
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -268,42 +270,31 @@ app.get('/health', (req, res) => {
 
 /**
  * Page d'accueil de l'API
- * Retourne les informations sur l'API et les endpoints disponibles
+ * En production : infos minimales (pas de liste d'endpoints ni d'URL frontend)
  */
 app.get('/', (req, res) => {
-  res.status(200).json({
+  const isProduction = process.env.NODE_ENV === 'production';
+  const payload = {
     name: 'SUPFile API',
     version: '1.0.0',
-    description: 'API REST pour le stockage cloud',
     status: 'online',
-    environment: config.server.nodeEnv,
-    endpoints: {
-      health: 'GET /health',
-      auth: {
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login',
-        logout: 'POST /api/auth/logout',
-        refresh: 'POST /api/auth/refresh'
+    ...(isProduction ? {} : {
+      description: 'API REST pour le stockage cloud',
+      environment: config.server.nodeEnv,
+      endpoints: {
+        health: 'GET /health',
+        auth: { register: 'POST /api/auth/register', login: 'POST /api/auth/login', logout: 'POST /api/auth/logout', refresh: 'POST /api/auth/refresh' },
+        files: { list: 'GET /api/files', upload: 'POST /api/files/upload', get: 'GET /api/files/:id', delete: 'DELETE /api/files/:id' },
+        folders: { list: 'GET /api/folders', create: 'POST /api/folders', get: 'GET /api/folders/:id', delete: 'DELETE /api/folders/:id' },
+        dashboard: 'GET /api/dashboard',
+        search: 'GET /api/search',
+        share: 'GET /api/share'
       },
-      files: {
-        list: 'GET /api/files',
-        upload: 'POST /api/files/upload',
-        get: 'GET /api/files/:id',
-        delete: 'DELETE /api/files/:id'
-      },
-      folders: {
-        list: 'GET /api/folders',
-        create: 'POST /api/folders',
-        get: 'GET /api/folders/:id',
-        delete: 'DELETE /api/folders/:id'
-      },
-      dashboard: 'GET /api/dashboard',
-      search: 'GET /api/search',
-      share: 'GET /api/share'
-    },
-    documentation: 'Consultez les fichiers dans le dossier docs/ pour plus d\'informations',
-    frontend: process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'
-  });
+      documentation: 'Consultez les fichiers dans le dossier docs/ pour plus d\'informations',
+      frontend: process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'
+    })
+  };
+  res.status(200).json(payload);
 });
 
 // ============================================================
@@ -323,19 +314,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/files', require('./routes/files'));
 
 // Dossiers - Création, modification, suppression de dossiers
-// Log middleware pour tracer toutes les requêtes vers /api/folders
-app.use('/api/folders', (req, res, next) => {
-  console.log('[APP] Request to /api/folders:', {
-    method: req.method,
-    path: req.path,
-    originalUrl: req.originalUrl,
-    params: req.params,
-    query: req.query,
-    hasAuth: !!req.headers.authorization,
-    timestamp: new Date().toISOString()
-  });
-  next();
-}, validateName, require('./routes/folders'));
+app.use('/api/folders', validateName, require('./routes/folders'));
 
 // Partage - Gestion des liens de partage (rate limiting pour éviter les abus)
 app.use('/api/share', shareLimiter, require('./routes/share'));

@@ -2,9 +2,16 @@
  * Script pour vérifier le statut d'un utilisateur
  * Usage: node scripts/checkUser.js email@example.com
  * Pour supprimer: node scripts/checkUser.js email@example.com --delete
+ * Ne pas exécuter en production sur un serveur exposé (utilise MONGO_URI).
  */
 
 require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('Ce script ne doit pas être exécuté en production (risque d\'accès direct à la base).');
+  process.exit(1);
+}
+
 const mongoose = require('mongoose');
 
 const MONGODB_URI=[REDACTED] || process.env.MONGODB_URI || 'mongodb://[REDACTED]';

@@ -14,25 +14,10 @@ function validateObjectId(req, res, next) {
       const paramValue = req.params[param];
       const isValid = mongoose.Types.ObjectId.isValid(paramValue);
       
-      // Log pour debug (uniquement pour les routes de téléchargement)
-      if (req.path && req.path.includes('/download')) {
-        console.log(`[validateObjectId] Checking ${param}:`, {
-          value: paramValue,
-          type: typeof paramValue,
-          length: paramValue?.length,
-          isValid: isValid,
-          path: req.path,
-          method: req.method
-        });
-      }
-      
       if (!isValid) {
-        console.error(`[validateObjectId] Invalid ${param} format:`, {
-          value: paramValue,
-          type: typeof paramValue,
-          length: paramValue?.length,
-          path: req.path
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`[validateObjectId] Invalid ${param} format`);
+        }
         return res.status(400).json({
           error: {
             message: `Invalid ${param} format`,
@@ -127,12 +112,52 @@ function validateFilePath(req, res, next) {
 }
 
 /**
+ * Échappe les caractères spéciaux regex pour éviter injection NoSQL/ReDoS
+ * À utiliser avant de passer une entrée utilisateur dans $regex
+ */
+function escapeRegexString(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str.trim().slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Nettoie et valide une chaîne de recherche (pour $regex)
+ * Limite la longueur et échappe les caractères spéciaux
+ */
+function sanitizeSearchInput(str) {
+  if (!str || typeof str !== 'string') return '';
+  return escapeRegexString(str);
+}
+
+/** Champs autorisés pour le tri (anti-injection NoSQL) */
+const ALLOWED_SORT_FIELDS = ['name', 'updated_at', 'created_at', 'size', 'mime_type'];
+
+function sanitizePaginationSort(params) {
+  const sortBy = (params.sort_by || params.sortBy || 'name').toString().toLowerCase();
+  const sortOrder = (params.sort_order || params.sortOrder || 'asc').toString().toLowerCase();
+  let skip = parseInt(params.skip, 10);
+  let limit = parseInt(params.limit, 10);
+
+  const safeSortBy = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : 'name';
+  const safeSortOrder = sortOrder === 'desc' ? 'desc' : 'asc';
+  skip = isNaN(skip) || skip < 0 ? 0 : Math.min(skip, 10000);
+  limit = isNaN(limit) || limit < 1 ? 50 : Math.min(limit, 100);
+
+  return { sortBy: safeSortBy, sortOrder: safeSortOrder, skip, limit };
+}
+
+/**
  * Protection contre les injections NoSQL
  * Nettoie les requêtes pour éviter les opérateurs MongoDB malveillants
  */
 function sanitizeQuery(req, res, next) {
   // Liste des opérateurs MongoDB à bloquer
-  const dangerousOperators = ['$where', '$ne', '$gt', '$gte', '$lt', '$lte', '$in', '$nin', '$regex'];
+  const dangerousOperators = [
+    '$where', '$ne', '$gt', '$gte', '$lt', '$lte', '$in', '$nin', '$regex',
+    '$exists', '$type', '$mod', '$text', '$search', '$expr', '$jsonSchema',
+    '$geoIntersects', '$geoWithin', '$near', '$nearSphere', '$elemMatch',
+    '$size', '$all', '$elemMatch', '$comment'
+  ];
   
   const sanitizeObject = (obj) => {
     if (!obj || typeof obj !== 'object') {
@@ -145,14 +170,30 @@ function sanitizeQuery(req, res, next) {
     
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
-      // Bloquer les opérateurs dangereux
+      // Bloquer les clés __proto__, constructor, prototype (prototype pollution)
+      if (['__proto__', 'constructor', 'prototype'].includes(key)) {
+        continue;
+      }
+      // Bloquer les clés commençant par $ (opérateurs MongoDB malveillants)
+      if (key.startsWith('$')) {
+        continue;
+      }
+      // Bloquer les clés contenant . (accès NoSQL injection)
+      if (key.includes('.')) {
+        continue;
+      }
+      // Bloquer les opérateurs dangereux connus
       if (dangerousOperators.includes(key)) {
         continue;
       }
       
       // Récursivement nettoyer les objets imbriqués
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         sanitized[key] = sanitizeObject(value);
+      } else if (Array.isArray(value)) {
+        sanitized[key] = value.map(item =>
+          typeof item === 'object' && item !== null ? sanitizeObject(item) : item
+        );
       } else {
         sanitized[key] = value;
       }
@@ -207,21 +248,12 @@ function validateFileName(name) {
  * NOTE: Ne bloque PAS les requêtes GET (pas de body.name)
  */
 function validateName(req, res, next) {
-  // Log pour debug (uniquement pour les routes de téléchargement)
-  if (req.path && req.path.includes('/download')) {
-    console.log('[validateName] Checking request:', {
-      method: req.method,
-      path: req.path,
-      hasBody: !!req.body,
-      bodyName: req.body?.name,
-      timestamp: new Date().toISOString()
-    });
-  }
-  
   // Valider uniquement si c'est une requête avec body.name (POST, PATCH, etc.)
   if (req.body && req.body.name) {
     if (!validateFileName(req.body.name)) {
-      console.error('[validateName] Invalid name:', { name: req.body.name, path: req.path });
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[validateName] Invalid name');
+      }
       return res.status(400).json({
         error: {
           message: 'Invalid file or folder name',
@@ -239,6 +271,9 @@ module.exports = {
   sanitizePath,
   validateFilePath,
   sanitizeQuery,
+  escapeRegexString,
+  sanitizeSearchInput,
+  sanitizePaginationSort,
   validateFileName,
   validateName,
 };

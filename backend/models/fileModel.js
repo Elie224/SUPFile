@@ -70,21 +70,15 @@ const FileModel = {
         query.is_deleted = false;
       }
       
-      // Pagination côté base de données pour meilleures performances
-      const skip = options.skip || 0;
-      const limit = options.limit || 50;
+      const skip = Math.min(Math.max(parseInt(options.skip, 10) || 0, 0), 10000);
+      const limit = Math.min(Math.max(parseInt(options.limit, 10) || 50, 1), 100);
       const sortBy = options.sortBy || 'name';
       const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
       
       // Utiliser l'index composé si disponible
-      const sortObj = {};
-      if (sortBy === 'name') {
-        sortObj.name = sortOrder;
-      } else if (sortBy === 'updated_at') {
-        sortObj.updated_at = sortOrder;
-      } else {
-        sortObj[sortBy] = sortOrder;
-      }
+      const allowedSort = ['name', 'updated_at', 'created_at', 'size', 'mime_type'];
+      const safeSortBy = allowedSort.includes(sortBy) ? sortBy : 'name';
+      const sortObj = { [safeSortBy]: sortOrder };
       
       // Construire la requête sans hint() pour éviter les erreurs si l'index n'existe pas
       const queryBuilder = File.find(query)

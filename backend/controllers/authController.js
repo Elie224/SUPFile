@@ -56,7 +56,9 @@ async function signup(req, res, next) {
     try {
       existing = await User.findByEmail(email);
     } catch (err) {
-      console.error('Error checking existing user:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error checking existing user:', err);
+      }
       if (err.message && err.message.includes('MongoDB')) {
         return res.status(503).json({ 
           error: { 
@@ -110,7 +112,9 @@ async function signup(req, res, next) {
     try {
       await FolderModel.create({ name: 'Root', ownerId: created.id, parentId: null });
     } catch (e) {
-      console.error('Failed to create root folder for user:', e.message || e);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to create root folder for user:', e.message || e);
+      }
     }
 
     // Ne pas renvoyer de tokens : l'utilisateur doit d'abord vérifier son email
@@ -228,7 +232,9 @@ async function login(req, res, next) {
       const ip = req.ip || req.headers['x-forwarded-for'] || null;
       await Session.createSession({ userId: user.id, refreshToken: refresh_token, userAgent, ipAddress: ip, deviceName: null, expiresIn: config.jwt.refreshExpiresIn });
     } catch (e) {
-      console.error('Failed to create session on login:', e.message || e);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to create session on login:', e.message || e);
+      }
     }
 
     // Récupérer les données utilisateur mises à jour (avec last_login_at)
@@ -250,7 +256,9 @@ async function login(req, res, next) {
 
     res.status(200).json({ data: { user: safeUser, access_token, refresh_token }, message: 'Login successful' });
   } catch (err) {
-    console.error('Login error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Login error:', err);
+    }
     if (err.message && err.message.includes('MongoDB is not connected')) {
       return res.status(503).json({ 
         error: { 
@@ -312,7 +320,9 @@ async function verify2FALogin(req, res, next) {
       const ip = req.ip || req.headers['x-forwarded-for'] || null;
       await Session.createSession({ userId: user.id, refreshToken: refresh_token, userAgent, ipAddress: ip, deviceName: null, expiresIn: config.jwt.refreshExpiresIn });
     } catch (e) {
-      console.error('Failed to create session on 2FA login:', e.message || e);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to create session on 2FA login:', e.message || e);
+      }
     }
 
     // Récupérer les données utilisateur mises à jour
@@ -393,7 +403,9 @@ async function refresh(req, res, next) {
       message: 'Token refreshed successfully' 
     });
   } catch (err) {
-    console.error('Refresh error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Refresh error:', err);
+    }
     next(err);
   }
 }
@@ -460,8 +472,8 @@ async function forgotPassword(req, res, next) {
     // Envoyer l'email
     const emailSent = await sendPasswordResetEmail(email, resetUrl);
 
-    if (!emailSent) {
-      console.error('Failed to send reset email to:', email);
+    if (!emailSent && process.env.NODE_ENV !== 'production') {
+      console.error('Failed to send reset email');
     }
 
     res.status(200).json({ 
@@ -500,7 +512,9 @@ async function verifyResetToken(req, res, next) {
       message: 'Token valide' 
     });
   } catch (err) {
-    console.error('Verify reset token error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Verify reset token error:', err);
+    }
     next(err);
   }
 }
@@ -570,7 +584,9 @@ async function resetPassword(req, res, next) {
       message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' 
     });
   } catch (err) {
-    console.error('Reset password error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Reset password error:', err);
+    }
     next(err);
   }
 }
@@ -631,7 +647,9 @@ async function resendVerification(req, res, next) {
 
     res.status(200).json({ message: 'Si ce compte existe, un nouvel email de vérification a été envoyé.' });
   } catch (err) {
-    console.error('Resend verification error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Resend verification error:', err);
+    }
     next(err);
   }
 }

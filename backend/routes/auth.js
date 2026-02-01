@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { validate, signupSchema, loginSchema } = require('../middlewares/validation');
 const { initiateOAuth, handleOAuthCallback } = require('../controllers/oauthController');
+const { emailSensitiveLimiter } = require('../middlewares/rateLimiter');
 
 // POST /api/auth/signup
 router.post('/signup', validate(signupSchema), authController.signup);
@@ -19,15 +20,15 @@ router.post('/refresh', authController.refresh);
 // POST /api/auth/logout
 router.post('/logout', authController.logout);
 
-// POST /api/auth/forgot-password
-router.post('/forgot-password', authController.forgotPassword);
+// POST /api/auth/forgot-password - limite stricte anti email bombing
+router.post('/forgot-password', emailSensitiveLimiter, authController.forgotPassword);
 
 // Vérification d'email (GET pour lien cliqué, POST pour appel front)
 router.get('/verify-email', authController.verifyEmail);
 router.post('/verify-email', authController.verifyEmail);
 
-// Renvoyer l'email de vérification
-router.post('/resend-verification', authController.resendVerification);
+// Renvoyer l'email de vérification - rate limit strict
+router.post('/resend-verification', emailSensitiveLimiter, authController.resendVerification);
 
 // GET /api/auth/verify-reset-token/:token
 router.get('/verify-reset-token/:token', authController.verifyResetToken);

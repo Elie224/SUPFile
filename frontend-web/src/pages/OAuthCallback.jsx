@@ -11,9 +11,17 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     const tokensParam = searchParams.get('tokens');
-    const redirectParam = searchParams.get('redirect') || '/dashboard';
+    let redirectParam = searchParams.get('redirect') || '/dashboard';
     const errorParam = searchParams.get('error');
     const messageParam = searchParams.get('message');
+
+    // Sécurité: bloquer Open Redirect - n'accepter que des chemins relatifs internes
+    if (redirectParam && (redirectParam.startsWith('http') || redirectParam.startsWith('//') || redirectParam.startsWith('javascript:') || redirectParam.includes(':'))) {
+      redirectParam = '/dashboard';
+    }
+    if (!redirectParam.startsWith('/')) {
+      redirectParam = '/dashboard';
+    }
 
     if (errorParam) {
       const errorMessage = messageParam 
@@ -33,14 +41,14 @@ export default function OAuthCallback() {
           
           // Attendre un peu pour que le store se mette à jour
           setTimeout(() => {
-            // Rediriger vers la page demandée
+            // Rediriger vers la page demandée (validée ci-dessus)
             navigate(redirectParam, { replace: true });
           }, 100);
         } else {
           throw new Error('Invalid tokens: missing access_token or refresh_token');
         }
       } catch (error) {
-        console.error('OAuth callback error:', error);
+        if (import.meta.env.DEV) console.error('OAuth callback error:', error?.message || error);
         const errorMessage = error.message 
           ? `error=oauth_callback_failed&message=${encodeURIComponent(error.message)}`
           : 'error=oauth_callback_failed';

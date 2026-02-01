@@ -14,7 +14,7 @@ function performanceMiddleware(req, res, next) {
       return res; // Déjà envoyé (ex. express-session rappelle end), ne rien faire
     }
     const duration = performance.now() - startTime;
-    if (duration > 1000) {
+    if (duration > 1000 && process.env.NODE_ENV !== 'production') {
       console.warn(`⚠️ Slow request: ${req.method} ${req.originalUrl} took ${duration.toFixed(2)}ms`);
     }
     res.setHeader('X-Response-Time', `${duration.toFixed(2)}ms`);
