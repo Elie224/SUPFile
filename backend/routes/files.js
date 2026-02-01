@@ -4,7 +4,7 @@ const filesController = require('../controllers/filesController');
 const { authMiddleware, optionalAuthMiddleware } = require('../middlewares/authMiddleware');
 const { validateObjectId, validateFilePath } = require('../middlewares/security');
 const { validateFileUpload } = require('../middlewares/fileValidation');
-const { uploadLimiter } = require('../middlewares/rateLimiter');
+const { uploadLimiter, chunkUploadLimiter } = require('../middlewares/rateLimiter');
 
 // Télécharger un fichier (peut être public avec token de partage - DOIT être avant authMiddleware)
 router.get('/:id/download', optionalAuthMiddleware, validateObjectId, filesController.downloadFile);
@@ -26,7 +26,7 @@ router.post('/upload/init', uploadLimiter, filesController.initChunkedUpload);
 router.get('/upload/status', filesController.getChunkedUploadStatus);
 
 // Upload d'un chunk
-router.post('/upload/chunk', uploadLimiter, filesController.chunkUploadMiddleware, filesController.uploadChunk);
+router.post('/upload/chunk', chunkUploadLimiter, filesController.chunkUploadMiddleware, filesController.uploadChunk);
 
 // Finaliser un upload chunké
 router.post('/upload/complete', uploadLimiter, filesController.completeChunkedUpload);

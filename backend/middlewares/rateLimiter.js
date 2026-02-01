@@ -49,6 +49,22 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter pour les chunks (beaucoup plus permissif)
+const CHUNK_UPLOAD_WINDOW_MS = parseInt(process.env.CHUNK_UPLOAD_WINDOW_MS, 10) || 60 * 60 * 1000; // 1 heure
+const CHUNK_UPLOAD_MAX = parseInt(process.env.CHUNK_UPLOAD_MAX, 10) || 5000; // 5000 requêtes / heure par IP
+const chunkUploadLimiter = rateLimit({
+  windowMs: CHUNK_UPLOAD_WINDOW_MS,
+  max: CHUNK_UPLOAD_MAX,
+  message: {
+    error: {
+      message: 'Too many chunk uploads from this IP, please try again later.',
+      status: 429,
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Rate limiter pour les partages publics (protection contre abus)
 const shareLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 heure
@@ -81,6 +97,7 @@ module.exports = {
   generalLimiter,
   authLimiter,
   uploadLimiter,
+  chunkUploadLimiter,
   shareLimiter,
   emailSensitiveLimiter,
 };
