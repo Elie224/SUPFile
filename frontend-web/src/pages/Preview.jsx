@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
+import { formatBytes } from '../utils/storageUtils';
 
 export default function Preview() {
   const { id } = useParams();
@@ -138,14 +139,6 @@ export default function Preview() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatBytes = (bytes) => {
-    if (!bytes) return '-';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const apiUrlForDownload = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';

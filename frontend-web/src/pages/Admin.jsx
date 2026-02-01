@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { API_URL } from '../config';
 import { useToast } from '../components/Toast';
+import { formatBytes } from '../utils/storageUtils';
 
 const SUPER_ADMIN_EMAIL = '<SUPER_ADMIN_EMAIL>';
 
@@ -158,14 +159,6 @@ export default function Admin() {
     } finally {
       setDeleteLoading(false);
     }
-  };
-
-  const formatBytes = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const showMessage = (type, text) => {

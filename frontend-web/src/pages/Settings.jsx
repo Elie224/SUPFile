@@ -3,6 +3,7 @@ import { useAuthStore } from '../services/authStore';
 import { userService, dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { API_URL } from '../config';
+import { formatBytes, computeStorage, formatPercentage, DEFAULT_QUOTA_LIMIT_BYTES } from '../utils/storageUtils';
 
 export default function Settings() {
   const { user, logout, setUser } = useAuthStore();
@@ -33,7 +34,7 @@ export default function Settings() {
   
   // Statistiques
   const [quotaUsed, setQuotaUsed] = useState(0);
-  const [quotaLimit, setQuotaLimit] = useState(32212254720);
+  const [quotaLimit, setQuotaLimit] = useState(DEFAULT_QUOTA_LIMIT_BYTES);
   const [accountCreated, setAccountCreated] = useState('');
   const [lastLogin, setLastLogin] = useState('');
 
@@ -62,7 +63,7 @@ export default function Settings() {
       // Forcer le français (langue principale du projet)
       setLang('fr');
       setQuotaUsed(stats.quota?.used || 0);
-      setQuotaLimit(stats.quota?.limit || 32212254720);
+      setQuotaLimit(stats.quota?.limit || DEFAULT_QUOTA_LIMIT_BYTES);
       // Formater la date de création en français
       if (userData.created_at) {
         const createdDate = new Date(userData.created_at);
@@ -116,14 +117,6 @@ export default function Settings() {
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  };
-
-  const formatBytes = (bytes) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const handleUpdateProfile = async (e) => {
@@ -387,16 +380,8 @@ export default function Settings() {
   };
 
 
-  // Calcul du pourcentage : sécurisé (pas de division par zéro, plafonné à 100 %)
-  const quotaLimitNum = Number(quotaLimit) || 1;
-  const quotaUsedNum = Number(quotaUsed) || 0;
-  const quotaPercentageRaw = quotaLimitNum > 0 && quotaUsedNum >= 0
-    ? Math.min(100, (quotaUsedNum / quotaLimitNum) * 100)
-    : 0;
-  const quotaPercentage = quotaUsedNum === 0 ? 0 : (quotaPercentageRaw < 1
-    ? parseFloat(quotaPercentageRaw.toFixed(2))
-    : Math.round(quotaPercentageRaw));
-  const quotaColor = quotaPercentageRaw >= 90 ? '#f44336' : quotaPercentageRaw >= 75 ? '#ff9800' : '#4caf50';
+  const storage = computeStorage(quotaUsed, quotaLimit);
+  const quotaColor = storage.color === 'danger' ? '#f44336' : storage.color === 'warning' ? '#ff9800' : '#4caf50';
 
   if (loading) {
     return (
@@ -490,12 +475,10 @@ export default function Settings() {
               <div style={{ marginTop: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                    {formatBytes(quotaUsedNum)} / {formatBytes(quotaLimitNum)}
+                    {formatBytes(storage.usedBytes)} / {formatBytes(storage.limitBytes)}
                   </span>
                   <span style={{ color: 'var(--text-secondary)' }}>
-                    {quotaUsedNum === 0 ? '0' : (quotaPercentageRaw < 1
-                      ? quotaPercentageRaw.toFixed(2)
-                      : Math.round(quotaPercentageRaw))}%
+                    {formatPercentage(storage.raw)}%
                   </span>
                 </div>
                 <div
@@ -510,11 +493,11 @@ export default function Settings() {
                   }}
                 >
                   <div style={{
-                    width: `${quotaUsedNum > 0 ? Math.max(quotaPercentageRaw, 0.1) : 0}%`,
+                    width: `${storage.barWidth}%`,
                     height: '100%',
                     backgroundColor: quotaColor,
                     transition: 'width 0.3s ease',
-                    minWidth: quotaUsedNum > 0 ? '3px' : '0'
+                    minWidth: storage.usedBytes > 0 ? '3px' : '0'
                   }} />
                 </div>
               </div>

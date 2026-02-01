@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fileService, folderService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import offlineDB from '../services/offlineDB';
+import { formatBytes } from '../utils/storageUtils';
 
 export default function Trash() {
   const { t, language } = useLanguage();
@@ -192,14 +193,6 @@ export default function Trash() {
       setMessage({ type: 'warning', text: partialMsg });
     }
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
-  };
-
-  const formatBytes = (bytes) => {
-    if (!bytes) return '-';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const formatDate = (date) => {

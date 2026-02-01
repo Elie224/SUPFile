@@ -7,6 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
+import { formatBytes } from '../utils/storageUtils';
 
 // Nom de fichier sécurisé pour le téléchargement (évite / \ : * ? " < > | et limite la longueur)
 function sanitizeDownloadFilename(name, fallback = 'dossier') {
@@ -662,14 +663,6 @@ export default function Files() {
     if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
     return 0;
   });
-
-  const formatBytes = (bytes) => {
-    if (!bytes) return '-';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
 
   const breadcrumbs = currentFolder 
     ? [...folderHistory.map(f => f.name), currentFolder.name]

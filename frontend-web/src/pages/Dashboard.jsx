@@ -5,6 +5,7 @@ import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import StorageChart from '../components/StorageChart';
 import offlineDB from '../services/offlineDB';
+import { formatBytes, computeStorage, formatPercentage, computePartPercentage, DEFAULT_QUOTA_LIMIT_BYTES } from '../utils/storageUtils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -78,14 +79,6 @@ export default function Dashboard() {
     }, 15000);
     return () => clearTimeout(safetyTimer);
   }, [loadDashboard, t]);
-
-  const formatBytes = useCallback((bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  }, []);
 
   const recentFiles = useMemo(() => {
     return stats?.recent_files || [];
@@ -209,33 +202,26 @@ export default function Dashboard() {
                   </span>
                 </div>
                 {(() => {
-                  // Calcul cohérent du pourcentage : si used === 0, alors 0%
-                  const percentageRaw = stats.quota.used === 0 ? 0 : (stats.quota.percentageRaw || stats.quota.percentage || 0);
-                  const percentage = stats.quota.used === 0 ? 0 : (stats.quota.percentage < 1 
-                    ? stats.quota.percentage.toFixed(2) 
-                    : Math.round(stats.quota.percentage));
-                  const barWidth = percentageRaw > 0 ? Math.max(percentageRaw, 0.1) : 0;
-                  const barColor = percentageRaw > 80 ? 'danger' : percentageRaw > 75 ? 'warning' : 'success';
-                  
+                  const storage = computeStorage(stats.quota.used, stats.quota.limit || DEFAULT_QUOTA_LIMIT_BYTES);
                   return (
                     <div className="progress storage-progress-track" style={{ height: '24px', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--progress-track-bg)' }}>
-                      {barWidth > 0 && (
+                      {storage.barWidth > 0 && (
                         <div 
-                          className={`progress-bar`}
+                          className="progress-bar"
                           role="progressbar" 
                           style={{ 
-                            width: `${barWidth}%`,
-                            background: barColor === 'success' 
+                            width: `${storage.barWidth}%`,
+                            background: storage.color === 'success' 
                               ? 'linear-gradient(90deg, #22C55E 0%, #16A34A 100%)'
-                              : barColor === 'warning'
+                              : storage.color === 'warning'
                               ? 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)'
                               : 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
                             borderRadius: '12px'
                           }}
                         >
-                          {percentageRaw > 5 && (
+                          {storage.raw > 5 && (
                             <span className="small fw-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
-                              {percentageRaw < 1 ? percentageRaw.toFixed(2) : Math.round(percentageRaw)}%
+                              {formatPercentage(storage.raw)}%
                             </span>
                           )}
                         </div>
@@ -245,11 +231,8 @@ export default function Dashboard() {
                 })()}
                 <small className="d-block text-center mt-2 fw-medium" style={{ color: 'var(--text-color)' }}>
                   {(() => {
-                    const used = Number(stats.quota.used) || 0;
-                    const limit = Number(stats.quota.limit) || 0;
-                    const pct = limit > 0 && used > 0 ? Math.min(100, (used / limit) * 100) : 0;
-                    const pctDisplay = used === 0 ? 0 : pct < 1 ? pct.toFixed(2) : Math.round(pct);
-                    return `${pctDisplay}% ${t('usedOf')} ${formatBytes(limit)}`;
+                    const storage = computeStorage(stats.quota.used, stats.quota.limit || DEFAULT_QUOTA_LIMIT_BYTES);
+                    return `${formatPercentage(storage.raw)}% ${t('usedOf')} ${formatBytes(storage.limitBytes)}`;
                   })()}
                 </small>
               </div>
@@ -283,7 +266,7 @@ export default function Dashboard() {
                   { key: 'audio', label: t('audio'), color: '#9C27B0', icon: 'bi-music-note-beamed', value: stats.breakdown.audio },
                   { key: 'other', label: t('others'), color: '#607D8B', icon: 'bi-file-earmark', value: stats.breakdown.other }
                 ].map((item) => {
-                  const percentage = stats.breakdown.total > 0 ? (item.value / stats.breakdown.total * 100) : 0;
+                  const percentage = computePartPercentage(item.value, stats.breakdown.total);
                   return (
                     <div key={item.key} className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-2">

@@ -1,16 +1,15 @@
 import React from 'react';
+import { formatBytes as formatBytesUtil, computePercentageRaw, computePartPercentage, formatPercentageWithSymbol, DEFAULT_QUOTA_LIMIT_BYTES } from '../utils/storageUtils';
 
 /**
  * Composant pour afficher un graphique circulaire (pie chart) du stockage
- * Utilise SVG pur pour les performances
+ * Utilise le système de calcul centralisé (storageUtils)
  */
-export default function StorageChart({ used, total, breakdown, formatBytes }) {
+export default function StorageChart({ used, total, breakdown, formatBytes: formatBytesProp }) {
   const usedNum = Number(used) || 0;
-  const totalNum = Number(total) || 0;
-  const percentage = totalNum > 0 && usedNum >= 0
-    ? Math.min(100, (usedNum / totalNum) * 100)
-    : 0;
-  const safePercentage = Number.isFinite(percentage) ? percentage : 0;
+  const totalNum = Number(total) || DEFAULT_QUOTA_LIMIT_BYTES;
+  const safePercentage = computePercentageRaw(usedNum, totalNum);
+  const formatBytes = formatBytesProp || formatBytesUtil;
   const circumference = 2 * Math.PI * 45; // rayon = 45
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (safePercentage / 100) * circumference;
@@ -66,13 +65,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
           }}
         >
           <span className="fw-bold" style={{ fontSize: '24px', lineHeight: 1, color: 'var(--text-color)' }}>
-            {safePercentage === 0
-              ? '0%'
-              : safePercentage < 1
-                ? `${safePercentage.toFixed(2)}%`
-                : safePercentage < 100
-                  ? `${safePercentage.toFixed(1)}%`
-                  : '100%'}
+            {formatPercentageWithSymbol(safePercentage)}
           </span>
           <span className="small" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
             utilisé
@@ -86,9 +79,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
           <div className="small mb-2" style={{ color: 'var(--text-secondary)' }}>Répartition:</div>
           {breakdownItems.map((item) => {
             const itemValue = Number(item.value) || 0;
-            const itemPercentage = totalBreakdown > 0 && itemValue >= 0
-              ? Math.min(100, (itemValue / totalBreakdown) * 100)
-              : 0;
+            const itemPercentage = computePartPercentage(itemValue, totalBreakdown);
             return (
               <div key={item.key} className="mb-2">
                 <div className="d-flex justify-content-between align-items-center mb-1">
@@ -104,7 +95,7 @@ export default function StorageChart({ used, total, breakdown, formatBytes }) {
                     <span className="small" style={{ color: 'var(--text-color)' }}>{item.label}</span>
                   </div>
                   <span className="small" style={{ color: 'var(--text-secondary)' }}>
-                    {formatBytes ? formatBytes(itemValue) : `${(itemValue / 1024 / 1024).toFixed(1)} MB`}
+                    {formatBytes(itemValue)}
                   </span>
                 </div>
                 <div className="progress storage-progress-track" style={{ height: '6px' }}>

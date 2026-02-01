@@ -103,10 +103,12 @@ async function getDashboard(req, res, next) {
       ? Math.min(100, (quotaUsed / quotaLimit) * 100)
       : 0;
     const safeRaw = Number.isFinite(rawPercentage) ? rawPercentage : 0;
-    // Pour l'affichage : 2 décimales si < 1 %, sinon entier
-    const percentageDisplay = quotaUsed === 0 ? 0 : (safeRaw < 1
-      ? Math.max(0, parseFloat(safeRaw.toFixed(2)))
-      : Math.round(safeRaw));
+    // Pour l'affichage : garder la précision pour les très petits % (< 0.01 % → 4 décimales)
+    const percentageDisplay = quotaUsed === 0 ? 0 : (safeRaw < 0.01
+      ? Math.max(0, parseFloat(safeRaw.toFixed(4)))
+      : safeRaw < 1
+        ? Math.max(0, parseFloat(safeRaw.toFixed(2)))
+        : Math.round(safeRaw));
     
     res.status(200).json({
       data: {

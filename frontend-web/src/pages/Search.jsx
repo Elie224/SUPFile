@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useDebounce } from '../utils/debounce';
 import offlineDB from '../services/offlineDB';
+import { formatBytes } from '../utils/storageUtils';
 
 export default function Search() {
   const navigate = useNavigate();
@@ -92,15 +93,6 @@ export default function Search() {
       setLoading(false);
     }
   }, [query, filters, t]);
-
-  // Memoization de la fonction formatBytes
-  const formatBytes = useCallback((bytes) => {
-    if (!bytes) return '-';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  }, []);
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));

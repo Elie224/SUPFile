@@ -4,14 +4,14 @@ import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
+import { formatBytes } from '../utils/storageUtils';
 
 const DOWNLOAD_TIMEOUT_MS = 120000; // 2 min pour gros fichiers
 
 function sanitizeDownloadFilename(name, fallback = 'download') {
   if (name == null || typeof name !== 'string') return fallback;
   const sanitized = String(name).replace(/[/\\:*?"<>|]/g, '').trim();
-  if (sanitized.length === 0) return fallback;
-  return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
+  return sanitized.length === 0 ? fallback : (sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized);
 }
 
 export default function Share() {
@@ -197,12 +197,3 @@ export default function Share() {
     </div>
   );
 }
-
-function formatBytes(bytes) {
-  if (!bytes) return '-';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
-
