@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/jwt');
 const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
+const BlockedEmailModel = require('../models/blockedEmailModel');
 const { AppError } = require('../middlewares/errorHandler');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mailer');
 const config = require('../config');
@@ -39,6 +40,16 @@ async function signup(req, res, next) {
 
     const body = req.validatedBody || req.body;
     const { email, password, first_name, last_name, country } = body;
+
+    // Vérifier si l'email est bloqué (suppression définitive par un admin)
+    const isBlocked = await BlockedEmailModel.isBlocked(email);
+    if (isBlocked) {
+      return res.status(403).json({
+        error: {
+          message: 'Cette adresse email a été bloquée. Vous ne pouvez pas créer de compte avec cette adresse.'
+        }
+      });
+    }
 
     // Check existing user
     let existing;
@@ -162,9 +173,19 @@ async function login(req, res, next) {
     const body = req.validatedBody || req.body;
     const { email, password } = body;
 
+    // Vérifier si l'email est bloqué (supprimé définitivement par un admin)
+    const isBlocked = await BlockedEmailModel.isBlocked(email);
+    if (isBlocked) {
+      return res.status(403).json({
+        error: {
+          message: 'Vous ne pouvez pas vous connecter. Cette adresse a été bloquée par notre système.'
+        }
+      });
+    }
+
     const user = await User.findByEmail(email);
     if (!user || !user.password_hash) {
-      return res.status(401).json({ error: { message: 'Invalid credentials' } });
+      return res.status(401).json({ error: { message: 'Identifiants incorrects.' } });
     }
 
     if (!user.email_verified) {
@@ -340,7 +361,20 @@ async function refresh(req, res, next) {
     // Vérifier que la session existe et n'est pas révoquée
     const session = await Session.findByToken(refresh_token);
     if (!session || session.is_revoked) {
-      return res.status(401).json({ error: { message: 'Invalid or expired refresh token' } });
+      return res.status(401).json({ error: { message: 'Invalid or expired refresh token', code: 'SESSION_INVALID' } });
+    }
+
+    // Vérifier que l'utilisateur existe encore (n'a pas été supprimé)
+    const existingUser = await User.findById(decoded.id);
+    if (!existingUser) {
+      const userEmail = decoded.email || '';
+      const isBlocked = await BlockedEmailModel.isBlocked(userEmail);
+      const message = isBlocked
+        ? 'Vous ne pouvez pas vous connecter. Cette adresse a été bloquée par notre système.'
+        : 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.';
+      return res.status(401).json({
+        error: { message, code: 'USER_DELETED', email_blocked: isBlocked }
+      });
     }
 
     // Générer de nouveaux tokens

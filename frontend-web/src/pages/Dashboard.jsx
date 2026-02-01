@@ -155,9 +155,9 @@ export default function Dashboard() {
           <div className="col-12 col-md-6 col-lg-3">
             <div className="card shadow-md h-100 fade-in">
               <div className="card-body text-center">
-                <i className="bi bi-file-earmark text-primary" style={{ fontSize: '32px' }}></i>
-                <h3 className="h4 mt-3 mb-1 text-primary">{stats.total_files}</h3>
-                <p className="text-muted small mb-0">{t('totalFiles') || 'Total fichiers'}</p>
+                <i className="bi bi-file-earmark text-primary" style={{ fontSize: '32px', color: 'var(--primary-color)' }}></i>
+                <h3 className="h4 mt-3 mb-1" style={{ color: 'var(--primary-color)' }}>{stats.total_files}</h3>
+                <p className="small mb-0" style={{ color: 'var(--text-secondary)' }}>{t('totalFiles') || 'Total fichiers'}</p>
               </div>
             </div>
           </div>
@@ -165,9 +165,9 @@ export default function Dashboard() {
           <div className="col-12 col-md-6 col-lg-3">
             <div className="card shadow-md h-100 fade-in">
               <div className="card-body text-center">
-                <i className="bi bi-folder text-success" style={{ fontSize: '32px' }}></i>
-                <h3 className="h4 mt-3 mb-1 text-success">{stats.total_folders}</h3>
-                <p className="text-muted small mb-0">{t('totalFolders') || 'Total dossiers'}</p>
+                <i className="bi bi-folder text-success" style={{ fontSize: '32px', color: 'var(--success-color)' }}></i>
+                <h3 className="h4 mt-3 mb-1" style={{ color: 'var(--success-color)' }}>{stats.total_folders}</h3>
+                <p className="small mb-0" style={{ color: 'var(--text-secondary)' }}>{t('totalFolders') || 'Total dossiers'}</p>
               </div>
             </div>
           </div>
@@ -175,9 +175,9 @@ export default function Dashboard() {
           <div className="col-12 col-md-6 col-lg-3">
             <div className="card shadow-md h-100 fade-in">
               <div className="card-body text-center">
-                <i className="bi bi-hdd-stack text-info" style={{ fontSize: '32px' }}></i>
-                <h3 className="h4 mt-3 mb-1 text-info">{formatBytes(stats.quota.used)}</h3>
-                <p className="text-muted small mb-0">{t('used') || 'Utilisé'}</p>
+                <i className="bi bi-hdd-stack text-info" style={{ fontSize: '32px', color: 'var(--info-color)' }}></i>
+                <h3 className="h4 mt-3 mb-1" style={{ color: 'var(--info-color)' }}>{formatBytes(stats.quota.used)}</h3>
+                <p className="small mb-0" style={{ color: 'var(--text-secondary)' }}>{t('used') || 'Utilisé'}</p>
               </div>
             </div>
           </div>
@@ -185,9 +185,9 @@ export default function Dashboard() {
           <div className="col-12 col-md-6 col-lg-3">
             <div className="card shadow-md h-100 fade-in">
               <div className="card-body text-center">
-                <i className="bi bi-hdd text-warning" style={{ fontSize: '32px' }}></i>
-                <h3 className="h4 mt-3 mb-1 text-warning">{formatBytes(stats.quota.available)}</h3>
-                <p className="text-muted small mb-0">{t('available') || 'Disponible'}</p>
+                <i className="bi bi-hdd text-warning" style={{ fontSize: '32px', color: 'var(--warning-color)' }}></i>
+                <h3 className="h4 mt-3 mb-1" style={{ color: 'var(--warning-color)' }}>{formatBytes(stats.quota.available)}</h3>
+                <p className="small mb-0" style={{ color: 'var(--text-secondary)' }}>{t('available') || 'Disponible'}</p>
               </div>
             </div>
           </div>
@@ -195,9 +195,9 @@ export default function Dashboard() {
           {/* Quota - Carte principale */}
           <div className="col-12">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
-                  <i className="bi bi-hdd-stack text-primary"></i>
+              <div className="card-header" style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                <h5 className="mb-0 d-flex align-items-center gap-2 fw-semibold" style={{ color: 'var(--text-color)', fontSize: '1rem' }}>
+                  <i className="bi bi-hdd-stack" style={{ color: 'var(--primary-color)' }}></i>
                   {t('storageSpace') || 'Espace de stockage'}
                 </h5>
               </div>
@@ -245,7 +245,7 @@ export default function Dashboard() {
                     </div>
                   );
                 })()}
-                <small className="d-block text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
+                <small className="d-block text-center mt-2 fw-medium" style={{ color: 'var(--text-color)' }}>
                   {(() => {
                     const used = Number(stats.quota.used) || 0;
                     const limit = Number(stats.quota.limit) || 0;
@@ -261,9 +261,9 @@ export default function Dashboard() {
           {/* Répartition par type avec graphique circulaire */}
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
-                  <i className="bi bi-pie-chart text-primary"></i>
+              <div className="card-header" style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                <h5 className="mb-0 d-flex align-items-center gap-2 fw-semibold" style={{ color: 'var(--text-color)', fontSize: '1rem' }}>
+                  <i className="bi bi-pie-chart" style={{ color: 'var(--primary-color)' }}></i>
                   {t('breakdownByType') || 'Répartition par type'}
                 </h5>
               </div>
@@ -319,9 +319,9 @@ export default function Dashboard() {
           {/* Fichiers récents */}
           <div className="col-12 col-lg-6">
             <div className="card shadow-md mb-4 fade-in">
-              <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h5 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-color)' }}>
-                  <i className="bi bi-clock-history text-primary"></i>
+              <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
+                <h5 className="mb-0 d-flex align-items-center gap-2 fw-semibold" style={{ color: 'var(--text-color)', fontSize: '1rem' }}>
+                  <i className="bi bi-clock-history" style={{ color: 'var(--primary-color)' }}></i>
                   {t('recentFiles') || 'Fichiers récents'}
                 </h5>
                 <button
@@ -359,8 +359,8 @@ export default function Dashboard() {
                   </ul>
                 ) : (
                   <div className="text-center py-4">
-                    <i className="bi bi-inbox text-muted" style={{ fontSize: '48px' }}></i>
-                    <p className="text-muted mt-3 mb-0">{t('noRecentFiles') || 'Aucun fichier récent'}</p>
+                    <i className="bi bi-inbox" style={{ fontSize: '48px', color: 'var(--text-muted)' }}></i>
+                    <p className="mt-3 mb-0" style={{ color: 'var(--text-secondary)' }}>{t('noRecentFiles') || 'Aucun fichier récent'}</p>
                   </div>
                 )}
               </div>

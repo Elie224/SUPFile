@@ -1,5 +1,11 @@
 const UserModel = require('../models/userModel');
 const mongoose = require('mongoose');
+// S'assurer que les modèles Session, File, Folder, Share sont chargés
+require('../models/sessionModel');
+require('../models/fileModel');
+require('../models/folderModel');
+require('../models/shareModel');
+const BlockedEmailModel = require('../models/blockedEmailModel');
 
 // Email de l'admin principal qui ne peut pas être dégradé par les autres
 const SUPER_ADMIN_EMAIL = '<SUPER_ADMIN_EMAIL>';
@@ -243,10 +249,30 @@ async function deleteUser(req, res, next) {
       });
     }
 
+    const Session = mongoose.models.Session || mongoose.model('Session');
+    const File = mongoose.models.File || mongoose.model('File');
+    const Folder = mongoose.models.Folder || mongoose.model('Folder');
+    const Share = mongoose.models.Share || mongoose.model('Share');
+
+    await Session.deleteMany({ user_id: userId });
+    await Share.deleteMany({
+      $or: [
+        { created_by_id: userId },
+        { shared_with_user_id: userId }
+      ]
+    });
+    await File.deleteMany({ owner_id: userId });
+    await Folder.deleteMany({ owner_id: userId });
+
+    // Bloquer l'adresse email pour empêcher toute création de compte futur
+    await BlockedEmailModel.add(targetUser.email, req.user?.id);
+
     await User.findByIdAndDelete(userId);
 
     res.status(200).json({
-      data: { message: 'Utilisateur supprimé avec succès' }
+      data: {
+        message: 'Utilisateur supprimé définitivement. Cette adresse email est bloquée et ne pourra plus créer de compte.'
+      }
     });
   } catch (err) {
     next(err);

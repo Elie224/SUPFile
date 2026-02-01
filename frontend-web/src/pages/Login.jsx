@@ -32,6 +32,15 @@ export default function Login() {
     }
   }, [searchParams, t]);
 
+  // Message si le compte a été supprimé par un admin
+  useEffect(() => {
+    const deletedMsg = sessionStorage.getItem('deleted_account_message');
+    if (deletedMsg) {
+      sessionStorage.removeItem('deleted_account_message');
+      setError(deletedMsg);
+    }
+  }, []);
+
   // Vérifier les erreurs OAuth dans l'URL
   useEffect(() => {
     const errorParam = searchParams.get('error');
