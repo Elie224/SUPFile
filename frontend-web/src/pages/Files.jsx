@@ -673,6 +673,81 @@ export default function Files() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Téléchargement ZIP dossier : isolé pour éviter toute exception non gérée (ErrorBoundary)
+  const handleFolderDownload = async (item, itemId) => {
+    const safeT = (key, fallback) => {
+      try { return (typeof t === 'function' ? t(key) : fallback) || fallback; } catch (_) { return fallback; }
+    };
+    let timeoutId;
+    try {
+      if (downloadingFolder === itemId) return;
+      const id = String(itemId != null ? itemId : '').trim();
+      if (!id || id.length !== 24) {
+        toast.error(safeT('downloadError', 'ID du dossier invalide'));
+        return;
+      }
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+      if (!token) {
+        toast.warning(safeT('mustBeConnected', 'Vous devez être connecté.'));
+        return;
+      }
+      // Mise à jour de l'état au prochain tick pour éviter re-render pendant le clic
+      setTimeout(() => setDownloadingFolder(id), 0);
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
+      toast.info(safeT('downloadStarting', 'Téléchargement en cours...'), 2000);
+      const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+      const response = await fetch(`${apiUrl}/api/folders/${encodeURIComponent(id)}/download`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      timeoutId = null;
+      if (!response.ok) {
+        const ct = response.headers.get('Content-Type') || '';
+        let msg = safeT('downloadError', 'Erreur lors du téléchargement');
+        if (ct.includes('application/json')) {
+          try {
+            const data = await response.json();
+            msg = (data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED')
+              ? safeT('folderEmptyServer', msg)
+              : (data?.error?.message || msg);
+          } catch (_) {}
+        }
+        if (response.status === 403) msg = safeT('accessDenied', 'Accès refusé');
+        if (response.status === 404) msg = msg || safeT('folderNotFound', 'Dossier non trouvé');
+        if (response.status === 503) msg = safeT('serverUnavailable', 'Le serveur est temporairement indisponible.');
+        toast.error(msg);
+        return;
+      }
+      const blob = await response.blob();
+      if (!blob || blob.size === 0) {
+        toast.error(safeT('downloadError', 'Le fichier ZIP est vide.'));
+        return;
+      }
+      const safeName = sanitizeDownloadFilename(item?.name, 'dossier');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
+      }, 100);
+      toast.success(safeT('downloadSuccess', 'Téléchargement réussi'));
+    } catch (err) {
+      try { if (timeoutId != null) clearTimeout(timeoutId); } catch (_) {}
+      const msg = err?.name === 'AbortError'
+        ? safeT('downloadTimeout', 'Le téléchargement a pris trop de temps.')
+        : (typeof err?.message === 'string' ? err.message : safeT('downloadError', 'Erreur lors du téléchargement'));
+      toast.error(msg);
+    } finally {
+      try { setDownloadingFolder(null); } catch (_) {}
+    }
+  };
+
   const breadcrumbs = currentFolder 
     ? [...folderHistory.map(f => f.name), currentFolder.name]
     : [];
@@ -1445,39 +1520,37 @@ export default function Files() {
                       {itemType === 'file' && (
                         <>
                           <button
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              try {
-                                const token = localStorage.getItem('access_token');
-                                if (!token) {
-                                  toast.warning(t('mustBeConnected'));
-                                  return;
-                                }
-                                const response = await fetch(`${API_URL}/api/files/${itemId}/download`, {
-                                  headers: {
-                                    'Authorization': `Bearer ${token}`
+                              (async () => {
+                                try {
+                                  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+                                  if (!token) {
+                                    toast.warning(typeof t === 'function' ? t('mustBeConnected') : 'Vous devez être connecté.');
+                                    return;
                                   }
-                                });
-                                
-                                if (!response.ok) {
-                                  const error = await response.json().catch(() => ({ error: { message: t('downloadError') } }));
-                                  throw new Error(error.error?.message || `${t('error')} ${response.status}`);
+                                  const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                                  const response = await fetch(`${apiUrl}/api/files/${encodeURIComponent(String(itemId))}/download`, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (!response.ok) {
+                                    const error = await response.json().catch(() => ({ error: { message: 'Erreur' } }));
+                                    throw new Error(error.error?.message || `Erreur ${response.status}`);
+                                  }
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = sanitizeDownloadFilename(item?.name, 'download');
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  setTimeout(() => { try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {} }, 100);
+                                } catch (err) {
+                                  console.error('Download failed:', err);
+                                  toast.error(typeof err?.message === 'string' ? err.message : (typeof t === 'function' ? t('downloadError') : 'Erreur lors du téléchargement'));
                                 }
-                                
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = item.name;
-                                document.body.appendChild(a);
-                                a.click();
-                                window.URL.revokeObjectURL(url);
-                                document.body.removeChild(a);
-                              } catch (err) {
-                                console.error('Download failed:', err);
-                                toast.error(err.message || t('downloadError'));
-                              }
+                              })().catch(() => {});
                             }}
                             className="btn btn-outline-primary btn-sm"
                             style={{
@@ -1486,11 +1559,11 @@ export default function Files() {
                               display: 'inline-flex',
                               alignItems: 'center'
                             }}
-                            title={t('download')}
-                            aria-label={`${t('download')} ${item.name}`}
+                            title={(typeof t === 'function' ? t('download') : null) || 'Télécharger'}
+                            aria-label={`${(typeof t === 'function' ? t('download') : null) || 'Télécharger'} ${item?.name ?? ''}`}
                           >
                             <i className="bi bi-download me-1" aria-hidden="true"></i>
-                            {t('download')}
+                            {(typeof t === 'function' ? t('download') : null) || 'Télécharger'}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1517,72 +1590,13 @@ export default function Files() {
                       {itemType === 'folder' && (
                         <>
                           <button
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              if (downloadingFolder === itemId) return;
-                              const id = String(itemId || '').trim();
-                              if (!id || id.length !== 24) {
-                                toast.error(t('downloadError') || 'ID du dossier invalide');
-                                return;
-                              }
-                              const token = localStorage.getItem('access_token');
-                              if (!token) {
-                                toast.warning(t('mustBeConnected') || 'Vous devez être connecté.');
-                                return;
-                              }
-                              setDownloadingFolder(itemId);
-                              const controller = new AbortController();
-                              const timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
                               try {
-                                toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
-                                const response = await fetch(`${API_URL}/api/folders/${encodeURIComponent(id)}/download`, {
-                                  method: 'GET',
-                                  headers: { Authorization: `Bearer ${token}` },
-                                  signal: controller.signal
-                                });
-                                clearTimeout(timeoutId);
-                                if (!response.ok) {
-                                  const ct = response.headers.get('Content-Type') || '';
-                                  let msg = t('downloadError') || 'Erreur lors du téléchargement';
-                                  if (ct.includes('application/json')) {
-                                    try {
-                                      const data = await response.json();
-                                      msg = data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED'
-                                        ? (t('folderEmptyServer') || msg)
-                                        : (data?.error?.message || msg);
-                                    } catch (_) {}
-                                  }
-                                  if (response.status === 403) msg = t('accessDenied') || 'Accès refusé';
-                                  if (response.status === 404) msg = msg || (t('folderNotFound') || 'Dossier non trouvé');
-                                  if (response.status === 503) msg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
-                                  toast.error(msg);
-                                  return;
-                                }
-                                const blob = await response.blob();
-                                if (!blob || blob.size === 0) {
-                                  toast.error(t('downloadError') || 'Le fichier ZIP est vide.');
-                                  return;
-                                }
-                                const safeName = sanitizeDownloadFilename(item?.name, 'dossier');
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${safeName}.zip`;
-                                document.body.appendChild(a);
-                                a.click();
-                                setTimeout(() => {
-                                  try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
-                                }, 100);
-                                toast.success(t('downloadSuccess') || 'Téléchargement réussi');
-                              } catch (err) {
-                                clearTimeout(timeoutId);
-                                const msg = err?.name === 'AbortError'
-                                  ? (t('downloadTimeout') || 'Le téléchargement a pris trop de temps.')
-                                  : ((err && err.message) ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement'));
-                                toast.error(msg);
-                              } finally {
-                                try { setDownloadingFolder(null); } catch (_) {}
+                                handleFolderDownload(item, itemId).catch(() => {});
+                              } catch (_) {
+                                toast.error('Erreur lors du téléchargement');
                               }
                             }}
                             disabled={downloadingFolder === itemId}
@@ -1600,17 +1614,17 @@ export default function Files() {
                               gap: 4,
                               opacity: downloadingFolder === itemId ? 0.7 : 1
                             }}
-                            title={downloadingFolder === itemId ? (t('downloading') || 'Téléchargement...') : t('downloadZip')}
+                            title={downloadingFolder === itemId ? (typeof t === 'function' ? t('downloading') : 'Téléchargement...') || 'Téléchargement...' : (typeof t === 'function' ? t('downloadZip') : 'Télécharger (ZIP)') || 'Télécharger (ZIP)'}
                           >
                             {downloadingFolder === itemId ? (
                               <>
                                 <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                {t('downloading') || 'Téléchargement...'}
+                                {(typeof t === 'function' ? t('downloading') : null) || 'Téléchargement...'}
                               </>
                             ) : (
                               <>
                                 <i className="bi bi-download me-1"></i>
-                                {t('downloadZip')}
+                                {(typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)'}
                               </>
                             )}
                           </button>
