@@ -4,6 +4,7 @@
  */
 
 import { fileService, folderService } from './api';
+import { API_URL } from '../config';
 import offlineDB from './offlineDB';
 import syncService from './syncService';
 
@@ -93,10 +94,10 @@ export const offlineFileService = {
       throw new Error('Fichier non disponible hors ligne. Connectez-vous pour le télécharger.');
     }
 
-    // Télécharger depuis le serveur
-    const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+    // Télécharger depuis le serveur (URL API centralisée dans config)
+    const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
     const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_URL}/api/files/${fileId}/download`, {
+    const response = await fetch(`${apiBase}/api/files/${fileId}/download`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 

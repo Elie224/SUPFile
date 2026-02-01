@@ -17,6 +17,8 @@ primary_region = 'cdg'
 [env]
   PORT = "5000"
   NODE_ENV = "production"
+  # Même chemin que le volume monté : les file_path en base pointent vers des fichiers accessibles (ZIP, téléchargement)
+  UPLOAD_DIR = "/usr/src/app/uploads"
 
 [build]
 

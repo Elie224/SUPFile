@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
 
 export default function Preview() {
@@ -21,7 +22,7 @@ export default function Preview() {
       setError(null);
       
       // D'abord récupérer les infos du fichier pour connaître son type MIME
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const token = localStorage.getItem('access_token');
       
       // Récupérer les détails du fichier
@@ -147,7 +148,7 @@ export default function Preview() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const apiUrlForDownload = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+  const apiUrlForDownload = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
   const handleDownload = async () => {
     if (!id) return;
     const t = localStorage.getItem('access_token');
@@ -205,7 +206,7 @@ export default function Preview() {
     );
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
   const token = localStorage.getItem('access_token');
 
   const hasGallery = previewType === 'image' && galleryImages.length > 1;

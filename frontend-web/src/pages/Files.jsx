@@ -16,7 +16,7 @@ function sanitizeDownloadFilename(name, fallback = 'dossier') {
   return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
 }
 
-const FOLDER_DOWNLOAD_TIMEOUT_MS = 120000; // 2 min max, puis timeout + bouton Annuler
+const FOLDER_DOWNLOAD_TIMEOUT_MS = 120000; // 2 min (pro), puis timeout + bouton Annuler
 
 export default function Files() {
   const navigate = useNavigate();
@@ -727,6 +727,7 @@ export default function Files() {
               : (data?.error?.message || msg);
           } catch (_) {}
         }
+        if (response.status === 401) msg = safeT('sessionExpired', 'Session expirée. Veuillez vous reconnecter.');
         if (response.status === 403) msg = safeT('accessDenied', 'Accès refusé');
         if (response.status === 404) msg = msg || safeT('folderNotFound', 'Dossier non trouvé');
         if (response.status === 503) msg = safeT('serverUnavailable', 'Le serveur est temporairement indisponible.');

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
 import { authService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { API_URL } from '../config';
 import Logo from '../components/Logo';
 
 export default function Login() {
@@ -127,8 +128,8 @@ export default function Login() {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-      const response = await fetch(`${API_URL}/api/auth/verify-2fa-login`, {
+      const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+      const response = await fetch(`${apiBase}/api/auth/verify-2fa-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -364,8 +365,8 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-                window.location.href = `${apiUrl}/api/auth/google`;
+                const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                window.location.href = `${apiBase}/api/auth/google`;
               }}
               className="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2"
               style={{ 
@@ -397,8 +398,8 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-                window.location.href = `${apiUrl}/api/auth/github`;
+                const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                window.location.href = `${apiBase}/api/auth/github`;
               }}
               className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2"
               style={{ 

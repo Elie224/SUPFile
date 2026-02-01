@@ -69,7 +69,7 @@ async function ensureUploadDir() {
   try {
     const uploadDir = path.resolve(config.upload.uploadDir);
     await fs.mkdir(uploadDir, { recursive: true });
-    logger.logInfo('Upload directory ready', { uploadDir });
+    logger.logInfo('Upload directory ready', { uploadDir, note: 'UPLOAD_DIR / file_path must point here in production (e.g. Fly volume)' });
   } catch (err) {
     logger.logError(err, { context: 'ensureUploadDir' });
   }

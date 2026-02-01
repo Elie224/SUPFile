@@ -278,11 +278,13 @@ async function downloadFolder(req, res, next) {
     }
 
     // Un seul passage : ne garder que les fichiers présents sur le disque (évite double boucle + accélère)
+    // path.resolve pour que chemins relatifs/absolus fonctionnent quel que soit le CWD (ex. déploiement)
     const filesToZip = [];
     for (const file of allFiles) {
       try {
-        await fs.access(file.file_path);
-        filesToZip.push(file);
+        const resolvedPath = path.resolve(file.file_path);
+        await fs.access(resolvedPath);
+        filesToZip.push({ ...file, file_path: resolvedPath });
       } catch {
         // ignoré
       }
@@ -296,10 +298,13 @@ async function downloadFolder(req, res, next) {
       });
     }
 
-    // CORS explicite pour les réponses streamées (le middleware peut ne pas s'appliquer)
+    // CORS explicite pour les réponses streamées (aligné avec config.cors + CORS_ORIGIN)
     const origin = req.get('Origin') || '';
-    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
-    const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim() || '*';
+    const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
+    const fromList = origin && corsOrigins.indexOf(origin) !== -1;
+    const fromPattern = origin && (origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost'));
+    const allowed = fromList || fromPattern;
+    const allowOrigin = allowed ? origin : (corsOrigins[0] || '*');
     res.setHeader('Access-Control-Allow-Origin', allowOrigin);
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
@@ -317,7 +322,7 @@ async function downloadFolder(req, res, next) {
     archive.pipe(res);
 
     for (const file of filesToZip) {
-      archive.file(file.file_path, { name: file.path });
+      archive.file(path.resolve(file.file_path), { name: file.path });
     }
     await archive.finalize();
   } catch (err) {

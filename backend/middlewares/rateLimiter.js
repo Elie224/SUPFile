@@ -1,10 +1,12 @@
 // Rate limiting middleware pour protéger contre les attaques de force brute
 const rateLimit = require('express-rate-limit');
 
-// Rate limiter général pour toutes les routes (éviter 429 en usage normal)
+// Rate limiter général pour toutes les routes (configurable via env pour éviter 429 en usage pro)
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000; // 15 min par défaut
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX, 10) || 2000; // 2000 requêtes / fenêtre par IP (usage pro : dashboard, dossiers, preview, avatars, etc.)
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500 requêtes / 15 min par IP (usage normal : dashboard, fichiers, preview, etc.)
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX,
   message: {
     error: {
       message: 'Too many requests from this IP, please try again later.',

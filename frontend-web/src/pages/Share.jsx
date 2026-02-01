@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
 
-const DOWNLOAD_TIMEOUT_MS = 300000; // 5 min pour dossiers / gros fichiers
+const DOWNLOAD_TIMEOUT_MS = 120000; // 2 min (pro) pour dossiers / gros fichiers
 
 function sanitizeDownloadFilename(name, fallback = 'download') {
   if (name == null || typeof name !== 'string') return fallback;

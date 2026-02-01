@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../services/authStore';
 import { userService, dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { API_URL } from '../config';
 
 export default function Settings() {
   const { user, logout, setUser } = useAuthStore();
@@ -163,7 +164,7 @@ export default function Settings() {
       const formData = new FormData();
       formData.append('avatar', file);
       
-      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const token = localStorage.getItem('access_token');
       
       const response = await fetch(`${API_URL}/api/users/me/avatar`, {
@@ -266,7 +267,7 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const token = localStorage.getItem('access_token');
       
       const response = await fetch(`${API_URL}/api/2fa/setup`, {
@@ -307,7 +308,7 @@ export default function Settings() {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const token = localStorage.getItem('access_token');
       
       const response = await fetch(`${API_URL}/api/2fa/verify`, {
@@ -354,7 +355,7 @@ export default function Settings() {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+      const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const token = localStorage.getItem('access_token');
       
       const response = await fetch(`${API_URL}/api/2fa/disable`, {
@@ -433,7 +434,7 @@ export default function Settings() {
           <div style={{ position: 'relative' }}>
             {avatarUrl ? (
               <img
-                src={avatarUrl.startsWith('http') ? avatarUrl : `${import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com'}${avatarUrl}`}
+                src={avatarUrl.startsWith('http') ? avatarUrl : `${(typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev'}${avatarUrl}`}
                 alt="Avatar"
                 style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #2196F3' }}
                 onError={(e) => {

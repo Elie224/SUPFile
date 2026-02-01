@@ -4,6 +4,7 @@ import { useAuthStore } from '../services/authStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import Logo from '../components/Logo';
 import { COUNTRIES } from '../utils/countries';
+import { API_URL } from '../config';
 
 export default function Signup() {
   const [firstName, setFirstName] = useState('');
@@ -313,8 +314,8 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => {
-                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-                window.location.href = `${apiUrl}/api/auth/google`;
+                const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                window.location.href = `${apiBase}/api/auth/google`;
               }}
               className="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2"
               style={{ 
@@ -346,8 +347,8 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => {
-                const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-                window.location.href = `${apiUrl}/api/auth/github`;
+                const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                window.location.href = `${apiBase}/api/auth/github`;
               }}
               className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2"
               style={{ 

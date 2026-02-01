@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { API_URL } from '../config';
 
 export default function OAuthProxy({ provider }) {
   const [searchParams] = useSearchParams();
@@ -11,9 +12,9 @@ export default function OAuthProxy({ provider }) {
       params.append(key, value);
     });
 
-    // Rediriger vers le backend avec tous les paramètres
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
-    const backendCallbackUrl = `${apiUrl}/api/auth/${provider}/callback?${params.toString()}`;
+    // Rediriger vers le backend avec tous les paramètres (même URL que le reste de l'app)
+    const apiBase = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+    const backendCallbackUrl = `${apiBase}/api/auth/${provider}/callback?${params.toString()}`;
     
     // Redirection immédiate vers le backend
     window.location.href = backendCallbackUrl;
