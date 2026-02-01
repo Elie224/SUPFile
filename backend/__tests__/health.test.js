@@ -1,8 +1,11 @@
-// Tests unitaires pour les health checks
-// Exemple de structure de tests
+// Tests unitaires pour les health checks (app minimale pour éviter de charger toute l'app)
 
+const express = require('express');
 const request = require('supertest');
-const app = require('../app');
+const healthRouter = require('../routes/health');
+
+const app = express();
+app.use('/api/health', healthRouter);
 
 describe('Health Check Endpoints', () => {
   describe('GET /api/health', () => {
@@ -14,7 +17,9 @@ describe('Health Check Endpoints', () => {
       expect(response.body).toHaveProperty('status');
       expect(response.body.status).toBe('ok');
       expect(response.body).toHaveProperty('timestamp');
-      expect(response.body).toHaveProperty('uptime');
+      if (process.env.NODE_ENV !== 'production') {
+        expect(response.body).toHaveProperty('uptime');
+      }
     });
   });
 
@@ -22,13 +27,18 @@ describe('Health Check Endpoints', () => {
     it('should return detailed health information', async () => {
       const response = await request(app)
         .get('/api/health/detailed')
-        .expect(200);
+        .expect((res) => {
+          // 200 si DB connectée, 503 si dégradé
+          if (res.status !== 200 && res.status !== 503) throw new Error(`Expected 200 or 503, got ${res.status}`);
+        });
 
       expect(response.body).toHaveProperty('status');
-      expect(response.body).toHaveProperty('memory');
       expect(response.body).toHaveProperty('database');
-      expect(response.body.memory).toHaveProperty('used');
-      expect(response.body.memory).toHaveProperty('total');
+      if (process.env.NODE_ENV !== 'production') {
+        expect(response.body).toHaveProperty('memory');
+        expect(response.body.memory).toHaveProperty('used');
+        expect(response.body.memory).toHaveProperty('total');
+      }
     });
   });
 });

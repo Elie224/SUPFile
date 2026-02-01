@@ -445,30 +445,34 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
+} // fin loadRestOfApp
+
 // ============================================================
 // DÉMARRAGE DU SERVEUR
 // ============================================================
 
 /**
  * Démarre le serveur HTTP après vérification de la connexion MongoDB
- * Attend que MongoDB soit prêt avant de démarrer le serveur Express
+ * En mode test : monter les routes sans démarrer le serveur (pour supertest).
  */
-  // Vérifier MongoDB en arrière-plan (serveur déjà en écoute)
+let server;
+
+if (process.env.NODE_ENV === 'test') {
+  loadRestOfApp();
+} else {
   startServer().catch((err) => {
     logger.logWarn('MongoDB check failed or pending', { error: err.message });
   });
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('✓ Listening on 0.0.0.0:' + PORT);
+    setImmediate(() => loadRestOfApp());
+  });
+  server.on('error', (err) => {
+    console.error('✗ Server error:', err.message);
+    if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
+    process.exit(1);
+  });
 }
-
-let server = app.listen(PORT, '0.0.0.0', () => {
-  console.log('✓ Listening on 0.0.0.0:' + PORT);
-  // Différer le chargement pour que /health réponde immédiatement au health check Fly
-  setImmediate(() => loadRestOfApp());
-});
-server.on('error', (err) => {
-  console.error('✗ Server error:', err.message);
-  if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
-  process.exit(1);
-});
 
 // ============================================================
 // EXPORTS

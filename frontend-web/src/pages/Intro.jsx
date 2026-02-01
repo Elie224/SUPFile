@@ -11,7 +11,7 @@ const PAGES = [
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     title: 'Bienvenue sur SUPFile',
     subtitle: 'Votre espace de stockage cloud professionnel',
-    description: 'SUPFile est une plateforme moderne et sécurisée pour stocker, organiser et partager tous vos fichiers. Accessible depuis le web et le mobile, elle est conçue pour les professionnels exigeants.',
+    description: 'SUPFile est une plateforme moderne et sécurisée pour stocker, organiser et partager tous vos fichiers. Accessible depuis le web et le mobile.',
     highlights: ['Stockage cloud illimité', 'Sécurité renforcée', 'Accès multi-appareils'],
   },
   {
