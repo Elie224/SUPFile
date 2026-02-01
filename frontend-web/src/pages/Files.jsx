@@ -1605,17 +1605,11 @@ export default function Files() {
                             }}
                             title={downloadingFolder === itemId ? (typeof t === 'function' ? t('downloading') : 'Téléchargement...') || 'Téléchargement...' : (typeof t === 'function' ? t('downloadZip') : 'Télécharger (ZIP)') || 'Télécharger (ZIP)'}
                           >
-                            {downloadingFolder === itemId ? (
-                              <>
-                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                {(typeof t === 'function' ? t('downloading') : null) || 'Téléchargement...'}
-                              </>
-                            ) : (
-                              <>
-                                <i className="bi bi-download me-1"></i>
-                                {(typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)'}
-                              </>
-                            )}
+                            <span style={{ display: downloadingFolder === itemId ? 'inline-block' : 'none' }} className="me-1" role="status" aria-hidden="true">
+                              <span className="spinner-border spinner-border-sm" />
+                            </span>
+                            <i className="bi bi-download me-1" style={{ display: downloadingFolder === itemId ? 'none' : 'inline-block' }} aria-hidden="true" />
+                            <span>{downloadingFolder === itemId ? ((typeof t === 'function' ? t('downloading') : null) || 'Téléchargement...') : ((typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)')}</span>
                           </button>
                           <button
                             onClick={(e) => {
