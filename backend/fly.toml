@@ -1,6 +1,13 @@
 # fly.toml - Backend SUPFile sur Fly.io
-# Toujours lancer : cd backend  puis  flyctl deploy  (depuis ce dossier)
+# Toujours lancer : cd backend  puis  fly deploy --app supfile  (depuis ce dossier)
 # Voir https://fly.io/docs/reference/configuration/
+#
+# Secrets OBLIGATOIRES (fly secrets set) avant que connexion/inscription fonctionnent :
+#   fly secrets set MONGO_URI="[REDACTED]"
+#   fly secrets set JWT_SECRET="[REDACTED]"
+#   fly secrets set JWT_REFRESH_SECRET="[REDACTED]"
+#   fly secrets set SESSION_SECRET="[REDACTED]"
+# Optionnel : CORS_ORIGIN si frontend sur une autre origine (ex: http://localhost:5173)
 #
 
 app = 'supfile'
@@ -8,6 +15,7 @@ primary_region = 'cdg'
 
 [env]
   PORT = "5000"
+  NODE_ENV = "production"
 
 [build]
 

@@ -29,8 +29,8 @@ module.exports = {
       let defaultOrigins = '';
       
       if (process.env.NODE_ENV === 'production') {
-        // En production : Render, Netlify (.netlify.app), et CORS_ORIGIN
-        defaultOrigins = 'https://supfile-frontend.onrender.com,https://supfile-frontend-1.onrender.com,https://flourishing-banoffee-c0b1ad.netlify.app';
+        // En production : Render, Netlify, Fly, + localhost pour tests locaux
+        defaultOrigins = 'https://supfile-frontend.onrender.com,https://supfile-frontend-1.onrender.com,https://flourishing-banoffee-c0b1ad.netlify.app,https://supfile.fly.dev,http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000';
       } else {
         // En développement, autoriser localhost
         defaultOrigins = 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:19000,exp://localhost:19000';

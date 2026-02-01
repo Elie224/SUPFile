@@ -10,6 +10,7 @@ export default function Trash() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [fromCache, setFromCache] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
     loadTrash();
@@ -101,35 +102,78 @@ export default function Trash() {
     }
   };
 
+  const getItemKey = (item) => `${item.type}:${item.id}`;
+
+  const toggleSelect = (item) => {
+    const key = getItemKey(item);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === allItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allItems.map((item) => getItemKey(item))));
+    }
+  };
+
+  const deletePermanently = async (itemsToDelete) => {
+    const list = Array.isArray(itemsToDelete) ? itemsToDelete : allItems.filter((item) => selectedIds.has(getItemKey(item)));
+    if (list.length === 0) return;
+    const label = t('confirmDeletePermanent') || 'Supprimer définitivement';
+    if (!confirm(`${label} ${list.length} élément(s) ? Cette action est irréversible.`)) return;
+
+    try {
+      for (const item of list) {
+        try {
+          if (item.type === 'file') {
+            await fileService.delete(item.id);
+          } else {
+            await folderService.delete(item.id);
+          }
+        } catch (err) {
+          if (import.meta.env.DEV) console.error(`Failed to delete ${item.type} ${item.id}:`, err);
+        }
+      }
+      setSelectedIds(new Set());
+      loadTrash();
+      setMessage({ type: 'success', text: t('deletePermanentSuccess') || 'Élément(s) supprimé(s) définitivement' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: t('deletePermanentError') || 'Erreur lors de la suppression définitive' });
+    }
+  };
+
   const emptyTrash = async () => {
     if (!confirm(t('confirmEmptyTrash') || 'Êtes-vous sûr de vouloir vider la corbeille ? Cette action est irréversible.')) {
       return;
     }
 
     try {
-      // Supprimer définitivement tous les fichiers
       for (const file of files) {
         try {
           await fileService.delete(file.id);
         } catch (err) {
-          console.error(`Failed to delete file ${file.id}:`, err);
+          if (import.meta.env.DEV) console.error(`Failed to delete file ${file.id}:`, err);
         }
       }
-
-      // Supprimer définitivement tous les dossiers
       for (const folder of folders) {
         try {
           await folderService.delete(folder.id);
         } catch (err) {
-          console.error(`Failed to delete folder ${folder.id}:`, err);
+          if (import.meta.env.DEV) console.error(`Failed to delete folder ${folder.id}:`, err);
         }
       }
-
+      setSelectedIds(new Set());
       loadTrash();
       setMessage({ type: 'success', text: t('trashEmptied') || 'Corbeille vidée avec succès' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
-      console.error('Failed to empty trash:', err);
       setMessage({ type: 'error', text: t('emptyTrashError') || 'Erreur lors du vidage de la corbeille' });
     }
   };
@@ -230,6 +274,30 @@ export default function Trash() {
               <strong>{allItems.length}</strong> {allItems.length > 1 ? (t('itemsInTrashPlural') || 'éléments dans la corbeille') : (t('itemsInTrash') || 'élément dans la corbeille')}
             </span>
           </div>
+
+          {/* Actions sur la sélection */}
+          {selectedIds.size > 0 && (
+            <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+              <span className="text-muted">
+                {selectedIds.size} {selectedIds.size > 1 ? (t('selected') || 'sélectionné(s)') : (t('selectedOne') || 'sélectionné')}
+              </span>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                onClick={() => deletePermanently()}
+              >
+                <i className="bi bi-trash3"></i>
+                {t('deletePermanent') || 'Supprimer définitivement'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                {t('deselectAll') || 'Tout désélectionner'}
+              </button>
+            </div>
+          )}
           
           {/* Table des éléments */}
           <div className="card shadow-md">
@@ -238,6 +306,15 @@ export default function Trash() {
                 <table className="table table-hover mb-0">
                   <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <tr>
+                      <th style={{ padding: '16px', width: '44px' }}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={allItems.length > 0 && selectedIds.size === allItems.length}
+                          onChange={toggleSelectAll}
+                          aria-label={t('selectAll') || 'Tout sélectionner'}
+                        />
+                      </th>
                       <th style={{ padding: '16px' }}>
                         <i className="bi bi-file-earmark me-2"></i>
                         {t('name') || 'Nom'}
@@ -261,8 +338,17 @@ export default function Trash() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allItems.map((item, index) => (
-                      <tr key={item.id}>
+                    {allItems.map((item) => (
+                      <tr key={getItemKey(item)}>
+                        <td style={{ padding: '16px' }}>
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={selectedIds.has(getItemKey(item))}
+                            onChange={() => toggleSelect(item)}
+                            aria-label={t('select') || 'Sélectionner'}
+                          />
+                        </td>
                         <td style={{ padding: '16px' }}>
                           <div className="d-flex align-items-center gap-2">
                             {item.type === 'folder' ? (
@@ -293,13 +379,24 @@ export default function Trash() {
                           <span className="text-muted small">{formatDate(item.deleted_at)}</span>
                         </td>
                         <td style={{ padding: '16px' }}>
-                          <button
-                            className="btn btn-success btn-sm d-flex align-items-center gap-1"
-                            onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
-                          >
-                            <i className="bi bi-arrow-counterclockwise"></i>
-                            {t('restore') || 'Restaurer'}
-                          </button>
+                          <div className="d-flex flex-wrap gap-1">
+                            <button
+                              className="btn btn-success btn-sm d-flex align-items-center gap-1"
+                              onClick={() => item.type === 'file' ? restoreFile(item.id) : restoreFolder(item.id)}
+                            >
+                              <i className="bi bi-arrow-counterclockwise"></i>
+                              {t('restore') || 'Restaurer'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                              onClick={() => deletePermanently([item])}
+                              title={t('deletePermanent') || 'Supprimer définitivement'}
+                            >
+                              <i className="bi bi-trash3"></i>
+                              <span className="d-none d-sm-inline">{t('deletePermanent') || 'Supprimer définitivement'}</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
