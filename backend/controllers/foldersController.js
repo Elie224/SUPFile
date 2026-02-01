@@ -203,7 +203,11 @@ async function deleteFolder(req, res, next) {
 
 // Télécharger un dossier en ZIP
 async function downloadFolder(req, res, next) {
+  const folderIdParam = req.params?.id;
   try {
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[downloadFolder] start folderId=', folderIdParam);
+    }
     const userId = req.user?.id; // Peut être undefined pour les partages publics
     const { id } = req.params;
     const { token, password } = req.query;
@@ -285,9 +289,7 @@ async function downloadFolder(req, res, next) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    // Utiliser le owner_id du dossier pour récupérer les fichiers (même pour les partages)
-    const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
-
+    // folderOwnerId déjà défini plus haut (pour récupérer les fichiers du dossier)
     // Récupérer récursivement tous les fichiers du dossier
     async function getAllFiles(folderId, basePath = '') {
       const files = await FileModel.findByFolder(folderId, false);
@@ -333,10 +335,10 @@ async function downloadFolder(req, res, next) {
       }
     });
 
-    // Gérer les warnings d'archivage
+    // Gérer les warnings d'archivage (ne pas throw : non rattrapable et coupe la connexion)
     archive.on('warning', (err) => {
       if (err.code !== 'ENOENT') {
-        throw err;
+        console.warn('[downloadFolder] archive warning:', err.code, err.message);
       }
     });
 
@@ -394,10 +396,11 @@ async function downloadFolder(req, res, next) {
 
     // Finaliser l'archive
     await archive.finalize();
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[downloadFolder] Error:', err);
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[downloadFolder] done folderId=', folderIdParam, 'files=', filesAdded);
     }
+  } catch (err) {
+    console.error('[downloadFolder] error folderId=', folderIdParam, err?.message);
     if (!res.headersSent) {
       next(err);
     }

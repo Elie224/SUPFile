@@ -13,7 +13,7 @@ app.use(cors(config.cors));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.get('Origin') || '';
-    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
     const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
     if (allowOrigin) {
       res.setHeader('Access-Control-Allow-Origin', allowOrigin);
@@ -126,7 +126,7 @@ app.use(cors(config.cors));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.get('Origin') || '';
-    const allowed = origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
     const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
     if (allowOrigin) {
       res.setHeader('Access-Control-Allow-Origin', allowOrigin);
@@ -344,7 +344,7 @@ app.use('/api/2fa', require('./routes/twoFactor'));
  */
 app.use((req, res) => {
   const origin = req.get('Origin');
-  if (origin && (origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('.fly.dev') || origin.includes('localhost'))) {
+  if (origin && (origin === 'https://supfile.com' || origin.includes('.netlify.app') || origin.includes('.onrender.com') || origin.includes('.fly.dev') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -455,8 +455,8 @@ process.on('unhandledRejection', (reason, promise) => {
 // ============================================================
 
 /**
- * Démarre le serveur HTTP après vérification de la connexion MongoDB
- * En mode test : monter les routes sans démarrer le serveur (pour supertest).
+ * Démarre le serveur HTTP.
+ * Fly.io : listen() immédiatement pour que le health check passe tout de suite, puis loadRestOfApp() en setImmediate.
  */
 let server;
 
