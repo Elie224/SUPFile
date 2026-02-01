@@ -22,8 +22,11 @@ const useAuthStore = create(
           const message = response.data?.message || 'Compte créé. Vérifiez votre email pour activer votre compte.';
           return { success: true, requiresVerification: true, message };
         } catch (err) {
-          const errorMessage = err.response?.data?.error?.message || err.message || 'L\'inscription a échoué';
-          const is409 = err.response?.status === 409;
+          const data = err?.response?.data;
+          const errorMessage = (data && typeof data === 'object' && data.error?.message)
+            ? data.error.message
+            : (typeof err?.message === 'string' ? err.message : 'L\'inscription a échoué');
+          const is409 = err?.response?.status === 409;
           set({ loading: false, error: errorMessage });
           return { success: false, error: errorMessage, emailAlreadyUsed: !!is409 };
         }

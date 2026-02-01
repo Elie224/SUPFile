@@ -69,22 +69,26 @@ export default function Signup() {
 
     setLoading(true);
 
-    const result = await signup(email, password, firstName.trim(), lastName.trim(), country);
-    
-    if (result.success) {
-      if (result.requiresVerification) {
-        setSuccessMessage(t('signupVerifyEmail') || 'Compte créé. Un email de vérification a été envoyé à votre adresse. Cliquez sur le lien pour activer votre compte, puis connectez-vous.');
+    try {
+      const result = await signup(email, password, firstName.trim(), lastName.trim(), country);
+
+      if (result.success) {
+        if (result.requiresVerification) {
+          setSuccessMessage(t('signupVerifyEmail') || 'Compte créé. Un email de vérification a été envoyé à votre adresse. Cliquez sur le lien pour activer votre compte, puis connectez-vous.');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        setError(result.error || t('signupFailed'));
+        if (result.emailAlreadyUsed) {
+          setSuccessMessage('');
+        }
       }
-    } else {
-      setError(result.error || t('signupFailed'));
-      if (result.emailAlreadyUsed) {
-        setSuccessMessage('');
-      }
+    } catch (err) {
+      setError(t('signupFailed') || 'L\'inscription a échoué. Vérifiez votre connexion et réessayez.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
