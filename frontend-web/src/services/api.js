@@ -20,12 +20,6 @@ const uploadClient = axios.create({
   baseURL: `${API_URL}/api`,
 });
 
-// Instance séparée pour les téléchargements (timeout plus long pour les gros fichiers)
-const downloadClient = axios.create({
-  baseURL: `${API_URL}/api`,
-  timeout: 600000, // 10 minutes pour les téléchargements de dossiers volumineux
-});
-
 // Intercepteur pour ajouter le JWT à chaque requête
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
@@ -49,15 +43,6 @@ uploadClient.interceptors.request.use((config) => {
 }, (error) => {
   return Promise.reject(error);
 });
-
-// Intercepteur pour les téléchargements - ajouter le token (aucun log sensible : pas d'URL, pas de token)
-downloadClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => Promise.reject(error));
 
 // Intercepteur pour gérer les erreurs (notamment 401) et mode hors ligne - pour apiClient
 apiClient.interceptors.response.use(
@@ -110,46 +95,6 @@ apiClient.interceptors.response.use(
         }
       } else {
         setDeletedMsgAndRedirect(null);
-      }
-    }
-    return Promise.reject(error);
-  },
-);
-
-// Intercepteur pour gérer les erreurs (notamment 401) - pour downloadClient
-const setDeletedMsgAndRedirectDownload = (message) => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  sessionStorage.setItem('deleted_account_message', message || 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.');
-  window.location.href = '/login';
-};
-
-downloadClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      const code = error.response?.data?.error?.code;
-      const msg = error.response?.data?.error?.message;
-      if (code === 'USER_DELETED') {
-        setDeletedMsgAndRedirectDownload(msg);
-        return Promise.reject(error);
-      }
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          const response = await authService.refresh(refreshToken);
-          const { access_token, refresh_token } = response.data.data;
-          localStorage.setItem('access_token', access_token);
-          localStorage.setItem('refresh_token', refresh_token);
-          error.config.headers.Authorization = `Bearer ${access_token}`;
-          return downloadClient.request(error.config);
-        } catch (refreshError) {
-          const refreshCode = refreshError.response?.data?.error?.code;
-          const refreshMsg = refreshError.response?.data?.error?.message;
-          setDeletedMsgAndRedirectDownload(refreshCode === 'USER_DELETED' ? refreshMsg : null);
-        }
-      } else {
-        setDeletedMsgAndRedirectDownload(null);
       }
     }
     return Promise.reject(error);
@@ -218,33 +163,6 @@ export const folderService = {
   delete: (folderId) => apiClient.delete(`/folders/${folderId}`),
   restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
   listTrash: () => apiClient.get('/folders/trash'),
-  downloadAsZip: (folderId) => {
-    if (folderId === null || folderId === undefined || folderId === '') {
-      return Promise.reject(new Error('Folder ID is required'));
-    }
-    const folderIdStr = String(folderId).trim();
-    if (folderIdStr === 'null' || folderIdStr === 'undefined' || folderIdStr === '') {
-      return Promise.reject(new Error('Invalid folder ID'));
-    }
-    if (folderIdStr.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(folderIdStr)) {
-      return Promise.reject(new Error('Invalid folder ID format'));
-    }
-    if (!downloadClient.defaults.baseURL) {
-      return Promise.reject(new Error('API baseURL is not configured'));
-    }
-    const url = `/folders/${encodeURIComponent(folderIdStr)}/download`;
-    const fullUrl = `${downloadClient.defaults.baseURL}${url}`;
-    try {
-      new URL(fullUrl);
-    } catch {
-      return Promise.reject(new Error('Invalid URL'));
-    }
-    const expectedUrlLength = `/folders/`.length + 24 + `/download`.length;
-    if (url.length !== expectedUrlLength || !url.includes(folderIdStr)) {
-      return Promise.reject(new Error('URL construction failed'));
-    }
-    return downloadClient.get(url, { responseType: 'blob' });
-  },
   list: (parentId = null) =>
     apiClient.get('/folders', { params: { parent_id: parentId || null } }),
 };

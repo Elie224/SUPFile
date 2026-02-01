@@ -7,6 +7,16 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
 
+// Nom de fichier sécurisé pour le téléchargement (évite / \ : * ? " < > | et limite la longueur)
+function sanitizeDownloadFilename(name, fallback = 'dossier') {
+  if (name == null || typeof name !== 'string') return fallback;
+  const sanitized = name.replace(/[/\\:*?"<>|]/g, '').trim();
+  if (sanitized.length === 0) return fallback;
+  return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
+}
+
+const FOLDER_DOWNLOAD_TIMEOUT_MS = 300000; // 5 min pour les gros dossiers
+
 export default function Files() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -1522,19 +1532,25 @@ export default function Files() {
                                 return;
                               }
                               setDownloadingFolder(itemId);
+                              const controller = new AbortController();
+                              const timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
                               try {
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 const response = await fetch(`${API_URL}/api/folders/${encodeURIComponent(id)}/download`, {
                                   method: 'GET',
-                                  headers: { Authorization: `Bearer ${token}` }
+                                  headers: { Authorization: `Bearer ${token}` },
+                                  signal: controller.signal
                                 });
+                                clearTimeout(timeoutId);
                                 if (!response.ok) {
                                   const ct = response.headers.get('Content-Type') || '';
                                   let msg = t('downloadError') || 'Erreur lors du téléchargement';
                                   if (ct.includes('application/json')) {
                                     try {
                                       const data = await response.json();
-                                      msg = data?.error?.message || msg;
+                                      msg = data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED'
+                                        ? (t('folderEmptyServer') || msg)
+                                        : (data?.error?.message || msg);
                                     } catch (_) {}
                                   }
                                   if (response.status === 403) msg = t('accessDenied') || 'Accès refusé';
@@ -1548,10 +1564,11 @@ export default function Files() {
                                   toast.error(t('downloadError') || 'Le fichier ZIP est vide.');
                                   return;
                                 }
+                                const safeName = sanitizeDownloadFilename(item?.name, 'dossier');
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
-                                a.download = `${(item && item.name) ? item.name : 'dossier'}.zip`;
+                                a.download = `${safeName}.zip`;
                                 document.body.appendChild(a);
                                 a.click();
                                 setTimeout(() => {
@@ -1559,7 +1576,10 @@ export default function Files() {
                                 }, 100);
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
-                                const msg = (err && err.message) ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement');
+                                clearTimeout(timeoutId);
+                                const msg = err?.name === 'AbortError'
+                                  ? (t('downloadTimeout') || 'Le téléchargement a pris trop de temps.')
+                                  : ((err && err.message) ? String(err.message) : (t('downloadError') || 'Erreur lors du téléchargement'));
                                 toast.error(msg);
                               } finally {
                                 try { setDownloadingFolder(null); } catch (_) {}

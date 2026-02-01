@@ -4,6 +4,15 @@ import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
 
+const DOWNLOAD_TIMEOUT_MS = 300000; // 5 min pour dossiers / gros fichiers
+
+function sanitizeDownloadFilename(name, fallback = 'download') {
+  if (name == null || typeof name !== 'string') return fallback;
+  const sanitized = String(name).replace(/[/\\:*?"<>|]/g, '').trim();
+  if (sanitized.length === 0) return fallback;
+  return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
+}
+
 export default function Share() {
   const { token } = useParams();
   const toast = useToast();
@@ -58,33 +67,54 @@ export default function Share() {
   const handleDownload = async () => {
     if (!share || !share.resource) return;
     
+    const resource = share.resource;
+    const params = new URLSearchParams();
+    params.append('token', token);
+    if (password && password.trim() !== '') {
+      params.append('password', password);
+    }
+    const downloadUrl = resource.type === 'file'
+      ? `${API_URL}/api/files/${resource.id}/download?${params.toString()}`
+      : `${API_URL}/api/folders/${resource.id}/download?${params.toString()}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
     try {
-      const resource = share.resource;
-      const params = new URLSearchParams();
-      params.append('token', token);
-      if (password && password.trim() !== '') {
-        params.append('password', password);
-      }
-      const downloadUrl = resource.type === 'file'
-        ? `${API_URL}/api/files/${resource.id}/download?${params.toString()}`
-        : `${API_URL}/api/folders/${resource.id}/download?${params.toString()}`;
-      const response = await fetch(downloadUrl);
+      const response = await fetch(downloadUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: { message: 'Erreur lors du téléchargement' } }));
-        throw new Error(errorData.error?.message || `Erreur ${response.status}`);
+        const ct = response.headers.get('Content-Type') || '';
+        let msg = 'Erreur lors du téléchargement';
+        if (ct.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            msg = errorData.error?.code === 'FOLDER_EMPTY_OR_ORPHANED'
+              ? 'Ce dossier ne contient aucun fichier accessible sur le serveur.'
+              : (errorData.error?.message || msg);
+          } catch (_) {}
+        }
+        throw new Error(msg);
       }
       const blob = await response.blob();
+      const safeName = resource.type === 'folder'
+        ? sanitizeDownloadFilename(resource.name, 'dossier') + '.zip'
+        : sanitizeDownloadFilename(resource.name, 'download');
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = resource.type === 'folder' ? `${resource.name || 'dossier'}.zip` : (resource.name || 'download');
+      a.download = safeName;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      setTimeout(() => {
+        try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
+      }, 100);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error('Download error:', err);
-      toast.error(err.message || 'Erreur lors du téléchargement');
+      const msg = err?.name === 'AbortError'
+        ? 'Le téléchargement a pris trop de temps. Réessayez ou choisissez un dossier plus petit.'
+        : (err.message || 'Erreur lors du téléchargement');
+      toast.error(msg);
     }
   };
 

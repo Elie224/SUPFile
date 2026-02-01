@@ -296,6 +296,13 @@ async function downloadFolder(req, res, next) {
       });
     }
 
+    // CORS explicite pour les réponses streamées (le middleware peut ne pas s'appliquer)
+    const origin = req.get('Origin') || '';
+    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim() || '*';
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 

@@ -67,7 +67,7 @@ Ce document relie le **barème de notation (500 points + 50 bonus)** aux éléme
 | Critère | Points | Serveur | Web | Mobile |
 |---------|--------|---------|-----|--------|
 | **Visionneuse** — Images, PDF, textes sans téléchargement ; streaming audio/vidéo | 20 | `backend/controllers/filesController.js` (`previewFile`, `streamFile`) | `frontend-web/src/pages/Preview.jsx` | `mobile-app/lib/screens/` (Preview, galerie, lecteur audio/vidéo) |
-| **Téléchargement** — Fichier unitaire ; dossier complet (ZIP à la volée) | 20 | `filesController.js` (`download`, ZIP), `foldersController.js` (ZIP dossier) | `frontend-web/src/pages/Files.jsx`, `Preview.jsx` | `mobile-app/lib/screens/files/`, services |
+| **Téléchargement** — Fichier unitaire | 20 | `filesController.js` (`downloadFile`) | `frontend-web/src/pages/Files.jsx`, `Preview.jsx` | `mobile-app/lib/screens/files/`, services |
 
 ### 4.4 Partage & social (40 points)
 
