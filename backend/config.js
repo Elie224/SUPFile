@@ -81,8 +81,9 @@ module.exports = {
           }
         }
         
-        console.warn(`CORS blocked origin: ${origin}`);
-        console.warn(`Allowed origins: ${allowedOrigins.join(', ')}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('CORS blocked origin');
+        }
         callback(new Error('Not allowed by CORS'));
       }
     },

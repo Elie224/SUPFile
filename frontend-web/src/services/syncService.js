@@ -45,7 +45,7 @@ class SyncService {
    */
   async syncFromServer() {
     if (!this.isOnline()) {
-      console.log('[Sync] Hors ligne - synchronisation impossible');
+      if (import.meta.env.DEV) console.log('[Sync] Hors ligne - synchronisation impossible');
       return { success: false, reason: 'offline' };
     }
     if (this.isSyncing) {
@@ -90,7 +90,7 @@ class SyncService {
                 await offlineDB.saveFileContent(file.id, blob);
               }
             } catch (err) {
-              console.warn(`[Sync] Impossible de télécharger le fichier ${file.name}:`, err);
+              if (import.meta.env.DEV) console.warn('[Sync] Impossible de télécharger un fichier:', err?.message || err);
             }
           }
         }
@@ -103,7 +103,7 @@ class SyncService {
       
       return { success: true, filesCount: files.length, foldersCount: folders.length };
     } catch (error) {
-      console.error('[Sync] Erreur lors de la synchronisation depuis le serveur:', error);
+      if (import.meta.env.DEV) console.error('[Sync] Erreur synchronisation serveur:', error?.message || error);
       this.notifyListeners({ type: 'sync-error', direction: 'from-server', error });
       return { success: false, error };
     } finally {
@@ -116,7 +116,7 @@ class SyncService {
    */
   async syncToServer() {
     if (!this.isOnline()) {
-      console.log('[Sync] Hors ligne - impossible d\'envoyer les opérations en attente');
+      if (import.meta.env.DEV) console.log('[Sync] Hors ligne - impossible d\'envoyer les opérations en attente');
       return { success: false, reason: 'offline' };
     }
 
@@ -134,7 +134,7 @@ class SyncService {
           await offlineDB.deletePendingOperation(op.id);
           successCount++;
         } catch (err) {
-          console.error(`[Sync] Erreur lors de l'exécution de l'opération ${op.type}:`, err);
+          if (import.meta.env.DEV) console.error('[Sync] Erreur opération:', op.type, err?.message || err);
           errorCount++;
         }
       }
@@ -148,7 +148,7 @@ class SyncService {
 
       return { success: true, successCount, errorCount };
     } catch (error) {
-      console.error('[Sync] Erreur lors de la synchronisation vers le serveur:', error);
+      if (import.meta.env.DEV) console.error('[Sync] Erreur synchronisation vers serveur:', error?.message || error);
       this.notifyListeners({ type: 'sync-error', direction: 'to-server', error });
       return { success: false, error };
     } finally {
@@ -186,7 +186,7 @@ class SyncService {
         return await folderService.move(op.data.folderId, op.data.destinationFolderId);
       
       default:
-        console.warn(`[Sync] Type d'opération inconnu: ${op.type}`);
+        if (import.meta.env.DEV) console.warn('[Sync] Type d\'opération inconnu:', op.type);
     }
   }
 
@@ -245,7 +245,7 @@ class SyncService {
         
         return { success: true, file: uploadedFile, mode: 'online' };
       } catch (err) {
-        console.error('[Sync] Erreur upload en ligne:', err);
+        if (import.meta.env.DEV) console.error('[Sync] Erreur upload en ligne:', err?.message || err);
         // Si erreur, basculer en mode hors ligne
       }
     }
@@ -290,7 +290,7 @@ class SyncService {
         await fileService.delete(fileId);
         return { success: true, mode: 'online' };
       } catch (err) {
-        console.error('[Sync] Erreur suppression en ligne:', err);
+        if (import.meta.env.DEV) console.error('[Sync] Erreur suppression en ligne:', err?.message || err);
       }
     }
 
@@ -314,7 +314,7 @@ class SyncService {
         await offlineDB.saveFolder(folder);
         return { success: true, folder, mode: 'online' };
       } catch (err) {
-        console.error('[Sync] Erreur création dossier en ligne:', err);
+        if (import.meta.env.DEV) console.error('[Sync] Erreur création dossier en ligne:', err?.message || err);
       }
     }
 
@@ -357,7 +357,7 @@ class SyncService {
         }
         return { success: true, mode: 'online' };
       } catch (err) {
-        console.error('[Sync] Erreur renommage en ligne:', err);
+        if (import.meta.env.DEV) console.error('[Sync] Erreur renommage en ligne:', err?.message || err);
       }
     }
 

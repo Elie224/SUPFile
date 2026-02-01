@@ -74,27 +74,6 @@ export default function Files() {
         toast.info('📦 Données chargées depuis le cache local (mode hors ligne)');
       }
       
-      // Logs pour diagnostiquer la structure des items
-      console.log('========================================');
-      console.log('📁 LOADED FILES AND FOLDERS');
-      console.log('========================================');
-      console.log('Total items:', items.length);
-      items.forEach((item, index) => {
-        if (item.type === 'folder' || (!item.type && !item.folder_id)) {
-          console.log(`Folder ${index}:`, {
-            id: item.id,
-            _id: item._id,
-            name: item.name,
-            type: item.type,
-            hasId: !!item.id,
-            has_id: !!item._id,
-            idLength: item.id?.length,
-            _idLength: item._id?.length
-          });
-        }
-      });
-      console.log('========================================');
-      
       setItems(items);
     } catch (err) {
       console.error('Failed to load files:', err);
@@ -411,18 +390,12 @@ export default function Files() {
   };
 
   const deleteItem = (item) => {
-    console.log('=== DELETE ITEM REQUEST ===');
-    console.log('Item received:', item);
-    
     if (!item) {
-      console.error('❌ No item provided');
       toast.error('Erreur: aucun élément sélectionné');
       return;
     }
-    
     const itemId = item.id || item._id;
     if (!itemId) {
-      console.error('❌ Item has no id:', item);
       toast.error('Erreur: l\'élément n\'a pas d\'identifiant');
       return;
     }
@@ -432,22 +405,12 @@ export default function Files() {
   };
 
   const confirmDelete = async () => {
-    if (!itemToDelete) {
-      console.error('❌ No item to delete');
-      return;
-    }
-    
+    if (!itemToDelete) return;
     const item = itemToDelete;
     const itemId = item.id || item._id;
     const itemName = item.name || 'cet élément';
     const itemType = item.type || (item.folder_id !== undefined ? 'file' : 'folder');
-    
-    console.log('=== CONFIRM DELETE START ===');
-    console.log('Deleting:', { id: itemId, name: itemName, type: itemType });
-    
-    // Fermer la modal
     setItemToDelete(null);
-    
     try {
       let result;
       if (itemType === 'folder') {
@@ -455,29 +418,16 @@ export default function Files() {
       } else {
         result = await offlineFileService.delete(itemId);
       }
-      
-      console.log('✅ Deletion successful!');
-      
-      // Recharger la liste après suppression
       await loadFiles();
-      
       if (result.mode === 'offline') {
         toast.info(`📦 "${itemName}" supprimé localement. Sera synchronisé en ligne.`);
       } else {
         toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
       }
     } catch (err) {
-      console.error('❌ Deletion error:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response?.data
-      });
-      
       const errorMessage = err.response?.data?.error?.message || err.message || t('deleteError') || 'Erreur lors de la suppression';
       toast.error(errorMessage);
     }
-    
-    console.log('=== CONFIRM DELETE END ===');
   };
 
   // Rechercher des utilisateurs pour le partage interne
@@ -571,8 +521,6 @@ export default function Files() {
         }
       }
       
-      console.log('Creating share with options:', { ...options, fileId: showShareModal.id, type: showShareModal.type });
-      
       let response;
       if (showShareModal.type === 'file') {
         response = await shareService.generatePublicLink(showShareModal.id, options);
@@ -590,8 +538,6 @@ export default function Files() {
         throw new Error('Réponse invalide du serveur');
       }
     } catch (err) {
-      console.error('Failed to share:', err);
-      console.error('Error response:', err.response?.data);
       const errorMsg = err.response?.data?.error?.message || err.response?.data?.error?.details?.[0]?.message || err.message || 'Erreur lors de la création du partage';
       
       // Si c'est une erreur 401, rediriger vers login
@@ -1404,21 +1350,6 @@ export default function Files() {
                     itemId = String(itemId);
                   }
                   
-                  // Log si l'ID est manquant ou invalide pour un dossier
-                  if (itemType === 'folder' && (!itemId || itemId.length !== 24)) {
-                    console.error('❌ Invalid folder ID in map:', {
-                      item,
-                      itemId,
-                      itemIdType: typeof itemId,
-                      itemIdLength: itemId?.length,
-                      itemIdValue: itemId,
-                      hasId: !!item.id,
-                      has_id: !!item._id,
-                      idValue: item.id,
-                      _idValue: item._id
-                    });
-                  }
-                  
                   // Dossier à la racine : parent_id null (Renommer et Supprimer autorisés)
                   const parentId = item.parent_id !== undefined ? item.parent_id : (item.parentId !== undefined ? item.parentId : null);
                   const folderName = item.name || '';
@@ -1595,50 +1526,10 @@ export default function Files() {
                               setDownloadingFolder(itemId);
                               
                               try {
-                                // Vérifier que l'ID est valide
-                                if (!itemId) {
-                                  console.error('❌ Item ID is missing:', { item, itemId, itemType });
-                                  throw new Error('ID du dossier invalide');
-                                }
-                                
-                                // Vérifier que l'ID est une string complète (ObjectId MongoDB = 24 caractères hex)
-                                if (typeof itemId !== 'string' || itemId.length !== 24) {
-                                  console.error('❌ Item ID format invalid:', { 
-                                    itemId, 
-                                    type: typeof itemId, 
-                                    length: itemId?.length,
-                                    item 
-                                  });
-                                  throw new Error(`ID du dossier invalide (format: ${typeof itemId}, longueur: ${itemId?.length})`);
-                                }
-                                
-                                // Logs très visibles pour debug
-                                console.log('========================================');
-                                console.log('✅ DOWNLOADING FOLDER');
-                                console.log('========================================');
-                                console.log('itemId:', itemId);
-                                console.log('itemId type:', typeof itemId);
-                                console.log('itemId length:', itemId?.length);
-                                console.log('itemName:', item.name);
-                                console.log('itemType:', itemType);
-                                console.log('item.id:', item.id);
-                                console.log('item._id:', item._id);
-                                console.log('item.type:', item.type);
-                                console.log('Full item:', item);
-                                console.log('========================================');
+                                if (!itemId) throw new Error('ID du dossier invalide');
+                                if (typeof itemId !== 'string' || itemId.length !== 24) throw new Error('ID du dossier invalide');
                                 
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
-                                
-                                // Vérification finale avant l'appel
-                                console.log('========================================');
-                                console.log('🚀 ABOUT TO CALL downloadAsZip');
-                                console.log('========================================');
-                                console.log('itemId FINAL:', itemId);
-                                console.log('itemId FINAL type:', typeof itemId);
-                                console.log('itemId FINAL length:', itemId?.length);
-                                console.log('itemId FINAL value:', JSON.stringify(itemId));
-                                console.log('========================================');
-                                
                                 const response = await folderService.downloadAsZip(itemId);
                                 
                                 if (!response.data || response.data.size === 0) {
@@ -1661,19 +1552,6 @@ export default function Files() {
                                 
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
-                                // Logs très visibles pour debug
-                                console.error('========================================');
-                                console.error('❌ DOWNLOAD FAILED');
-                                console.error('========================================');
-                                console.error('Error:', err);
-                                console.error('Error code:', err.code);
-                                console.error('Error message:', err.message);
-                                console.error('Response status:', err.response?.status);
-                                console.error('Response data:', err.response?.data);
-                                console.error('Request URL:', err.config?.url);
-                                console.error('Full error:', JSON.stringify(err, null, 2));
-                                console.error('========================================');
-                                
                                 let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
                                 
                                 // Vérifier d'abord les erreurs réseau/connexion (503, 502, etc.)
@@ -1980,7 +1858,6 @@ export default function Files() {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
-                  console.log('User cancelled deletion in modal');
                   setItemToDelete(null);
                 }}
                 style={{

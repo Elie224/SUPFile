@@ -10,9 +10,14 @@ const { calculateRealQuotaUsed, syncQuotaUsed } = require('../utils/quota');
 async function listFolders(req, res, next) {
   try {
     const userId = req.user.id;
-    const parentId = req.query.parent_id === 'root' || req.query.parent_id === '' || !req.query.parent_id
+    let parentId = req.query.parent_id === 'root' || req.query.parent_id === '' || !req.query.parent_id
       ? null
       : req.query.parent_id;
+
+    // Anti-injection / DoS : parent_id doit être null ou un ObjectId valide (sinon findByOwner lance)
+    if (parentId != null && (typeof parentId !== 'string' || parentId.length !== 24 || !require('mongoose').Types.ObjectId.isValid(parentId))) {
+      return res.status(400).json({ error: { message: 'Invalid parent_id format' } });
+    }
 
     const folders = await FolderModel.findByOwner(userId, parentId, false);
 
@@ -50,6 +55,10 @@ async function createFolder(req, res, next) {
     }
 
     let parentId = parent_id || null;
+
+    if (parentId != null && (typeof parentId !== 'string' || !require('mongoose').Types.ObjectId.isValid(parentId))) {
+      return res.status(400).json({ error: { message: 'Invalid parent_id format' } });
+    }
 
     // Vérifier le dossier parent s'il est spécifié
     if (parentId) {
@@ -103,7 +112,10 @@ async function updateFolder(req, res, next) {
     const updates = {};
     if (name) updates.name = name.trim();
     if (parent_id !== undefined) {
-      if (parent_id) {
+      if (parent_id != null && parent_id !== '') {
+        if (typeof parent_id !== 'string' || !require('mongoose').Types.ObjectId.isValid(parent_id)) {
+          return res.status(400).json({ error: { message: 'Invalid parent_id format' } });
+        }
         const parent = await FolderModel.findById(parent_id);
         if (!parent) {
           return res.status(404).json({ error: { message: 'Parent folder not found' } });
@@ -171,29 +183,14 @@ async function downloadFolder(req, res, next) {
     const { id } = req.params;
     const { token, password } = req.query;
 
-    console.log('[downloadFolder] Request received:', {
-      id,
-      idType: typeof id,
-      idLength: id?.length,
-      userId: userId?.toString(),
-      hasToken: !!token
-    });
-
     // Vérifier que l'ID est valide (ObjectId MongoDB = 24 caractères hex)
     if (!id || typeof id !== 'string' || id.length !== 24) {
-      console.error('[downloadFolder] Invalid folder ID format:', { id, type: typeof id, length: id?.length });
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
 
     // Vérifier que l'ID est bien un ObjectId valide avant la requête MongoDB
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('[downloadFolder] Invalid ObjectId format before MongoDB query:', { 
-        id, 
-        type: typeof id, 
-        length: id?.length,
-        isValid: mongoose.Types.ObjectId.isValid(id)
-      });
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
     
@@ -202,40 +199,17 @@ async function downloadFolder(req, res, next) {
     try {
       folderId = new mongoose.Types.ObjectId(id);
     } catch (err) {
-      console.error('[downloadFolder] Failed to convert ID to ObjectId:', { id, error: err.message });
       return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
     }
     
-    console.log('[downloadFolder] Searching folder with ObjectId:', { 
-      originalId: id, 
-      objectId: folderId.toString(),
-      objectIdType: folderId.constructor.name
-    });
-    
     const folder = await FolderModel.findById(folderId);
     if (!folder) {
-      console.error('[downloadFolder] Folder not found in database:', { 
-        id, 
-        idLength: id.length,
-        objectId: folderId.toString(),
-        searchQuery: { _id: folderId }
-      });
-      
       // Vérifier si c'est un problème de connexion MongoDB
-      const mongoose = require('mongoose');
       if (mongoose.connection.readyState !== 1) {
-        console.error('[downloadFolder] MongoDB not connected!', { readyState: mongoose.connection.readyState });
         return res.status(503).json({ error: { message: 'Database connection error' } });
       }
-      
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
-
-    console.log('[downloadFolder] Folder found:', {
-      id: folder.id,
-      name: folder.name,
-      owner_id: folder.owner_id?.toString()
-    });
 
     // Vérifier la propriété ou le partage public
     let hasAccess = false;
@@ -244,22 +218,13 @@ async function downloadFolder(req, res, next) {
     if (userId) {
       const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
       const userOwnerId = userId?.toString ? userId.toString() : userId;
-      console.log('[downloadFolder] Checking ownership:', {
-        folderOwnerId,
-        userOwnerId,
-        match: folderOwnerId === userOwnerId
-      });
       if (folderOwnerId === userOwnerId) {
         hasAccess = true;
-        console.log('[downloadFolder] Access granted: user is owner');
       }
-    } else {
-      console.log('[downloadFolder] No userId provided');
     }
     
     // Si pas propriétaire, vérifier le partage public
     if (!hasAccess && token) {
-      console.log('[downloadFolder] Checking public share with token');
       const ShareModel = require('../models/shareModel');
       const share = await ShareModel.findByToken(token);
       
@@ -292,15 +257,8 @@ async function downloadFolder(req, res, next) {
     }
     
     if (!hasAccess) {
-      console.error('[downloadFolder] Access denied:', {
-        userId: userId?.toString(),
-        folderOwnerId: folder.owner_id?.toString(),
-        hasToken: !!token
-      });
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
-
-    console.log('[downloadFolder] Access granted, proceeding with download');
 
     // Utiliser le owner_id du dossier pour récupérer les fichiers (même pour les partages)
     const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
@@ -324,18 +282,14 @@ async function downloadFolder(req, res, next) {
       return result;
     }
 
-    console.log('[downloadFolder] Getting all files recursively...');
     const allFiles = await getAllFiles(id, folder.name);
-    console.log('[downloadFolder] Files found:', { count: allFiles.length });
 
     // Vérifier qu'il y a des fichiers à télécharger
     if (allFiles.length === 0) {
-      console.log('[downloadFolder] Folder is empty');
       return res.status(400).json({ error: { message: 'Folder is empty' } });
     }
 
     // Créer l'archive ZIP
-    console.log('[downloadFolder] Creating ZIP archive...');
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 
@@ -344,11 +298,11 @@ async function downloadFolder(req, res, next) {
       store: false // Compression activée
     });
     
-    console.log('[downloadFolder] Archive created, starting to add files...');
-
     // Gérer les erreurs d'archivage
     archive.on('error', (err) => {
-      console.error('Archive error:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Archive error:', err);
+      }
       if (!res.headersSent) {
         res.status(500).json({ error: { message: 'Failed to create archive' } });
       }
@@ -356,10 +310,7 @@ async function downloadFolder(req, res, next) {
 
     // Gérer les warnings d'archivage
     archive.on('warning', (err) => {
-      if (err.code === 'ENOENT') {
-        console.warn('Archive warning:', err);
-      } else {
-        console.error('Archive warning:', err);
+      if (err.code !== 'ENOENT') {
         throw err;
       }
     });
@@ -380,11 +331,9 @@ async function downloadFolder(req, res, next) {
         filesAdded++;
       } catch (err) {
         // Fichier non trouvé (probablement perdu après redéploiement sur Fly.io)
-        console.warn(`[downloadFolder] File not found (skipping): ${file.file_path}`, {
-          fileName: file.name,
-          filePath: file.path,
-          error: err.code || err.message
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[downloadFolder] File not found (skipping):', file.name);
+        }
         filesSkipped++;
         skippedFiles.push({
           name: file.name,
@@ -395,25 +344,12 @@ async function downloadFolder(req, res, next) {
       }
     }
 
-    // Log du résultat
-    console.log('[downloadFolder] Files processing result:', {
-      total: allFiles.length,
-      added: filesAdded,
-      skipped: filesSkipped,
-      skippedFiles: skippedFiles.map(f => f.name)
-    });
-
     // Vérifier qu'au moins un fichier a été ajouté
     if (filesAdded === 0) {
       archive.abort();
       const errorMessage = filesSkipped > 0
         ? `Le dossier ne contient aucun fichier accessible. ${filesSkipped} fichier(s) trouvé(s) en base de données mais manquant(s) sur le serveur (probablement perdus après un déploiement). Veuillez ré-uploader les fichiers ou utiliser le script de nettoyage pour supprimer les entrées orphelines.`
         : 'Le dossier ne contient aucun fichier accessible';
-      console.error('[downloadFolder] No files added to archive:', {
-        totalFiles: allFiles.length,
-        skippedFiles: skippedFiles.length,
-        errorMessage
-      });
       return res.status(404).json({ 
         error: { 
           message: errorMessage,
@@ -426,24 +362,19 @@ async function downloadFolder(req, res, next) {
       });
     }
     
-    // Si certains fichiers ont été ignorés, ajouter un avertissement dans les logs
-    if (filesSkipped > 0) {
-      console.warn(`[downloadFolder] Warning: ${filesSkipped} file(s) were skipped because they are missing on the server. The ZIP will contain only ${filesAdded} accessible file(s).`);
+    // Si certains fichiers ont été ignorés, log en dev uniquement
+    if (filesSkipped > 0 && process.env.NODE_ENV !== 'production') {
+      console.warn(`[downloadFolder] ${filesSkipped} file(s) skipped (missing on server)`);
     }
 
     // Finaliser l'archive
-    console.log('[downloadFolder] Finalizing archive...');
     await archive.finalize();
-    console.log('[downloadFolder] Archive finalized successfully');
   } catch (err) {
-    console.error('[downloadFolder] Error:', err);
-    // Si la réponse n'a pas encore été envoyée, envoyer une erreur
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[downloadFolder] Error:', err);
+    }
     if (!res.headersSent) {
       next(err);
-    } else {
-      // Si les en-têtes ont déjà été envoyés, on ne peut plus envoyer de réponse JSON
-      // La connexion sera fermée, ce qui causera une erreur côté client
-      console.error('Cannot send error response, headers already sent');
     }
   }
 }
@@ -479,7 +410,9 @@ async function restoreFolder(req, res, next) {
     
     res.status(200).json({ message: 'Folder restored' });
   } catch (err) {
-    console.error('Error restoring folder:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error restoring folder:', err);
+    }
     next(err);
   }
 }
@@ -509,8 +442,9 @@ async function listTrash(req, res, next) {
       },
     });
   } catch (err) {
-    console.error('Error listing trash folders:', err);
-    console.error('Error details:', err.message, err.stack);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error listing trash folders:', err);
+    }
     next(err);
   }
 }

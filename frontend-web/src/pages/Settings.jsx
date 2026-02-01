@@ -130,9 +130,7 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
-      console.log('Mise à jour du profil:', { email, display_name: displayName });
       const response = await userService.updateProfile({ email, display_name: displayName });
-      console.log('Réponse:', response);
       showMessage('success', 'Profil mis à jour avec succès');
       if (setUser && response.data.data) {
         setUser({ ...user, ...response.data.data });
@@ -140,7 +138,6 @@ export default function Settings() {
       // Recharger les données pour s'assurer que tout est à jour
       await loadUserData();
     } catch (err) {
-      console.error('Erreur mise à jour profil:', err);
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setSaving(false);
@@ -220,15 +217,12 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
-      console.log('Changement de mot de passe...');
       await userService.changePassword(currentPassword, newPassword);
-      console.log('Mot de passe changé avec succès');
       showMessage('success', 'Mot de passe changé avec succès');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      console.error('Erreur changement mot de passe:', err);
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
     } finally {
       setSaving(false);

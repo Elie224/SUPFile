@@ -78,7 +78,7 @@ const useAuthStore = create(
           try {
             await authService.logout(refreshToken);
           } catch (err) {
-            console.error('Logout error:', err);
+            if (import.meta.env.DEV) console.error('Logout error:', err?.message || err);
           }
         }
 
@@ -114,7 +114,7 @@ const useAuthStore = create(
           const response = await userService.getMe();
           set({ user: response.data.data });
         } catch (err) {
-          console.error('Failed to fetch user info after OAuth:', err);
+          if (import.meta.env.DEV) console.error('Failed to fetch user info after OAuth:', err?.message || err);
         }
       },
 

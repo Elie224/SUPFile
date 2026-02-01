@@ -77,7 +77,9 @@ async function handleGoogleMobileCallback(req, res, next) {
         try {
           await FolderModel.create({ name: 'Root', ownerId: user.id, parentId: null });
         } catch (e) {
-          console.error('Failed to create root folder for OAuth user:', e.message || e);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Failed to create root folder for OAuth user:', e.message || e);
+          }
         }
       } else {
         // Mettre à jour le last_login
@@ -123,7 +125,9 @@ async function handleGoogleMobileCallback(req, res, next) {
       });
 
     } catch (googleError) {
-      console.error('Google token verification error:', googleError);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Google token verification error:', googleError);
+      }
       return res.status(401).json({
         error: { message: 'Token Google invalide ou expiré' }
       });
@@ -152,7 +156,9 @@ async function handleGitHubMobileCallback(req, res, next) {
       error: { message: 'GitHub mobile utilise le flux navigateur avec deep links. Utilisez GET /api/auth/github avec redirect_uri=supfile://oauth/github/callback' }
     });
   } catch (error) {
-    console.error('GitHub mobile OAuth callback error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('GitHub mobile OAuth callback error:', error);
+    }
     return res.status(500).json({
       error: { message: error.message || 'Erreur lors de l\'authentification GitHub' }
     });

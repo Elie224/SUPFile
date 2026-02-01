@@ -49,14 +49,12 @@ const FolderModel = {
         query.is_deleted = false;
       }
       
-      // Pagination côté base de données pour meilleures performances
-      const skip = options.skip || 0;
-      const limit = options.limit || 50;
-      const sortBy = options.sortBy || 'name';
+      const allowedSort = ['name', 'updated_at', 'created_at'];
+      const skip = Math.min(Math.max(parseInt(options.skip, 10) || 0, 0), 10000);
+      const limit = Math.min(Math.max(parseInt(options.limit, 10) || 50, 1), 100);
+      const sortBy = allowedSort.includes(options.sortBy) ? options.sortBy : 'name';
       const sortOrder = options.sortOrder === 'desc' ? -1 : 1;
-      
-      const sortObj = {};
-      sortObj[sortBy] = sortOrder;
+      const sortObj = { [sortBy]: sortOrder };
       
       const queryBuilder = Folder.find(query)
         .sort(sortObj)

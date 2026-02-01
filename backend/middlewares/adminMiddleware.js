@@ -31,7 +31,9 @@ async function adminMiddleware(req, res, next) {
     req.user.is_admin = true;
     next();
   } catch (err) {
-    console.error('Admin middleware error:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Admin middleware error:', err);
+    }
     return res.status(500).json({
       error: { message: 'Erreur lors de la vérification des droits administrateur' }
     });

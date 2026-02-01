@@ -61,11 +61,26 @@ const shareLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter strict pour forgot-password et resend-verification (anti email bombing)
+const emailSensitiveLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  max: 5, // 5 demandes max par IP par heure
+  message: {
+    error: {
+      message: 'Trop de demandes. Réessayez dans une heure.',
+      status: 429,
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
   uploadLimiter,
   shareLimiter,
+  emailSensitiveLimiter,
 };
 
 

@@ -30,17 +30,20 @@ const initiateOAuth = (provider) => {
     
     // Vérifier que la stratégie Passport existe
     if (!passport._strategies || !passport._strategies[provider]) {
-      console.error(`OAuth ${provider} strategy not found in Passport`);
-      console.error(`Available strategies:`, Object.keys(passport._strategies || {}));
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(`OAuth ${provider} strategy not found in Passport`);
+      }
       const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} strategy is not registered. Please check server configuration.`)}`);
     }
-    
-    console.log(`[OAuth ${provider}] Configuration OK, initiating authentication...`);
 
-    // Stocker l'URL de redirection après connexion si fournie
-    if (req.query.redirect) {
-      req.session.oauthRedirect = req.query.redirect;
+    // Stocker l'URL de redirection si elle est sûre (chemin relatif uniquement - anti Open Redirect)
+    const redirect = req.query.redirect;
+    if (redirect && typeof redirect === 'string') {
+      const r = redirect.trim();
+      if (r.startsWith('/') && !r.startsWith('//') && !r.includes(':')) {
+        req.session.oauthRedirect = r;
+      }
     }
 
     try {
@@ -58,7 +61,9 @@ const handleOAuthCallback = (provider) => {
   return async (req, res, next) => {
     passport.authenticate(provider, { session: false }, async (err, user, info) => {
       if (err) {
-        console.error(`OAuth ${provider} error:`, err);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`OAuth ${provider} error:`, err);
+        }
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         const errorMessage = err.message || 'Erreur lors de l\'authentification OAuth';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
@@ -98,14 +103,17 @@ const handleOAuthCallback = (provider) => {
             expiresIn: config.jwt.refreshExpiresIn
           });
         } catch (sessionErr) {
-          console.error('Failed to create session for OAuth user:', sessionErr.message || sessionErr);
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Failed to create session for OAuth user:', sessionErr.message || sessionErr);
+          }
           // Ne pas bloquer la connexion si la session échoue
         }
 
-        // Vérifier si c'est un callback mobile (deep link)
+        // Vérifier si c'est un callback mobile (deep link) - valider le schéma strict
         const requestedRedirectUri = req.query.redirect_uri || req.body?.redirect_uri;
+        const allowedMobileScheme = /^supfile:\/\/oauth\/(google|github)\/callback(\?.*)?$/i;
         
-        if (requestedRedirectUri && requestedRedirectUri.startsWith('supfile://')) {
+        if (requestedRedirectUri && typeof requestedRedirectUri === 'string' && allowedMobileScheme.test(requestedRedirectUri.trim())) {
           // C'est un callback mobile - rediriger vers le deep link avec les tokens
           const redirectUrl = `${requestedRedirectUri}?token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}`;
           console.log(`OAuth ${provider} success (mobile): User ${user.email} authenticated`);
@@ -118,10 +126,14 @@ const handleOAuthCallback = (provider) => {
         
         // Encoder les tokens pour les passer dans l'URL
         const tokens = encodeURIComponent(JSON.stringify({ access_token, refresh_token }));
-        console.log(`OAuth ${provider} success (web): User ${user.email} authenticated`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`OAuth ${provider} success (web)`);
+        }
         res.redirect(`${frontendUrl}/auth/callback?tokens=${tokens}&redirect=${encodeURIComponent(redirectUrl)}`);
       } catch (error) {
-        console.error(`OAuth ${provider} callback error:`, error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`OAuth ${provider} callback error:`, error);
+        }
         const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
         const errorMessage = error.message || 'Erreur lors du traitement de l\'authentification OAuth';
         res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);

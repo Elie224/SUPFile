@@ -66,24 +66,30 @@ const configurePassport = () => {
           try {
             await FolderModel.create({ name: 'Root', ownerId: saved._id.toString(), parentId: null });
           } catch (e) {
-            console.error('Failed to create root folder for OAuth user:', e.message || e);
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Failed to create root folder for OAuth user:', e.message || e);
+            }
           }
           
           const user = await UserModel.findById(saved._id.toString());
           return done(null, user);
         }
       } catch (error) {
-        console.error('Google OAuth error:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Google OAuth error:', error);
+        }
         return done(error, null);
       }
     }));
-  } else {
+  } else if (process.env.NODE_ENV !== 'production') {
     console.log('⚠️  Google OAuth not configured (missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET)');
   }
 
   // Stratégie GitHub
   if (config.oauth.github?.clientId && config.oauth.github?.clientSecret) {
-    console.log('✅ GitHub OAuth configured');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ GitHub OAuth configured');
+    }
     passport.use('github', new GitHubStrategy({
       clientID: config.oauth.github.clientId,
       clientSecret: config.oauth.github.clientSecret,
@@ -128,7 +134,9 @@ const configurePassport = () => {
               email = emailResponse;
             }
           } catch (emailError) {
-            console.warn('Failed to fetch GitHub email:', emailError.message);
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('Failed to fetch GitHub email:', emailError.message);
+            }
           }
         }
         
@@ -173,22 +181,28 @@ const configurePassport = () => {
           try {
             await FolderModel.create({ name: 'Root', ownerId: saved._id.toString(), parentId: null });
           } catch (e) {
-            console.error('Failed to create root folder for OAuth user:', e.message || e);
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Failed to create root folder for OAuth user:', e.message || e);
+            }
           }
           
           const user = await UserModel.findById(saved._id.toString());
           return done(null, user);
         }
       } catch (error) {
-        console.error('GitHub OAuth error:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('GitHub OAuth error:', error);
+        }
         return done(error, null);
       }
     }));
-  } else {
+  } else if (process.env.NODE_ENV !== 'production') {
     console.log('⚠️  GitHub OAuth not configured (missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET)');
   }
   
-  console.log('🔧 OAuth strategies configuration completed');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔧 OAuth strategies configuration completed');
+  }
 };
 
 module.exports = configurePassport;

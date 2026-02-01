@@ -53,7 +53,7 @@ export const offlineFileService = {
       return { ...response, fromCache: false };
     } catch (err) {
       // Erreur réseau : basculer sur le cache
-      console.warn('[OfflineFileService] Erreur réseau, utilisation du cache local');
+      if (import.meta.env.DEV) console.warn('[OfflineFileService] Erreur réseau, utilisation du cache local');
       const files = await offlineDB.getFilesByFolder(folderId);
       const folders = await offlineDB.getAllFolders();
       const filteredFolders = folders.filter(f => 
@@ -143,7 +143,7 @@ export const offlineFileService = {
         }
         return { ...response, mode: 'online' };
       } catch (err) {
-        console.error('[OfflineFileService] Erreur déplacement en ligne:', err);
+        if (import.meta.env.DEV) console.error('[OfflineFileService] Erreur déplacement en ligne:', err?.message || err);
       }
     }
 
@@ -221,7 +221,7 @@ export const offlineFolderService = {
         await folderService.delete(folderId);
         return { success: true, mode: 'online' };
       } catch (err) {
-        console.error('[OfflineFileService] Erreur suppression dossier en ligne:', err);
+        if (import.meta.env.DEV) console.error('[OfflineFileService] Erreur suppression dossier en ligne:', err?.message || err);
       }
     }
 
@@ -249,7 +249,7 @@ export const offlineFolderService = {
         }
         return { success: true, mode: 'online' };
       } catch (err) {
-        console.error('[OfflineFileService] Erreur renommage dossier en ligne:', err);
+        if (import.meta.env.DEV) console.error('[OfflineFileService] Erreur renommage dossier en ligne:', err?.message || err);
       }
     }
 

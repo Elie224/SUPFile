@@ -38,7 +38,6 @@ export default function Dashboard() {
     }
 
     try {
-      if (typeof window !== 'undefined') console.log('[Dashboard] GET /api/dashboard sending...');
       const response = await dashboardService.getStats();
       const data = response.data.data;
       if (typeof window !== 'undefined') console.log('[Dashboard] GET /api/dashboard OK', data?.total_files);
@@ -66,7 +65,6 @@ export default function Dashboard() {
   }, [t]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') console.log('[Dashboard] mounted');
     loadDashboard();
     // Filet de sécurité : après 15 s, sortir du chargement (requête bloquée, CORS, timeout, ou ancien build)
     const safetyTimer = setTimeout(() => {

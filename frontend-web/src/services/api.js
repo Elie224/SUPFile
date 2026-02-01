@@ -31,9 +31,8 @@ apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn('No access token found in localStorage for request:', config.url);
   }
+  // Ne pas logger l'URL ni l'absence de token en production (éviter fuite d'infos)
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -51,37 +50,14 @@ uploadClient.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Intercepteur pour les téléchargements - ajouter le token
+// Intercepteur pour les téléchargements - ajouter le token (aucun log sensible : pas d'URL, pas de token)
 downloadClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
-  
-  // Logs très visibles pour debug
-  console.log('========================================');
-  console.log('🔑 DOWNLOAD CLIENT INTERCEPTOR');
-  console.log('========================================');
-  console.log('URL:', config.url);
-  console.log('Method:', config.method);
-  console.log('Token exists:', !!token);
-  console.log('Token length:', token?.length || 0);
-  console.log('Token preview:', token ? `${token.substring(0, 20)}...` : 'NONE');
-  console.log('Headers before:', JSON.stringify(config.headers, null, 2));
-  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log('✅ Token added to headers');
-  } else {
-    console.error('❌ No access token found in localStorage for download request:', config.url);
-    console.error('localStorage keys:', Object.keys(localStorage));
   }
-  
-  console.log('Headers after:', JSON.stringify(config.headers, null, 2));
-  console.log('========================================');
-  
   return config;
-}, (error) => {
-  console.error('❌ Download client interceptor error:', error);
-  return Promise.reject(error);
-});
+}, (error) => Promise.reject(error));
 
 // Intercepteur pour gérer les erreurs (notamment 401) et mode hors ligne - pour apiClient
 apiClient.interceptors.response.use(
@@ -243,104 +219,30 @@ export const folderService = {
   restore: (folderId) => apiClient.post(`/folders/${folderId}/restore`),
   listTrash: () => apiClient.get('/folders/trash'),
   downloadAsZip: (folderId) => {
-    // Validation stricte de l'ID
     if (folderId === null || folderId === undefined || folderId === '') {
-      console.error('❌ downloadAsZip: folderId is null/undefined/empty');
-      console.error('folderId value:', folderId);
-      console.error('folderId type:', typeof folderId);
       return Promise.reject(new Error('Folder ID is required'));
     }
-    
-    // Vérifier que l'ID est une string valide
     const folderIdStr = String(folderId).trim();
-    
-    // Vérifier que la conversion a fonctionné
     if (folderIdStr === 'null' || folderIdStr === 'undefined' || folderIdStr === '') {
-      console.error('❌ downloadAsZip: folderId converted to invalid string:', { 
-        original: folderId,
-        converted: folderIdStr,
-        type: typeof folderId 
-      });
-      return Promise.reject(new Error(`Invalid folder ID: ${folderIdStr}`));
+      return Promise.reject(new Error('Invalid folder ID'));
     }
-    
-    // Vérifier la longueur (ObjectId MongoDB = 24 caractères hex)
-    if (folderIdStr.length !== 24) {
-      console.error('❌ downloadAsZip: Invalid folderId length:', { 
-        folderId, 
-        folderIdStr, 
-        length: folderIdStr.length,
-        expectedLength: 24,
-        type: typeof folderId 
-      });
-      return Promise.reject(new Error(`Invalid folder ID format: length ${folderIdStr.length} instead of 24`));
+    if (folderIdStr.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(folderIdStr)) {
+      return Promise.reject(new Error('Invalid folder ID format'));
     }
-    
-    // Vérifier que l'ID ne contient que des caractères hexadécimaux
-    if (!/^[0-9a-fA-F]{24}$/.test(folderIdStr)) {
-      console.error('❌ downloadAsZip: folderId contains invalid characters:', { 
-        folderId, 
-        folderIdStr,
-        regexTest: /^[0-9a-fA-F]{24}$/.test(folderIdStr)
-      });
-      return Promise.reject(new Error(`Invalid folder ID format: contains non-hexadecimal characters`));
-    }
-    
-    // Vérifier que baseURL est défini et valide
     if (!downloadClient.defaults.baseURL) {
-      console.error('❌ downloadAsZip: baseURL is not defined!');
       return Promise.reject(new Error('API baseURL is not configured'));
     }
-    
-    // Construire l'URL de manière sécurisée
     const url = `/folders/${encodeURIComponent(folderIdStr)}/download`;
     const fullUrl = `${downloadClient.defaults.baseURL}${url}`;
-    
-    // Vérifier que l'URL est valide
     try {
       new URL(fullUrl);
-    } catch (urlError) {
-      console.error('❌ downloadAsZip: Invalid URL constructed:', { 
-        fullUrl, 
-        baseURL: downloadClient.defaults.baseURL,
-        url,
-        error: urlError.message
-      });
-      return Promise.reject(new Error(`Invalid URL: ${fullUrl}`));
+    } catch {
+      return Promise.reject(new Error('Invalid URL'));
     }
-    
-    // Logs très visibles pour debug
-    console.log('========================================');
-    console.log('✅ CALLING downloadAsZip');
-    console.log('========================================');
-    console.log('folderId:', folderIdStr);
-    console.log('folderId length:', folderIdStr.length);
-    console.log('folderId charCodes:', Array.from(folderIdStr).map(c => c.charCodeAt(0)).join(','));
-    console.log('url:', url);
-    console.log('url length:', url.length);
-    console.log('fullUrl:', fullUrl);
-    console.log('fullUrl length:', fullUrl.length);
-    console.log('baseURL:', downloadClient.defaults.baseURL);
-    console.log('========================================');
-    
-    // Vérifier que l'URL est correcte avant l'appel
-    if (!url.includes(folderIdStr)) {
-      console.error('❌ CRITICAL: folderId not in URL!', { folderIdStr, url });
-      return Promise.reject(new Error('URL construction failed: folderId not in URL'));
-    }
-    
-    // Vérifier que l'URL fait la bonne longueur (base + /folders/ + 24 chars + /download)
     const expectedUrlLength = `/folders/`.length + 24 + `/download`.length;
-    if (url.length !== expectedUrlLength) {
-      console.error('❌ CRITICAL: URL length incorrect!', { 
-        url, 
-        urlLength: url.length, 
-        expectedLength: expectedUrlLength 
-      });
-      return Promise.reject(new Error(`URL length incorrect: ${url.length} instead of ${expectedUrlLength}`));
+    if (url.length !== expectedUrlLength || !url.includes(folderIdStr)) {
+      return Promise.reject(new Error('URL construction failed'));
     }
-    
-    console.log('✅ URL validation passed, making request...');
     return downloadClient.get(url, { responseType: 'blob' });
   },
   list: (parentId = null) =>

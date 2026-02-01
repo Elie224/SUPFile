@@ -65,8 +65,9 @@ async function sendPasswordResetEmail(to, resetUrl) {
   }
 
   if (!transporter) {
-    console.log('📧 [DEV MODE] Email de réinitialisation pour:', to);
-    console.log('📧 [DEV MODE] URL de réinitialisation:', resetUrl);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('📧 [DEV MODE] Email de réinitialisation (SMTP non configuré)');
+    }
     return true;
   }
 
@@ -113,10 +114,14 @@ async function sendPasswordResetEmail(to, resetUrl) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('📧 Email de réinitialisation envoyé à:', to);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('📧 Email de réinitialisation envoyé');
+    }
     return true;
   } catch (error) {
-    console.error('❌ Erreur envoi email:', error.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('❌ Erreur envoi email:', error.message);
+    }
     return false;
   }
 }
@@ -184,10 +189,14 @@ async function sendVerificationEmail(to, verifyUrl, firstName = '') {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('📧 Email de vérification envoyé à:', to);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('📧 Email de vérification envoyé');
+    }
     return true;
   } catch (error) {
-    console.error('❌ Erreur envoi email vérification:', error.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('❌ Erreur envoi email vérification:', error.message);
+    }
     return false;
   }
 }

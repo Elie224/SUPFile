@@ -9,14 +9,15 @@ const logger = require('../utils/logger');
 /**
  * Health check simple
  * GET /api/health
+ * En production : pas d'exposition de l'environnement
  */
 router.get('/', async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
     const health = {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development',
+      ...(isProduction ? {} : { uptime: process.uptime(), environment: process.env.NODE_ENV || 'development' }),
     };
 
     res.status(200).json(health);
@@ -32,29 +33,27 @@ router.get('/', async (req, res) => {
 /**
  * Health check détaillé avec vérification MongoDB
  * GET /api/health/detailed
+ * En production : uniquement status, timestamp et database.status (pas de memory, readyState, environment)
  */
 router.get('/detailed', async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const dbConnected = mongoose.connection.readyState === 1;
     const health = {
-      status: 'ok',
+      status: dbConnected ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development',
-      memory: {
+      database: { status: dbConnected ? 'connected' : 'disconnected' },
+    };
+
+    if (!isProduction) {
+      health.uptime = process.uptime();
+      health.environment = process.env.NODE_ENV || 'development';
+      health.memory = {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
         limit: Math.round(process.memoryUsage().rss / 1024 / 1024),
-      },
-      database: {
-        status: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        readyState: mongoose.connection.readyState,
-      },
-    };
-
-    // Si MongoDB n'est pas connecté, retourner un statut dégradé
-    if (mongoose.connection.readyState !== 1) {
-      health.status = 'degraded';
-      health.database.status = 'disconnected';
+      };
+      health.database.readyState = mongoose.connection.readyState;
     }
 
     const statusCode = health.status === 'ok' ? 200 : 503;
