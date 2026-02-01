@@ -28,6 +28,9 @@ app.use((req, res, next) => {
 });
 
 function loadRestOfApp() {
+  const { ensureProductionSecrets } = require('./utils/securityCheck');
+  ensureProductionSecrets();
+
   const helmet = require('helmet');
   const path = require('path');
   const fs = require('fs').promises;
@@ -460,9 +463,6 @@ let server;
 if (process.env.NODE_ENV === 'test') {
   loadRestOfApp();
 } else {
-  startServer().catch((err) => {
-    logger.logWarn('MongoDB check failed or pending', { error: err.message });
-  });
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log('✓ Listening on 0.0.0.0:' + PORT);
     setImmediate(() => loadRestOfApp());
