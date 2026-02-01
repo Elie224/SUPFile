@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const FileModel = require('../models/fileModel');
 const { sanitizePaginationSort } = require('../middlewares/security');
@@ -62,6 +63,13 @@ const upload = multer({
   },
 }).single('file');
 
+// Configuration multer pour l'upload de chunks (mémoire, taille limitée)
+const CHUNK_SIZE_BYTES = parseInt(process.env.CHUNK_SIZE_BYTES || (5 * 1024 * 1024), 10); // 5 MB par défaut
+const chunkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: CHUNK_SIZE_BYTES + (512 * 1024) }, // marge de sécurité
+}).single('chunk');
+
 // Middleware pour gérer l'upload
 const uploadMiddleware = (req, res, next) => {
   // Vérifier que l'utilisateur est authentifié
@@ -104,6 +112,32 @@ const uploadMiddleware = (req, res, next) => {
       mimetype: req.file.mimetype,
     });
     
+    next();
+  });
+};
+
+// Middleware pour gérer l'upload d'un chunk
+const chunkUploadMiddleware = (req, res, next) => {
+  if (!req.user || !req.user.id) {
+    logger.logWarn('Chunk upload middleware: User not authenticated', { user: req.user });
+    return errorResponse(res, 'Authentication required', 401);
+  }
+
+  chunkUpload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      logger.logError(err, { context: 'chunk upload multer error', code: err.code });
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return next(new AppError('Chunk too large', 413, 'CHUNK_TOO_LARGE'));
+      }
+      return next(new AppError(err.message, 400, 'CHUNK_UPLOAD_ERROR'));
+    }
+    if (err) {
+      logger.logError(err, { context: 'chunk upload middleware' });
+      return next(err);
+    }
+    if (!req.file) {
+      return errorResponse(res, 'No chunk provided', 400);
+    }
     next();
   });
 };
@@ -206,6 +240,265 @@ async function listFiles(req, res, next) {
         },
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Initialiser un upload chunké (resumable)
+async function initChunkedUpload(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { name, size, mime_type, folder_id } = req.body || {};
+
+    if (!name || !size) {
+      return res.status(400).json({ error: { message: 'Missing file metadata' } });
+    }
+
+    const fileSize = parseInt(size, 10);
+    if (!fileSize || fileSize <= 0) {
+      return res.status(400).json({ error: { message: 'Invalid file size' } });
+    }
+
+    if (fileSize > config.upload.maxFileSize) {
+      return res.status(413).json({ error: { message: 'File too large' } });
+    }
+
+    // Vérifier le quota utilisateur
+    const user = await UserModel.findById(userId);
+    const currentUsed = await calculateRealQuotaUsed(userId);
+    const quotaLimit = user.quota_limit || 32212254720;
+    if (currentUsed + fileSize > quotaLimit) {
+      return res.status(507).json({ error: { message: 'Insufficient storage quota' } });
+    }
+
+    // Vérifier le dossier parent
+    let folderId = folder_id || null;
+    if (folderId) {
+      const folder = await FolderModel.findById(folderId);
+      if (!folder) {
+        return res.status(404).json({ error: { message: 'Folder not found' } });
+      }
+      if (!compareObjectIds(folder.owner_id, userId)) {
+        return errorResponse(res, 'Access denied', 403);
+      }
+    } else {
+      let rootFolder = await FolderModel.findRootFolder(userId);
+      if (!rootFolder) {
+        rootFolder = await FolderModel.create({ name: 'Root', ownerId: userId, parentId: null });
+      }
+      folderId = rootFolder.id;
+    }
+
+    const uploadId = uuidv4();
+    const baseDir = path.resolve(config.upload.uploadDir);
+    const tmpDir = path.join(baseDir, 'tmp', `user_${userId}`, `upload_${uploadId}`);
+    await fs.mkdir(tmpDir, { recursive: true });
+
+    const metadata = {
+      upload_id: uploadId,
+      name,
+      size: fileSize,
+      mime_type: mime_type || 'application/octet-stream',
+      folder_id: folderId,
+      owner_id: userId,
+      created_at: new Date().toISOString(),
+      total_chunks: null,
+    };
+
+    await fs.writeFile(path.join(tmpDir, 'metadata.json'), JSON.stringify(metadata, null, 2));
+
+    res.status(201).json({
+      data: {
+        upload_id: uploadId,
+        chunk_size: CHUNK_SIZE_BYTES,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Statut d'un upload chunké (liste des chunks reçus)
+async function getChunkedUploadStatus(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { upload_id } = req.query || {};
+    if (!upload_id) {
+      return res.status(400).json({ error: { message: 'upload_id required' } });
+    }
+
+    const baseDir = path.resolve(config.upload.uploadDir);
+    const tmpDir = path.join(baseDir, 'tmp', `user_${userId}`, `upload_${upload_id}`);
+    const metadataPath = path.join(tmpDir, 'metadata.json');
+
+    try {
+      await fs.access(metadataPath);
+    } catch {
+      return res.status(404).json({ error: { message: 'Upload not found' } });
+    }
+
+    const files = await fs.readdir(tmpDir);
+    const uploadedChunks = files
+      .filter(name => name.startsWith('chunk_'))
+      .map(name => parseInt(name.replace('chunk_', ''), 10))
+      .filter(num => !Number.isNaN(num))
+      .sort((a, b) => a - b);
+
+    res.status(200).json({ data: { upload_id, uploaded_chunks: uploadedChunks } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Upload d'un chunk
+async function uploadChunk(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { upload_id, chunk_index, total_chunks } = req.body || {};
+
+    if (!upload_id || chunk_index === undefined || total_chunks === undefined) {
+      return res.status(400).json({ error: { message: 'Missing chunk metadata' } });
+    }
+
+    const index = parseInt(chunk_index, 10);
+    const total = parseInt(total_chunks, 10);
+    if (Number.isNaN(index) || Number.isNaN(total) || index < 0 || total <= 0) {
+      return res.status(400).json({ error: { message: 'Invalid chunk index/total' } });
+    }
+
+    const baseDir = path.resolve(config.upload.uploadDir);
+    const tmpDir = path.join(baseDir, 'tmp', `user_${userId}`, `upload_${upload_id}`);
+    const metadataPath = path.join(tmpDir, 'metadata.json');
+
+    let metadata;
+    try {
+      const metadataRaw = await fs.readFile(metadataPath, 'utf8');
+      metadata = JSON.parse(metadataRaw);
+    } catch {
+      return res.status(404).json({ error: { message: 'Upload not found' } });
+    }
+
+    if (String(metadata.owner_id) !== String(userId)) {
+      return res.status(403).json({ error: { message: 'Access denied' } });
+    }
+
+    if (!metadata.total_chunks) {
+      metadata.total_chunks = total;
+      await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+    }
+
+    const chunkPath = path.join(tmpDir, `chunk_${index}`);
+    await fs.writeFile(chunkPath, req.file.buffer);
+
+    res.status(200).json({ data: { upload_id, chunk_index: index } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Finaliser un upload chunké (assembler + créer l'entrée BDD)
+async function completeChunkedUpload(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { upload_id, total_chunks } = req.body || {};
+
+    if (!upload_id || total_chunks === undefined) {
+      return res.status(400).json({ error: { message: 'Missing upload_id or total_chunks' } });
+    }
+
+    const total = parseInt(total_chunks, 10);
+    if (Number.isNaN(total) || total <= 0) {
+      return res.status(400).json({ error: { message: 'Invalid total_chunks' } });
+    }
+
+    const baseDir = path.resolve(config.upload.uploadDir);
+    const tmpDir = path.join(baseDir, 'tmp', `user_${userId}`, `upload_${upload_id}`);
+    const metadataPath = path.join(tmpDir, 'metadata.json');
+
+    let metadata;
+    try {
+      const metadataRaw = await fs.readFile(metadataPath, 'utf8');
+      metadata = JSON.parse(metadataRaw);
+    } catch {
+      return res.status(404).json({ error: { message: 'Upload not found' } });
+    }
+
+    if (String(metadata.owner_id) !== String(userId)) {
+      return res.status(403).json({ error: { message: 'Access denied' } });
+    }
+
+    const missing = [];
+    for (let i = 0; i < total; i += 1) {
+      const chunkPath = path.join(tmpDir, `chunk_${i}`);
+      try {
+        await fs.access(chunkPath);
+      } catch {
+        missing.push(i);
+      }
+    }
+
+    if (missing.length > 0) {
+      return res.status(400).json({ error: { message: 'Missing chunks', missing } });
+    }
+
+    // Vérifier quota une dernière fois
+    const user = await UserModel.findById(userId);
+    const currentUsed = await calculateRealQuotaUsed(userId);
+    const quotaLimit = user.quota_limit || 32212254720;
+    if (currentUsed + metadata.size > quotaLimit) {
+      return res.status(507).json({ error: { message: 'Insufficient storage quota' } });
+    }
+
+    const userUploadDir = path.join(baseDir, `user_${userId}`);
+    await fs.mkdir(userUploadDir, { recursive: true });
+
+    const ext = path.extname(metadata.name || '') || '';
+    const finalName = `${uuidv4()}${ext}`;
+    const finalPath = path.join(userUploadDir, finalName);
+
+    const writeStream = fsSync.createWriteStream(finalPath, { flags: 'w' });
+    for (let i = 0; i < total; i += 1) {
+      const chunkPath = path.join(tmpDir, `chunk_${i}`);
+      await new Promise((resolve, reject) => {
+        const readStream = fsSync.createReadStream(chunkPath);
+        readStream.on('error', reject);
+        writeStream.on('error', reject);
+        readStream.on('end', resolve);
+        readStream.pipe(writeStream, { end: false });
+      });
+    }
+    writeStream.end();
+
+    // Attendre la fin d'écriture
+    await new Promise((resolve) => writeStream.on('finish', resolve));
+
+    // Vérifier que le fichier existe physiquement
+    try {
+      await fs.access(finalPath);
+    } catch (accessErr) {
+      logger.logError(accessErr, { context: 'completeChunkedUpload - file not accessible', finalPath });
+      return res.status(500).json({ error: { message: 'Failed to assemble file' } });
+    }
+
+    const file = await FileModel.create({
+      name: metadata.name,
+      mimeType: metadata.mime_type,
+      size: metadata.size,
+      folderId: metadata.folder_id,
+      ownerId: userId,
+      filePath: finalPath,
+    });
+
+    await updateQuotaAfterOperation(userId, metadata.size);
+
+    const { invalidateUserCache } = require('../utils/cache');
+    invalidateUserCache(userId);
+
+    // Nettoyer les chunks
+    await fs.rm(tmpDir, { recursive: true, force: true });
+
+    res.status(201).json({ data: file, message: 'File uploaded successfully' });
   } catch (err) {
     next(err);
   }
@@ -701,7 +994,12 @@ async function listTrash(req, res, next) {
 
 module.exports = {
   uploadMiddleware,
+  chunkUploadMiddleware,
   listFiles,
+  initChunkedUpload,
+  getChunkedUploadStatus,
+  uploadChunk,
+  completeChunkedUpload,
   getFile,
   uploadFile,
   downloadFile,

@@ -77,7 +77,7 @@ export const offlineFileService = {
    * Upload d'un fichier
    */
   async upload(file, folderId = null, onProgress = null) {
-    return await syncService.uploadFile(file, folderId);
+    return await syncService.uploadFile(file, folderId, onProgress);
   },
 
   /**

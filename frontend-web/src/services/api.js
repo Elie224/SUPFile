@@ -139,6 +139,41 @@ export const fileService = {
     // Utiliser uploadClient qui n'a pas de Content-Type par défaut
     return uploadClient.post('/files/upload', formData, config);
   },
+  initChunkedUpload: ({ name, size, mimeType, folderId }) => {
+    return apiClient.post('/files/upload/init', {
+      name,
+      size,
+      mime_type: mimeType,
+      folder_id: folderId,
+    });
+  },
+  uploadChunk: ({ uploadId, chunkIndex, totalChunks, chunk }, onProgress = null) => {
+    const formData = new FormData();
+    formData.append('upload_id', uploadId);
+    formData.append('chunk_index', String(chunkIndex));
+    formData.append('total_chunks', String(totalChunks));
+    formData.append('chunk', chunk);
+
+    const config = {};
+    if (onProgress) {
+      config.onUploadProgress = (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total,
+        );
+        onProgress(percentCompleted);
+      };
+    }
+
+    return uploadClient.post('/files/upload/chunk', formData, config);
+  },
+  completeChunkedUpload: ({ uploadId, totalChunks }) => {
+    return apiClient.post('/files/upload/complete', {
+      upload_id: uploadId,
+      total_chunks: totalChunks,
+    });
+  },
+  getChunkedUploadStatus: (uploadId) =>
+    apiClient.get('/files/upload/status', { params: { upload_id: uploadId } }),
   download: (fileId) => apiClient.get(`/files/${fileId}/download`),
   delete: (fileId) => apiClient.delete(`/files/${fileId}`),
   restore: (fileId) => apiClient.post(`/files/${fileId}/restore`),

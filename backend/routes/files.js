@@ -19,6 +19,18 @@ router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
 // Lister les fichiers
 router.get('/', filesController.listFiles);
 
+// Initialiser un upload chunké
+router.post('/upload/init', uploadLimiter, filesController.initChunkedUpload);
+
+// Statut d'un upload chunké
+router.get('/upload/status', filesController.getChunkedUploadStatus);
+
+// Upload d'un chunk
+router.post('/upload/chunk', uploadLimiter, filesController.chunkUploadMiddleware, filesController.uploadChunk);
+
+// Finaliser un upload chunké
+router.post('/upload/complete', uploadLimiter, filesController.completeChunkedUpload);
+
 // Uploader un fichier (avec rate limiting et validation)
 router.post('/upload', uploadLimiter, filesController.uploadMiddleware, validateFilePath, validateFileUpload, filesController.uploadFile);
 

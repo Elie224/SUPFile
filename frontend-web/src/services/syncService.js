@@ -8,6 +8,8 @@ import { fileService, folderService } from './api';
 import { API_URL } from '../config';
 
 const SYNC_COOLDOWN_MS = 8000; // Éviter les rafales de GET /api/folders
+const CHUNK_UPLOAD_THRESHOLD = 20 * 1024 * 1024; // 20 MB
+const CHUNK_MAX_RETRIES = 3;
 
 class SyncService {
   constructor() {
@@ -162,7 +164,7 @@ class SyncService {
   async executePendingOperation(op) {
     switch (op.type) {
       case 'upload':
-        return await fileService.upload(op.data.file, op.data.folderId);
+        return await this.uploadFile(op.data.file, op.data.folderId, null, { allowOfflineFallback: false });
       
       case 'delete-file':
         return await fileService.delete(op.data.fileId);
@@ -231,23 +233,120 @@ class SyncService {
   /**
    * Upload d'un fichier (en ligne ou hors ligne)
    */
-  async uploadFile(file, folderId = null) {
+  async uploadFile(file, folderId = null, onProgress = null, options = {}) {
+    const { allowOfflineFallback = true } = options;
     if (this.isOnline()) {
       try {
-        // En ligne : upload direct
-        const response = await fileService.upload(file, folderId);
+        // En ligne : upload direct ou chunké selon la taille
+        if (file.size >= CHUNK_UPLOAD_THRESHOLD) {
+          const initResponse = await fileService.initChunkedUpload({
+            name: file.name,
+            size: file.size,
+            mimeType: file.type,
+            folderId,
+          });
+
+          const uploadId = initResponse.data?.data?.upload_id;
+          const chunkSize = initResponse.data?.data?.chunk_size;
+
+          if (!uploadId || !chunkSize) {
+            throw new Error('Initialisation upload chunké échouée');
+          }
+
+          const totalChunks = Math.ceil(file.size / chunkSize);
+          let uploadedChunks = [];
+
+          try {
+            const status = await fileService.getChunkedUploadStatus(uploadId);
+            uploadedChunks = status.data?.data?.uploaded_chunks || [];
+          } catch (err) {
+            // Ignorer si pas de statut
+          }
+
+          const uploadedSet = new Set(uploadedChunks);
+          let uploadedBytes = uploadedChunks.length * chunkSize;
+          if (onProgress) {
+            onProgress(Math.min(99, Math.round((uploadedBytes * 100) / file.size)));
+          }
+
+          for (let i = 0; i < totalChunks; i += 1) {
+            if (uploadedSet.has(i)) {
+              continue;
+            }
+            const start = i * chunkSize;
+            const end = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+
+            let attempt = 0;
+            let success = false;
+            while (attempt < CHUNK_MAX_RETRIES && !success) {
+              try {
+                await fileService.uploadChunk(
+                  {
+                    uploadId,
+                    chunkIndex: i,
+                    totalChunks,
+                    chunk,
+                  },
+                  (chunkPercent) => {
+                    if (onProgress) {
+                      const currentBytes = uploadedBytes + (chunkPercent / 100) * chunk.size;
+                      onProgress(Math.min(99, Math.round((currentBytes * 100) / file.size)));
+                    }
+                  },
+                );
+                success = true;
+              } catch (err) {
+                attempt += 1;
+                if (attempt >= CHUNK_MAX_RETRIES) {
+                  throw err;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+              }
+            }
+
+            uploadedBytes += chunk.size;
+            if (onProgress) {
+              onProgress(Math.min(99, Math.round((uploadedBytes * 100) / file.size)));
+            }
+          }
+
+          const completeResponse = await fileService.completeChunkedUpload({
+            uploadId,
+            totalChunks,
+          });
+          const uploadedFile = completeResponse.data.data;
+
+          await offlineDB.saveFile(uploadedFile);
+          const blob = new Blob([file], { type: file.type });
+          await offlineDB.saveFileContent(uploadedFile.id, blob);
+
+          if (onProgress) {
+            onProgress(100);
+          }
+
+          return { success: true, file: uploadedFile, mode: 'online' };
+        }
+
+        const response = await fileService.upload(file, folderId, onProgress);
         const uploadedFile = response.data.data;
-        
-        // Sauvegarder localement
+
         await offlineDB.saveFile(uploadedFile);
         const blob = new Blob([file], { type: file.type });
         await offlineDB.saveFileContent(uploadedFile.id, blob);
-        
+
         return { success: true, file: uploadedFile, mode: 'online' };
       } catch (err) {
         if (import.meta.env.DEV) console.error('[Sync] Erreur upload en ligne:', err?.message || err);
+        if (!allowOfflineFallback) {
+          throw err;
+        }
         // Si erreur, basculer en mode hors ligne
       }
+    }
+
+    if (!allowOfflineFallback) {
+      throw new Error('Offline fallback disabled for upload');
     }
 
     // Hors ligne : sauvegarder localement et ajouter à la queue
