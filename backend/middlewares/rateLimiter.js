@@ -17,7 +17,7 @@ const generalLimiter = rateLimit({
 
 // Rate limiter pour l'authentification (configurable via env)
 const AUTH_WINDOW_MS = parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000; // 15 min par défaut
-const AUTH_MAX = parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 10; // 10 tentatives par défaut (au lieu de 5)
+const AUTH_MAX = parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) || 30; // 30 tentatives / 15 min par défaut (seules les échecs comptent)
 
 const authLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
