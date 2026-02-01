@@ -375,6 +375,31 @@ async function downloadFile(req, res, next) {
   }
 }
 
+// Récupérer les métadonnées d'un fichier par ID
+async function getFile(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const file = await FileModel.findById(id);
+    if (!file) {
+      return res.status(404).json({ error: { message: 'File not found' } });
+    }
+
+    // Comparer les ObjectId correctement
+    const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
+    const userOwnerId = userId?.toString ? userId.toString() : userId;
+    
+    if (fileOwnerId !== userOwnerId) {
+      return res.status(403).json({ error: { message: 'Access denied' } });
+    }
+
+    res.status(200).json({ data: file });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Prévisualiser un fichier
 async function previewFile(req, res, next) {
   try {
@@ -635,6 +660,7 @@ async function listTrash(req, res, next) {
 module.exports = {
   uploadMiddleware,
   listFiles,
+  getFile,
   uploadFile,
   downloadFile,
   previewFile,

@@ -22,6 +22,9 @@ router.post('/upload', uploadLimiter, filesController.uploadMiddleware, validate
 // Lister les fichiers supprimés (corbeille) - DOIT être avant les autres routes /:id
 router.get('/trash', filesController.listTrash);
 
+// Récupérer les métadonnées d'un fichier par ID
+router.get('/:id', filesController.getFile);
+
 // Prévisualiser un fichier
 router.get('/:id/preview', filesController.previewFile);
 

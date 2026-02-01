@@ -42,8 +42,8 @@ export default function Preview() {
       const fileInfo = allItems.find(f => f.id === id || f._id === id);
       
       if (!fileInfo) {
-        // Essayer de récupérer directement via l'ID
-        const directResponse = await fetch(`${apiUrl}/api/files/${id}/preview`, {
+        // Essayer de récupérer les métadonnées directement via GET /api/files/:id
+        const directResponse = await fetch(`${apiUrl}/api/files/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -53,22 +53,32 @@ export default function Preview() {
           throw new Error('Fichier non trouvé');
         }
         
-        const contentType = directResponse.headers.get('content-type') || '';
+        const fileData = await directResponse.json();
+        const fileMeta = fileData.data;
+        const mimeType = fileMeta.mime_type || '';
         const previewUrl = `${apiUrl}/api/files/${id}/preview`;
         const streamUrl = `${apiUrl}/api/files/${id}/stream`;
         
-        setFile({ previewUrl, streamUrl, contentType, name: 'Fichier', size: null });
+        setFile({ 
+          previewUrl, 
+          streamUrl, 
+          contentType: mimeType, 
+          name: fileMeta.name || 'Fichier', 
+          size: fileMeta.size,
+          folder_id: fileMeta.folder_id,
+          updated_at: fileMeta.updated_at,
+        });
         
         // Déterminer le type de prévisualisation
-        if (contentType.startsWith('image/')) {
+        if (mimeType.startsWith('image/')) {
           setPreviewType('image');
-        } else if (contentType === 'application/pdf') {
+        } else if (mimeType === 'application/pdf') {
           setPreviewType('pdf');
-        } else if (contentType.startsWith('text/') || contentType.includes('markdown')) {
+        } else if (mimeType.startsWith('text/') || mimeType.includes('markdown')) {
           setPreviewType('text');
-        } else if (contentType.startsWith('video/')) {
+        } else if (mimeType.startsWith('video/')) {
           setPreviewType('video');
-        } else if (contentType.startsWith('audio/')) {
+        } else if (mimeType.startsWith('audio/')) {
           setPreviewType('audio');
         } else {
           setPreviewType('download');
