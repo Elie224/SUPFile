@@ -103,18 +103,18 @@ export default function Signup() {
 
           {/* Message de succès : informer qu'il faut valider l'email avant de se connecter */}
           {successMessage && (
-            <div className="mb-3 p-3 rounded" style={{ background: 'var(--bs-success-bg-subtle, rgba(25, 135, 84, 0.15))', border: '1px solid var(--bs-success-border-subtle, rgba(25, 135, 84, 0.3))' }}>
-              <div className="d-flex align-items-center gap-2 mb-2" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--bs-success)' }}>
+            <div className="mb-3 p-3 rounded signup-success-box">
+              <div className="d-flex align-items-center gap-2 mb-2" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--success-color)' }}>
                 <i className="bi bi-envelope-check-fill" />
                 <span>Compte créé</span>
               </div>
               <p className="mb-1 small" style={{ color: 'var(--text-color)', lineHeight: 1.5 }}>
                 Vous devez <strong>valider votre adresse email</strong> avant de pouvoir vous connecter.
               </p>
-              <p className="mb-0 small text-muted" style={{ fontSize: '12px', lineHeight: 1.5 }}>
-                Un email vous a été envoyé avec un lien — cliquez dessus pour activer votre compte, puis connectez-vous.
+              <p className="mb-2 small" style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: 1.5 }}>
+                Un email vous a été envoyé avec un lien — cliquez dessus pour activer votre compte, puis connectez-vous. Le lien expire dans 15 minutes.
               </p>
-              <Link to="/login" className="btn btn-sm btn-outline-primary mt-2">
+              <Link to="/login" className="btn btn-sm btn-outline-primary mt-2" style={{ borderColor: 'var(--primary-color)', color: 'var(--primary-color)' }}>
                 {t('goToLogin') || 'Aller à la connexion'}
               </Link>
             </div>

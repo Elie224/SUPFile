@@ -161,7 +161,7 @@ async function sendVerificationEmail(to, verifyUrl, firstName = '') {
       <div style="text-align:center;margin:0 0 24px 0;">
         <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#8B5CF6);color:#fff!important;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;">Vérifier mon email</a>
       </div>
-      <p style="color:#94a3b8;font-size:13px;text-align:center;margin:0;">Ce lien expire dans 24 heures.</p>
+      <p style="color:#94a3b8;font-size:13px;text-align:center;margin:0;">Ce lien expire dans 15 minutes.</p>
       <p style="color:#94a3b8;font-size:12px;text-align:center;margin:16px 0 0 0;">Si vous n'avez pas créé de compte SUPFile, ignorez cet email.</p>
     </div>
     <div style="text-align:center;margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0;">
