@@ -264,8 +264,10 @@ export default function Layout({ children }) {
                     marginRight: '8px'
                   }}
                   onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'inline-block';
+                    const el = e.target;
+                    if (el?.style) el.style.display = 'none';
+                    const next = el?.nextSibling;
+                    if (next?.style) next.style.display = 'inline-block';
                   }}
                 />
               ) : null}
@@ -327,8 +329,10 @@ export default function Layout({ children }) {
                     flexShrink: 0
                   }}
                   onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'inline-block';
+                    const el = e.target;
+                    if (el?.style) el.style.display = 'none';
+                    const next = el?.nextSibling;
+                    if (next?.style) next.style.display = 'inline-block';
                   }}
                 />
               ) : null}
@@ -386,8 +390,10 @@ export default function Layout({ children }) {
                             objectFit: 'cover'
                           }}
                           onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
+                            const el = e.target;
+                            if (el?.style) el.style.display = 'none';
+                            const next = el?.nextSibling;
+                            if (next?.style) next.style.display = 'flex';
                           }}
                         />
                       ) : null}
@@ -524,8 +530,10 @@ style={{
                   objectFit: 'cover'
                 }}
                 onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  const el = e.target;
+                  if (el?.style) el.style.display = 'none';
+                  const next = el?.nextSibling;
+                  if (next?.style) next.style.display = 'flex';
                 }}
               />
             ) : null}

@@ -4,7 +4,7 @@ const ShareModel = require('../models/shareModel');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs').promises;
-const { calculateRealQuotaUsed, syncQuotaUsed } = require('../utils/quota');
+const { calculateRealQuotaUsed, syncQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
 
 // Lister les dossiers (GET /api/folders?parent_id=xxx)
 async function listFolders(req, res, next) {
@@ -141,37 +141,62 @@ async function updateFolder(req, res, next) {
   }
 }
 
-// Supprimer un dossier
+// Supprimer définitivement un dossier et son contenu (fichiers + sous-dossiers)
+async function permanentDeleteFolder(userId, folderId) {
+  const filesInFolder = await FileModel.findByFolder(folderId, true);
+  for (const f of filesInFolder) {
+    if (f.file_path) {
+      try {
+        await fs.unlink(path.resolve(f.file_path));
+      } catch (e) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Could not remove file from disk:', f.file_path, e?.message);
+        }
+      }
+    }
+    await FileModel.delete(f.id);
+    await updateQuotaAfterOperation(userId, -(f.size || 0));
+  }
+
+  const subfolders = await FolderModel.findByOwner(userId, folderId, true);
+  for (const sub of subfolders) {
+    await permanentDeleteFolder(userId, sub.id);
+  }
+  await FolderModel.delete(folderId);
+}
+
+// Supprimer un dossier : soft delete (corbeille) ou hard delete si déjà en corbeille
 async function deleteFolder(req, res, next) {
   try {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const folder = await FolderModel.findById(id);
+    const folder = await FolderModel.findByIdIncludeDeleted(id);
     if (!folder) {
       return res.status(404).json({ error: { message: 'Folder not found' } });
     }
 
-    // Comparer les ObjectId correctement
     const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
     const userOwnerId = userId?.toString ? userId.toString() : userId;
-    
     if (folderOwnerId !== userOwnerId) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    await FolderModel.softDelete(id);
-    
-    // Synchroniser le quota après suppression du dossier
-    // (les fichiers du dossier sont maintenant marqués comme supprimés)
-    await syncQuotaUsed(userId);
-    
-    // Invalider le cache du dashboard
+    if (folder.is_deleted) {
+      await permanentDeleteFolder(userId, id);
+      await syncQuotaUsed(userId);
+    } else {
+      await FolderModel.softDelete(id);
+      await syncQuotaUsed(userId);
+    }
+
     const { invalidateUserCache } = require('../utils/cache');
     invalidateUserCache(userId);
-    
     res.status(200).json({ message: 'Folder deleted' });
   } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error deleting folder:', err);
+    }
     next(err);
   }
 }

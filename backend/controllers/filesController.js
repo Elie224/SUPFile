@@ -512,40 +512,50 @@ async function updateFile(req, res, next) {
   }
 }
 
-// Supprimer un fichier (soft delete)
+// Supprimer un fichier : soft delete (corbeille) ou hard delete si déjà en corbeille
 async function deleteFile(req, res, next) {
   try {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const file = await FileModel.findById(id);
+    const file = await FileModel.findByIdIncludeDeleted(id);
     if (!file) {
       return res.status(404).json({ error: { message: 'File not found' } });
     }
 
-    // Comparer les ObjectId correctement
     const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
     const userOwnerId = userId?.toString ? userId.toString() : userId;
-    
     if (fileOwnerId !== userOwnerId) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    // Récupérer la taille du fichier avant suppression
     const fileSize = file.size || 0;
-    
-    await FileModel.softDelete(id);
-    
-    // Mettre à jour le quota utilisé (soustraire la taille du fichier)
-    await updateQuotaAfterOperation(userId, -fileSize);
-    
-    // Invalider le cache du dashboard pour cet utilisateur
+
+    if (file.is_deleted) {
+      // Déjà en corbeille : suppression définitive (fichier physique + document)
+      if (file.file_path) {
+        try {
+          await fs.unlink(path.resolve(file.file_path));
+        } catch (unlinkErr) {
+          if (process.env.NODE_ENV !== 'production') {
+            logger.logWarn('Could not remove file from disk', { path: file.file_path, err: unlinkErr?.message });
+          }
+        }
+      }
+      await FileModel.delete(id);
+      await updateQuotaAfterOperation(userId, -fileSize);
+    } else {
+      await FileModel.softDelete(id);
+      await updateQuotaAfterOperation(userId, -fileSize);
+    }
+
     const { invalidateUserCache } = require('../utils/cache');
     invalidateUserCache(userId);
-    
     res.status(200).json({ message: 'File deleted' });
   } catch (err) {
-    console.error('Error deleting file:', err);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error deleting file:', err);
+    }
     next(err);
   }
 }

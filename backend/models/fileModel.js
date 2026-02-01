@@ -44,6 +44,17 @@ const FileModel = {
     return file ? this.toDTO(file) : null;
   },
 
+  /** Trouve un fichier par id sans filtrer is_deleted (pour suppression définitive depuis la corbeille). */
+  async findByIdIncludeDeleted(id) {
+    try {
+      const oid = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      const file = await File.findOne({ _id: oid }).lean();
+      return file ? this.toDTO(file) : null;
+    } catch {
+      return null;
+    }
+  },
+
   async findByFolder(folderId, includeDeleted = false) {
     const query = { folder_id: folderId };
     if (!includeDeleted) {

@@ -125,57 +125,73 @@ export default function Trash() {
   const deletePermanently = async (itemsToDelete) => {
     const list = Array.isArray(itemsToDelete) ? itemsToDelete : allItems.filter((item) => selectedIds.has(getItemKey(item)));
     if (list.length === 0) return;
-    const label = t('confirmDeletePermanent') || 'Supprimer définitivement';
+    const label = t('confirmDeletePermanent');
     if (!confirm(`${label} ${list.length} élément(s) ? Cette action est irréversible.`)) return;
 
-    try {
-      for (const item of list) {
-        try {
-          if (item.type === 'file') {
-            await fileService.delete(item.id);
-          } else {
-            await folderService.delete(item.id);
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) console.error(`Failed to delete ${item.type} ${item.id}:`, err);
+    let failed = 0;
+    for (const item of list) {
+      try {
+        if (item.type === 'file') {
+          await fileService.delete(item.id);
+        } else {
+          await folderService.delete(item.id);
         }
+      } catch (err) {
+        failed += 1;
+        if (import.meta.env.DEV) console.error(`Failed to delete ${item.type} ${item.id}:`, err);
       }
-      setSelectedIds(new Set());
-      loadTrash();
-      setMessage({ type: 'success', text: t('deletePermanentSuccess') || 'Élément(s) supprimé(s) définitivement' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-    } catch (err) {
-      setMessage({ type: 'error', text: t('deletePermanentError') || 'Erreur lors de la suppression définitive' });
     }
+    setSelectedIds(new Set());
+    await loadTrash();
+    const successCount = list.length - failed;
+    if (failed === 0) {
+      setMessage({ type: 'success', text: t('deletePermanentSuccess') });
+    } else if (failed === list.length) {
+      setMessage({ type: 'error', text: t('deletePermanentError') });
+    } else {
+      const partialMsg = (t('deletePermanentPartial') || '{{success}} supprimé(s), {{failed}} n\'ont pas pu être supprimé(s).')
+        .replace('{{success}}', String(successCount))
+        .replace('{{failed}}', String(failed));
+      setMessage({ type: 'warning', text: partialMsg });
+    }
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
   const emptyTrash = async () => {
-    if (!confirm(t('confirmEmptyTrash') || 'Êtes-vous sûr de vouloir vider la corbeille ? Cette action est irréversible.')) {
-      return;
-    }
+    if (!confirm(t('confirmEmptyTrash'))) return;
 
-    try {
-      for (const file of files) {
-        try {
-          await fileService.delete(file.id);
-        } catch (err) {
-          if (import.meta.env.DEV) console.error(`Failed to delete file ${file.id}:`, err);
-        }
+    let failed = 0;
+    const total = files.length + folders.length;
+    for (const file of files) {
+      try {
+        await fileService.delete(file.id);
+      } catch (err) {
+        failed += 1;
+        if (import.meta.env.DEV) console.error('Failed to delete file', file.id, err);
       }
-      for (const folder of folders) {
-        try {
-          await folderService.delete(folder.id);
-        } catch (err) {
-          if (import.meta.env.DEV) console.error(`Failed to delete folder ${folder.id}:`, err);
-        }
-      }
-      setSelectedIds(new Set());
-      loadTrash();
-      setMessage({ type: 'success', text: t('trashEmptied') || 'Corbeille vidée avec succès' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-    } catch (err) {
-      setMessage({ type: 'error', text: t('emptyTrashError') || 'Erreur lors du vidage de la corbeille' });
     }
+    for (const folder of folders) {
+      try {
+        await folderService.delete(folder.id);
+      } catch (err) {
+        failed += 1;
+        if (import.meta.env.DEV) console.error('Failed to delete folder', folder.id, err);
+      }
+    }
+    setSelectedIds(new Set());
+    await loadTrash();
+    const successCount = total - failed;
+    if (failed === 0) {
+      setMessage({ type: 'success', text: t('trashEmptied') });
+    } else if (failed === total) {
+      setMessage({ type: 'error', text: t('emptyTrashError') });
+    } else {
+      const partialMsg = (t('trashEmptiedPartial') || '{{success}} supprimé(s), {{failed}} n\'ont pas pu être supprimé(s).')
+        .replace('{{success}}', String(successCount))
+        .replace('{{failed}}', String(failed));
+      setMessage({ type: 'warning', text: partialMsg });
+    }
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
   const formatBytes = (bytes) => {
@@ -242,8 +258,8 @@ export default function Trash() {
 
       {/* Messages */}
       {message.text && (
-        <div className={`alert alert-${message.type === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2 mb-3`} role="alert">
-          <i className={`bi ${message.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}`}></i>
+        <div className={`alert alert-${message.type === 'success' ? 'success' : message.type === 'warning' ? 'warning' : 'danger'} d-flex align-items-center gap-2 mb-3`} role="alert">
+          <i className={`bi ${message.type === 'success' ? 'bi-check-circle-fill' : message.type === 'warning' ? 'bi-info-circle-fill' : 'bi-exclamation-triangle-fill'}`}></i>
           <span>{message.text}</span>
         </div>
       )}

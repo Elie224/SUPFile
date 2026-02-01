@@ -38,6 +38,18 @@ const FolderModel = {
     return folder ? this.toDTO(folder) : null;
   },
 
+  /** Trouve un dossier par id sans filtrer is_deleted (pour suppression définitive depuis la corbeille). */
+  async findByIdIncludeDeleted(id) {
+    try {
+      const mongoose = require('mongoose');
+      const oid = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
+      const folder = await Folder.findOne({ _id: oid }).lean();
+      return folder ? this.toDTO(folder) : null;
+    } catch {
+      return null;
+    }
+  },
+
   async findByOwner(ownerId, parentId = null, includeDeleted = false, options = {}) {
     try {
       // Convertir ownerId en ObjectId si nécessaire
