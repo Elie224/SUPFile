@@ -13,6 +13,37 @@ import offlineDB from './services/offlineDB';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 
+// Capturer les erreurs globales (promesses, window.onerror) pour diagnostic même si ErrorBoundary ne les voit pas
+function captureGlobalError(payload) {
+  try {
+    if (typeof window !== 'undefined') {
+      window.__SUPFILE_LAST_ERROR__ = payload;
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('SUPFILE_LAST_ERROR', JSON.stringify(payload));
+      }
+    }
+  } catch (_) {}
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    captureGlobalError({
+      message: e.message,
+      stack: e.error?.stack,
+      filename: e.filename,
+      lineno: e.lineno,
+      timestamp: new Date().toISOString(),
+    });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason;
+    captureGlobalError({
+      message: reason?.message ?? String(reason),
+      stack: reason?.stack,
+      timestamp: new Date().toISOString(),
+    });
+  });
+}
+
 // Imports directs pour les pages critiques (évite blocage/erreur si le chunk lazy ne charge pas après déploiement)
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';

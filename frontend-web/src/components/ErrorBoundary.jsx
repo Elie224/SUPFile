@@ -17,7 +17,19 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Logger l'erreur
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+    const payload = {
+      message: error?.message,
+      stack: error?.stack,
+      componentStack: errorInfo?.componentStack,
+      timestamp: new Date().toISOString(),
+    };
+    // Exposer en global et persister pour diagnostic (reste après rechargement)
+    try {
+      window.__SUPFILE_LAST_ERROR__ = payload;
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('SUPFILE_LAST_ERROR', JSON.stringify(payload));
+      }
+    } catch (_) {}
     this.setState({
       error,
       errorInfo,
@@ -39,6 +51,21 @@ class ErrorBoundary extends React.Component {
     // Toujours afficher un fallback en cas d'erreur (dev + prod) pour éviter page blanche
     if (this.state.hasError) {
       const isDev = process.env.NODE_ENV === 'development';
+      // Lire l'erreur depuis state ou sessionStorage (reste après rechargement)
+      let lastError = null;
+      try {
+        if (this.state.error) {
+          lastError = {
+            message: this.state.error?.message,
+            stack: this.state.error?.stack,
+            componentStack: this.state.errorInfo?.componentStack,
+          };
+        } else if (typeof sessionStorage !== 'undefined') {
+          const raw = sessionStorage.getItem('SUPFILE_LAST_ERROR');
+          if (raw) lastError = JSON.parse(raw);
+        }
+      } catch (_) {}
+      const hasDetails = lastError && (lastError.message || lastError.stack);
       return (
         <div style={{
           display: 'flex',
@@ -52,7 +79,7 @@ class ErrorBoundary extends React.Component {
           color: '#e2e8f0',
         }}>
           <div style={{
-            maxWidth: '480px',
+            maxWidth: '520px',
             padding: '32px',
             borderRadius: '12px',
             background: 'rgba(30, 41, 59, 0.95)',
@@ -61,10 +88,10 @@ class ErrorBoundary extends React.Component {
             <h1 style={{ fontSize: '20px', color: '#f1f5f9', marginBottom: '12px' }}>
               Une erreur s'est produite
             </h1>
-            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px' }}>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>
               Rechargez la page ou réessayez plus tard.
             </p>
-            {isDev && this.state.error && (
+            {hasDetails && (
               <details style={{
                 marginBottom: '20px',
                 padding: '12px',
@@ -73,15 +100,22 @@ class ErrorBoundary extends React.Component {
                 textAlign: 'left',
                 fontSize: '12px',
                 fontFamily: 'monospace',
-                maxHeight: '200px',
+                maxHeight: '220px',
                 overflow: 'auto',
                 color: '#cbd5e1',
-              }}>
-                <summary style={{ cursor: 'pointer' }}>Détails (dev)</summary>
+              }} open={isDev}>
+                <summary style={{ cursor: 'pointer' }}>Détails de l'erreur (pour diagnostic)</summary>
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: '8px' }}>
-                  {this.state.error.toString()}
+                  {lastError.message || '(pas de message)'}
+                  {lastError.stack ? '\n\n' + lastError.stack : ''}
+                  {lastError.componentStack ? '\n\n' + lastError.componentStack : ''}
                 </div>
               </details>
+            )}
+            {!hasDetails && (
+              <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '24px' }}>
+                Console (F12) : <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>sessionStorage.getItem('SUPFILE_LAST_ERROR')</code>
+              </p>
             )}
             <button
               onClick={this.handleReset}

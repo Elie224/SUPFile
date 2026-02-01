@@ -6,6 +6,7 @@ import syncService from '../services/syncService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
+import { downloadBlob } from '../utils/downloadBlob';
 
 // Nom de fichier sécurisé pour le téléchargement (évite / \ : * ? " < > | et limite la longueur)
 function sanitizeDownloadFilename(name, fallback = 'dossier') {
@@ -727,15 +728,7 @@ export default function Files() {
         return;
       }
       const safeName = sanitizeDownloadFilename(item?.name, 'dossier');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeName}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
-      }, 100);
+      downloadBlob(blob, `${safeName}.zip`);
       toast.success(safeT('downloadSuccess', 'Téléchargement réussi'));
     } catch (err) {
       try { if (timeoutId != null) clearTimeout(timeoutId); } catch (_) {}
@@ -1539,13 +1532,7 @@ export default function Files() {
                                     throw new Error(error.error?.message || `Erreur ${response.status}`);
                                   }
                                   const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = sanitizeDownloadFilename(item?.name, 'download');
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  setTimeout(() => { try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {} }, 100);
+                                  downloadBlob(blob, sanitizeDownloadFilename(item?.name, 'download'));
                                 } catch (err) {
                                   console.error('Download failed:', err);
                                   toast.error(typeof err?.message === 'string' ? err.message : (typeof t === 'function' ? t('downloadError') : 'Erreur lors du téléchargement'));

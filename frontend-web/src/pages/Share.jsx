@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
+import { downloadBlob } from '../utils/downloadBlob';
 
 const DOWNLOAD_TIMEOUT_MS = 300000; // 5 min pour dossiers / gros fichiers
 
@@ -99,15 +100,7 @@ export default function Share() {
       const safeName = resource.type === 'folder'
         ? sanitizeDownloadFilename(resource.name, 'dossier') + '.zip'
         : sanitizeDownloadFilename(resource.name, 'download');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = safeName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
-      }, 100);
+      downloadBlob(blob, safeName);
     } catch (err) {
       clearTimeout(timeoutId);
       console.error('Download error:', err);

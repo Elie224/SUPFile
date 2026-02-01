@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { downloadBlob } from '../utils/downloadBlob';
 
 export default function Preview() {
   const { id } = useParams();
@@ -166,14 +167,7 @@ export default function Preview() {
       const disposition = response.headers.get('Content-Disposition');
       const match = disposition && disposition.match(/filename="?([^";]+)"?/);
       const filename = match ? match[1].trim() : (file?.name || 'download');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      downloadBlob(blob, filename);
     } catch (err) {
       console.error('Download failed:', err);
       alert(err.message || 'Erreur lors du téléchargement');
