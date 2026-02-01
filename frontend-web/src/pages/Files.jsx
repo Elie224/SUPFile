@@ -1532,11 +1532,12 @@ export default function Files() {
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 const response = await folderService.downloadAsZip(itemId);
                                 
-                                if (!response.data || response.data.size === 0) {
-                                  throw new Error('Le fichier ZIP est vide ou invalide');
+                                const blob = response?.data;
+                                if (!blob || !(blob instanceof Blob) || blob.size === 0) {
+                                  const msg = (blob && typeof blob === 'object' && blob.message) ? blob.message : (t('downloadError') || 'Le fichier ZIP est vide ou indisponible.');
+                                  throw new Error(msg);
                                 }
                                 
-                                const blob = response.data;
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
@@ -1607,17 +1608,17 @@ export default function Files() {
                                       errorMsg = json.error?.message || errorMsg;
                                     } catch {
                                       errorMsg = err.response.status === 403 
-                                        ? t('accessDenied') || 'Accès refusé'
+                                        ? (t('accessDenied') || 'Accès refusé')
                                         : errorMsg;
                                     }
                                   } else {
-                                    errorMsg = err.response.data.error?.message || errorMsg;
+                                    errorMsg = err.response.data?.error?.message || errorMsg;
                                   }
                                 } else if (err.message) {
                                   errorMsg = err.message;
                                 }
                                 
-                                toast.error(errorMsg);
+                                toast.error(String(errorMsg || t('downloadError') || 'Erreur lors du téléchargement'));
                               } finally {
                                 setDownloadingFolder(null);
                               }
