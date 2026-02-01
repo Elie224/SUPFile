@@ -464,15 +464,22 @@ let server;
 if (process.env.NODE_ENV === 'test') {
   loadRestOfApp();
 } else {
-  loadRestOfApp();
-  server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('✓ Listening on 0.0.0.0:' + PORT);
-  });
-  server.on('error', (err) => {
-    console.error('✗ Server error:', err.message);
-    if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
+  try {
+    loadRestOfApp();
+    const host = '0.0.0.0';
+    server = app.listen(PORT, host, () => {
+      console.log('✓ Listening on ' + host + ':' + PORT);
+    });
+    server.on('error', (err) => {
+      console.error('✗ Server error:', err.message);
+      if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
+      process.exit(1);
+    });
+  } catch (err) {
+    console.error('✗ Startup error:', err.message);
+    console.error(err.stack);
     process.exit(1);
-  });
+  }
 }
 
 // ============================================================

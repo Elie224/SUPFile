@@ -1,5 +1,6 @@
 # fly.toml - Backend SUPFile sur Fly.io
-# Toujours lancer : cd backend  puis  fly deploy --app supfile  (depuis ce dossier)
+# Déploiement : cd backend  puis  fly deploy --app supfile
+# Si "app is not listening" : fly deploy --app supfile --no-cache  (force rebuild sans cache)
 # Voir https://fly.io/docs/reference/configuration/
 #
 # Secrets OBLIGATOIRES (fly secrets set) avant que connexion/inscription fonctionnent :
