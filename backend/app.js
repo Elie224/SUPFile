@@ -27,6 +27,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Fly.io : répondre 503 tant que loadRestOfApp n'a pas fini (évite requêtes perdues)
+let appReady = false;
+app.use((req, res, next) => {
+  if (req.path === '/health') return next();
+  if (!appReady) {
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(503).json({ error: { message: 'Starting up' } });
+  }
+  next();
+});
+
 function loadRestOfApp() {
   const { ensureProductionSecrets } = require('./utils/securityCheck');
   ensureProductionSecrets();
@@ -456,30 +467,31 @@ process.on('unhandledRejection', (reason, promise) => {
 
 /**
  * Démarre le serveur HTTP.
- * Fly.io : monter toutes les routes AVANT listen() pour éviter un crash en setImmediate (ensureProductionSecrets, etc.)
- * qui ferait croire à Fly que l'app n'écoute pas.
+ * Fly.io : listen() immédiatement pour que le health check réussisse tout de suite,
+ * puis loadRestOfApp() dans le callback (MongoDB, OAuth, routes).
  */
 let server;
 
 if (process.env.NODE_ENV === 'test') {
   loadRestOfApp();
 } else {
-  try {
-    loadRestOfApp();
-    const host = '0.0.0.0';
-    server = app.listen(PORT, host, () => {
-      console.log('✓ Listening on ' + host + ':' + PORT);
-    });
-    server.on('error', (err) => {
-      console.error('✗ Server error:', err.message);
-      if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
+  const host = '0.0.0.0';
+  server = app.listen(PORT, host, () => {
+    console.log('✓ Listening on ' + host + ':' + PORT);
+    try {
+      loadRestOfApp();
+      appReady = true;
+    } catch (err) {
+      console.error('✗ Startup error:', err.message);
+      console.error(err.stack);
       process.exit(1);
-    });
-  } catch (err) {
-    console.error('✗ Startup error:', err.message);
-    console.error(err.stack);
+    }
+  });
+  server.on('error', (err) => {
+    console.error('✗ Server error:', err.message);
+    if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
     process.exit(1);
-  }
+  });
 }
 
 // ============================================================

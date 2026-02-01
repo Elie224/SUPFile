@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
 import { offlineFileService, offlineFolderService } from '../services/offlineFileService';
@@ -16,7 +16,7 @@ function sanitizeDownloadFilename(name, fallback = 'dossier') {
   return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
 }
 
-const FOLDER_DOWNLOAD_TIMEOUT_MS = 300000; // 5 min pour les gros dossiers
+const FOLDER_DOWNLOAD_TIMEOUT_MS = 120000; // 2 min max, puis timeout + bouton Annuler
 
 export default function Files() {
   const navigate = useNavigate();
@@ -53,6 +53,7 @@ export default function Files() {
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
   const [downloadingFolder, setDownloadingFolder] = useState(null);
+  const downloadAbortRef = useRef(null); // pour annuler le téléchargement en cours
   const [draggedItem, setDraggedItem] = useState(null); // Élément en cours de drag & drop (déplacement)
 
   // Charger le dossier depuis les paramètres URL au montage
@@ -680,6 +681,7 @@ export default function Files() {
       try { return (typeof t === 'function' ? t(key) : fallback) || fallback; } catch (_) { return fallback; }
     };
     let timeoutId;
+    let safetyResetId;
     try {
       if (downloadingFolder === itemId) return;
       const id = String(itemId != null ? itemId : '').trim();
@@ -697,7 +699,12 @@ export default function Files() {
         requestAnimationFrame(() => setDownloadingFolder(id));
       });
       const controller = new AbortController();
+      downloadAbortRef.current = controller;
       timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
+      safetyResetId = setTimeout(() => {
+        setDownloadingFolder(null);
+        toast.error(safeT('downloadTimeout', 'Le téléchargement a pris trop de temps.'));
+      }, FOLDER_DOWNLOAD_TIMEOUT_MS + 3000);
       toast.info(safeT('downloadStarting', 'Téléchargement en cours...'), 2000);
       const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
       const response = await fetch(`${apiUrl}/api/folders/${encodeURIComponent(id)}/download`, {
@@ -706,7 +713,9 @@ export default function Files() {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
+      if (safetyResetId != null) clearTimeout(safetyResetId);
       timeoutId = null;
+      safetyResetId = null;
       if (!response.ok) {
         const ct = response.headers.get('Content-Type') || '';
         let msg = safeT('downloadError', 'Erreur lors du téléchargement');
@@ -733,12 +742,14 @@ export default function Files() {
       downloadBlob(blob, `${safeName}.zip`);
       toast.success(safeT('downloadSuccess', 'Téléchargement réussi'));
     } catch (err) {
-      try { if (timeoutId != null) clearTimeout(timeoutId); } catch (_) {}
+      try { if (timeoutId != null) clearTimeout(timeoutId); if (safetyResetId != null) clearTimeout(safetyResetId); } catch (_) {}
       const msg = err?.name === 'AbortError'
         ? safeT('downloadTimeout', 'Le téléchargement a pris trop de temps.')
         : (typeof err?.message === 'string' ? err.message : safeT('downloadError', 'Erreur lors du téléchargement'));
       toast.error(msg);
     } finally {
+      try { if (safetyResetId != null) clearTimeout(safetyResetId); } catch (_) {}
+      downloadAbortRef.current = null;
       try { setDownloadingFolder(null); } catch (_) {}
     }
   };
@@ -1611,6 +1622,29 @@ export default function Files() {
                             <i className="bi bi-download me-1" style={{ display: downloadingFolder === itemId ? 'none' : 'inline-block' }} aria-hidden="true" />
                             <span>{downloadingFolder === itemId ? ((typeof t === 'function' ? t('downloading') : null) || 'Téléchargement...') : ((typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)')}</span>
                           </button>
+                          {downloadingFolder === itemId && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try { downloadAbortRef.current?.abort(); } catch (_) {}
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '0.9em',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                              }}
+                              title="Annuler le téléchargement"
+                            >
+                              {(typeof t === 'function' ? t('cancel') : null) || 'Annuler'}
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.preventDefault();

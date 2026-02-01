@@ -277,17 +277,17 @@ async function downloadFolder(req, res, next) {
       return res.status(400).json({ error: { message: 'Folder is empty' } });
     }
 
-    // Compter les fichiers présents sur le disque avant de commencer le stream
-    let countAvailable = 0;
+    // Un seul passage : ne garder que les fichiers présents sur le disque (évite double boucle + accélère)
+    const filesToZip = [];
     for (const file of allFiles) {
       try {
         await fs.access(file.file_path);
-        countAvailable++;
+        filesToZip.push(file);
       } catch {
         // ignoré
       }
     }
-    if (countAvailable === 0) {
+    if (filesToZip.length === 0) {
       return res.status(404).json({
         error: {
           message: 'Le dossier ne contient aucun fichier accessible sur le serveur.',
@@ -306,7 +306,8 @@ async function downloadFolder(req, res, next) {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    // Niveau 0 = stockage seul (pas de compression) : beaucoup plus rapide pour dossiers avec beaucoup de fichiers
+    const archive = archiver('zip', { zlib: { level: 0 } });
     archive.on('error', (err) => {
       if (!res.headersSent) res.status(500).json({ error: { message: 'Failed to create archive' } });
     });
@@ -315,13 +316,8 @@ async function downloadFolder(req, res, next) {
     });
     archive.pipe(res);
 
-    for (const file of allFiles) {
-      try {
-        await fs.access(file.file_path);
-        archive.file(file.file_path, { name: file.path });
-      } catch {
-        // Fichier absent sur le disque, on ignore
-      }
+    for (const file of filesToZip) {
+      archive.file(file.file_path, { name: file.path });
     }
     await archive.finalize();
   } catch (err) {
