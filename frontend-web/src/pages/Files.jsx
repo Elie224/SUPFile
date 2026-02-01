@@ -1518,109 +1518,79 @@ export default function Files() {
                             onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              
-                              if (downloadingFolder === itemId) {
-                                return; // Déjà en cours de téléchargement
-                              }
-                              
+                              if (downloadingFolder === itemId) return;
                               setDownloadingFolder(itemId);
-                              
                               try {
-                                if (!itemId) throw new Error('ID du dossier invalide');
-                                if (typeof itemId !== 'string' || itemId.length !== 24) throw new Error('ID du dossier invalide');
-                                
+                                if (!itemId || typeof itemId !== 'string' || itemId.length !== 24) {
+                                  throw new Error(t('downloadError') || 'ID du dossier invalide');
+                                }
                                 toast.info(t('downloadStarting') || 'Téléchargement en cours...', 2000);
                                 const response = await folderService.downloadAsZip(itemId);
-                                
                                 const blob = response?.data;
                                 if (!blob || !(blob instanceof Blob) || blob.size === 0) {
                                   const msg = (blob && typeof blob === 'object' && blob.message) ? blob.message : (t('downloadError') || 'Le fichier ZIP est vide ou indisponible.');
                                   throw new Error(msg);
                                 }
-                                
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
-                                a.download = `${item.name}.zip`;
+                                a.download = `${item?.name ?? 'dossier'}.zip`;
                                 document.body.appendChild(a);
                                 a.click();
-                                
-                                // Nettoyer après un court délai
                                 setTimeout(() => {
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
+                                  try { window.URL.revokeObjectURL(url); document.body.removeChild(a); } catch (_) {}
                                 }, 100);
-                                
                                 toast.success(t('downloadSuccess') || 'Téléchargement réussi');
                               } catch (err) {
                                 let errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
-                                
-                                // Vérifier d'abord les erreurs réseau/connexion (503, 502, etc.)
-                                if (err.response?.status === 503) {
-                                  errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible. Les machines sont peut-être en veille. Veuillez réessayer dans quelques instants.';
-                                } else if (err.response?.status === 502) {
-                                  errorMsg = t('badGateway') || 'Erreur de passerelle. Le serveur ne répond pas correctement.';
-                                } else if (!err.response && (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'))) {
-                                  errorMsg = t('networkError') || 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
-                                } else if (err.response?.status === 404) {
-                                  // Vérifier si c'est un dossier vide/orphelin
-                                  let responseData = null;
-                                  try {
-                                    if (err.response.data instanceof Blob) {
-                                      const text = await err.response.data.text();
-                                      responseData = JSON.parse(text);
-                                    } else {
-                                      responseData = err.response.data;
-                                    }
-                                  } catch {
-                                    // Ignorer si on ne peut pas parser
-                                  }
-                                  
-                                  if (responseData?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
-                                    errorMsg = responseData.error.message || 
-                                      'Ce dossier ne contient aucun fichier accessible. Les fichiers ont probablement été perdus après un déploiement. Veuillez ré-uploader les fichiers ou supprimer ce dossier.';
-                                    
-                                    // Afficher aussi les détails si disponibles
-                                    if (responseData.error.details?.suggestion) {
-                                      errorMsg += '\n\n' + responseData.error.details.suggestion;
-                                    }
-                                  } else {
-                                    errorMsg = responseData?.error?.message || t('folderNotFound') || 'Le dossier n\'a pas été trouvé.';
-                                  }
-                                } else if (err.response?.status === 403) {
-                                  errorMsg = t('accessDenied') || 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
-                                } else if (err.code === 'ECONNABORTED') {
-                                  // ECONNABORTED peut être un timeout OU une connexion interrompue
-                                  // Vérifier si c'est vraiment un timeout (plus de 10 minutes) ou une erreur réseau
-                                  if (err.message?.includes('timeout') || err.message?.includes('Timeout')) {
-                                    errorMsg = t('downloadTimeout') || 'Le téléchargement a pris trop de temps (plus de 10 minutes). Le dossier est peut-être trop volumineux. Essayez de télécharger des fichiers individuellement.';
-                                  } else {
-                                    errorMsg = t('connectionAborted') || 'La connexion a été interrompue. Vérifiez votre connexion internet et réessayez.';
-                                  }
-                                } else if (err.message?.includes('aborted') || err.message?.includes('canceled')) {
-                                  errorMsg = t('downloadAborted') || 'Le téléchargement a été annulé.';
-                                } else if (err.response?.data) {
-                                  // Si c'est un blob d'erreur, essayer de le lire
-                                  if (err.response.data instanceof Blob) {
+                                try {
+                                  if (err.response?.status === 503) {
+                                    errorMsg = t('serverUnavailable') || 'Le serveur est temporairement indisponible.';
+                                  } else if (err.response?.status === 502) {
+                                    errorMsg = t('badGateway') || 'Erreur de passerelle.';
+                                  } else if (!err.response && (err.code === 'ERR_NETWORK' || (err.message && err.message.includes('Network')))) {
+                                    errorMsg = t('networkError') || 'Erreur de connexion au serveur.';
+                                  } else if (err.response?.status === 404) {
+                                    let responseData = null;
                                     try {
-                                      const text = await err.response.data.text();
-                                      const json = JSON.parse(text);
-                                      errorMsg = json.error?.message || errorMsg;
-                                    } catch {
-                                      errorMsg = err.response.status === 403 
-                                        ? (t('accessDenied') || 'Accès refusé')
-                                        : errorMsg;
+                                      if (err.response.data instanceof Blob) {
+                                        const text = await err.response.data.text();
+                                        responseData = JSON.parse(text);
+                                      } else {
+                                        responseData = err.response.data;
+                                      }
+                                    } catch (_) {}
+                                    if (responseData?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED') {
+                                      errorMsg = responseData?.error?.message || 'Ce dossier ne contient aucun fichier accessible.';
+                                    } else {
+                                      errorMsg = responseData?.error?.message || t('folderNotFound') || 'Dossier non trouvé.';
                                     }
-                                  } else {
-                                    errorMsg = err.response.data?.error?.message || errorMsg;
+                                  } else if (err.response?.status === 403) {
+                                    errorMsg = t('accessDenied') || 'Accès refusé.';
+                                  } else if (err.code === 'ECONNABORTED' || (err.message && (err.message.includes('timeout') || err.message.includes('Timeout')))) {
+                                    errorMsg = t('downloadTimeout') || 'Téléchargement trop long. Le dossier est peut-être trop volumineux.';
+                                  } else if (err.response?.data) {
+                                    if (err.response.data instanceof Blob) {
+                                      try {
+                                        const text = await err.response.data.text();
+                                        const json = JSON.parse(text);
+                                        errorMsg = json?.error?.message || errorMsg;
+                                      } catch (_) {
+                                        if (err.response.status === 403) errorMsg = t('accessDenied') || 'Accès refusé';
+                                      }
+                                    } else {
+                                      errorMsg = err.response.data?.error?.message || errorMsg;
+                                    }
+                                  } else if (err?.message) {
+                                    errorMsg = err.message;
                                   }
-                                } else if (err.message) {
-                                  errorMsg = err.message;
+                                } catch (_) {
+                                  errorMsg = t('downloadError') || 'Erreur lors du téléchargement';
                                 }
-                                
-                                toast.error(String(errorMsg || t('downloadError') || 'Erreur lors du téléchargement'));
+                                console.warn('[Supfile] Téléchargement ZIP:', errorMsg, err?.response?.status ?? err?.message);
+                                toast.error(String(errorMsg));
                               } finally {
-                                setDownloadingFolder(null);
+                                try { setDownloadingFolder(null); } catch (_) {}
                               }
                             }}
                             disabled={downloadingFolder === itemId}
