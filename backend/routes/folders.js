@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const foldersController = require('../controllers/foldersController');
-const { authMiddleware, optionalAuthMiddleware } = require('../middlewares/authMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 const { validate, createFolderSchema, renameSchema } = require('../middlewares/validation');
 const { validateObjectId } = require('../middlewares/security');
-
-// Télécharger un dossier en ZIP (auth ou partage public avec ?token=)
-router.get('/:id/download', optionalAuthMiddleware, validateObjectId, foldersController.downloadFolder);
 
 // Routes protégées
 router.use(authMiddleware);

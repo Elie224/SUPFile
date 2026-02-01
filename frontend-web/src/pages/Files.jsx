@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
 import { offlineFileService, offlineFolderService } from '../services/offlineFileService';
@@ -15,8 +15,6 @@ function sanitizeDownloadFilename(name, fallback = 'dossier') {
   if (sanitized.length === 0) return fallback;
   return sanitized.length > 200 ? sanitized.slice(0, 200) : sanitized;
 }
-
-const FOLDER_DOWNLOAD_TIMEOUT_MS = 120000; // 2 min (pro), puis timeout + bouton Annuler
 
 export default function Files() {
   const navigate = useNavigate();
@@ -52,8 +50,6 @@ export default function Files() {
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
   const [selectedItems, setSelectedItems] = useState([]); // IDs des éléments sélectionnés
   const [isDragOver, setIsDragOver] = useState(false);
-  const [downloadingFolder, setDownloadingFolder] = useState(null);
-  const downloadAbortRef = useRef(null); // pour annuler le téléchargement en cours
   const [draggedItem, setDraggedItem] = useState(null); // Élément en cours de drag & drop (déplacement)
 
   // Charger le dossier depuis les paramètres URL au montage
@@ -673,86 +669,6 @@ export default function Files() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  // Téléchargement ZIP dossier : isolé pour éviter toute exception non gérée (ErrorBoundary)
-  const handleFolderDownload = async (item, itemId) => {
-    const safeT = (key, fallback) => {
-      try { return (typeof t === 'function' ? t(key) : fallback) || fallback; } catch (_) { return fallback; }
-    };
-    let timeoutId;
-    let safetyResetId;
-    try {
-      if (downloadingFolder === itemId) return;
-      const id = String(itemId != null ? itemId : '').trim();
-      if (!id || id.length !== 24) {
-        toast.error(safeT('downloadError', 'ID du dossier invalide'));
-        return;
-      }
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
-      if (!token) {
-        toast.warning(safeT('mustBeConnected', 'Vous devez être connecté.'));
-        return;
-      }
-      // Mise à jour de l'état après la prochaine frame pour éviter conflit insertBefore avec React
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setDownloadingFolder(id));
-      });
-      const controller = new AbortController();
-      downloadAbortRef.current = controller;
-      timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
-      safetyResetId = setTimeout(() => {
-        setDownloadingFolder(null);
-        toast.error(safeT('downloadTimeout', 'Le téléchargement a pris trop de temps.'));
-      }, FOLDER_DOWNLOAD_TIMEOUT_MS + 3000);
-      toast.info(safeT('downloadStarting', 'Téléchargement en cours...'), 2000);
-      const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-      const response = await fetch(`${apiUrl}/api/folders/${encodeURIComponent(id)}/download`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (safetyResetId != null) clearTimeout(safetyResetId);
-      timeoutId = null;
-      safetyResetId = null;
-      if (!response.ok) {
-        const ct = response.headers.get('Content-Type') || '';
-        let msg = safeT('downloadError', 'Erreur lors du téléchargement');
-        if (ct.includes('application/json')) {
-          try {
-            const data = await response.json();
-            msg = (data?.error?.code === 'FOLDER_EMPTY_OR_ORPHANED')
-              ? safeT('folderEmptyServer', msg)
-              : (data?.error?.message || msg);
-          } catch (_) {}
-        }
-        if (response.status === 401) msg = safeT('sessionExpired', 'Session expirée. Veuillez vous reconnecter.');
-        if (response.status === 403) msg = safeT('accessDenied', 'Accès refusé');
-        if (response.status === 404) msg = msg || safeT('folderNotFound', 'Dossier non trouvé');
-        if (response.status === 503) msg = safeT('serverUnavailable', 'Le serveur est temporairement indisponible.');
-        toast.error(msg);
-        return;
-      }
-      const blob = await response.blob();
-      if (!blob || blob.size === 0) {
-        toast.error(safeT('downloadError', 'Le fichier ZIP est vide.'));
-        return;
-      }
-      const safeName = sanitizeDownloadFilename(item?.name, 'dossier');
-      downloadBlob(blob, `${safeName}.zip`);
-      toast.success(safeT('downloadSuccess', 'Téléchargement réussi'));
-    } catch (err) {
-      try { if (timeoutId != null) clearTimeout(timeoutId); if (safetyResetId != null) clearTimeout(safetyResetId); } catch (_) {}
-      const msg = err?.name === 'AbortError'
-        ? safeT('downloadTimeout', 'Le téléchargement a pris trop de temps.')
-        : (typeof err?.message === 'string' ? err.message : safeT('downloadError', 'Erreur lors du téléchargement'));
-      toast.error(msg);
-    } finally {
-      try { if (safetyResetId != null) clearTimeout(safetyResetId); } catch (_) {}
-      downloadAbortRef.current = null;
-      try { setDownloadingFolder(null); } catch (_) {}
-    }
   };
 
   const breadcrumbs = currentFolder 
@@ -1590,62 +1506,6 @@ export default function Files() {
                       )}
                       {itemType === 'folder' && (
                         <>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              try {
-                                handleFolderDownload(item, itemId).catch(() => {});
-                              } catch (_) {
-                                toast.error('Erreur lors du téléchargement');
-                              }
-                            }}
-                            disabled={downloadingFolder === itemId}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: downloadingFolder === itemId ? '#ccc' : '#2196F3',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 4,
-                              cursor: downloadingFolder === itemId ? 'wait' : 'pointer',
-                              fontSize: '0.9em',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              opacity: downloadingFolder === itemId ? 0.7 : 1
-                            }}
-                            title={downloadingFolder === itemId ? (typeof t === 'function' ? t('downloading') : 'Téléchargement...') || 'Téléchargement...' : (typeof t === 'function' ? t('downloadZip') : 'Télécharger (ZIP)') || 'Télécharger (ZIP)'}
-                          >
-                            <span style={{ display: downloadingFolder === itemId ? 'inline-block' : 'none' }} className="me-1" role="status" aria-hidden="true">
-                              <span className="spinner-border spinner-border-sm" />
-                            </span>
-                            <i className="bi bi-download me-1" style={{ display: downloadingFolder === itemId ? 'none' : 'inline-block' }} aria-hidden="true" />
-                            <span>{downloadingFolder === itemId ? ((typeof t === 'function' ? t('downloading') : null) || 'Téléchargement...') : ((typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)')}</span>
-                          </button>
-                          {downloadingFolder === itemId && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                try { downloadAbortRef.current?.abort(); } catch (_) {}
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '0.9em',
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                fontWeight: 'bold'
-                              }}
-                              title="Annuler le téléchargement"
-                            >
-                              {(typeof t === 'function' ? t('cancel') : null) || 'Annuler'}
-                            </button>
-                          )}
                           <button
                             onClick={(e) => {
                               e.preventDefault();

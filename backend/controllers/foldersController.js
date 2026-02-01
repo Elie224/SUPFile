@@ -1,7 +1,6 @@
 const FolderModel = require('../models/folderModel');
 const FileModel = require('../models/fileModel');
 const ShareModel = require('../models/shareModel');
-const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs').promises;
 const { calculateRealQuotaUsed, syncQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
@@ -201,135 +200,6 @@ async function deleteFolder(req, res, next) {
   }
 }
 
-// Télécharger un dossier en ZIP (authentifié ou partage public avec token)
-async function downloadFolder(req, res, next) {
-  try {
-    const userId = req.user?.id ?? req.user?._id;
-    const { id } = req.params;
-    const { token, password } = req.query;
-    const mongoose = require('mongoose');
-
-    if (!id || typeof id !== 'string' || id.length !== 24 || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
-    }
-    let folderId;
-    try {
-      folderId = new mongoose.Types.ObjectId(id);
-    } catch {
-      return res.status(400).json({ error: { message: 'Invalid folder ID format' } });
-    }
-
-    const folder = await FolderModel.findById(folderId);
-    if (!folder) {
-      if (mongoose.connection.readyState !== 1) {
-        return res.status(503).json({ error: { message: 'Database connection error' } });
-      }
-      return res.status(404).json({ error: { message: 'Folder not found' } });
-    }
-
-    const folderOwnerId = String(folder.owner_id || '');
-    let hasAccess = false;
-    if (userId && String(userId) === folderOwnerId) {
-      hasAccess = true;
-    }
-    if (!hasAccess && token) {
-      const share = await ShareModel.findByToken(token);
-      if (share) {
-        const shareFolderId = share.folder_id?.toString ? share.folder_id.toString() : share.folder_id;
-        const idStr = id.toString ? id.toString() : id;
-        if (shareFolderId === idStr) {
-          if (share.expires_at && new Date(share.expires_at) < new Date()) {
-            return res.status(410).json({ error: { message: 'Share expired' } });
-          }
-          if (share.is_active === false) {
-            return res.status(403).json({ error: { message: 'Share deactivated' } });
-          }
-          if (share.password_hash) {
-            if (!password) return res.status(401).json({ error: { message: 'Password required' } });
-            const bcrypt = require('bcryptjs');
-            const isValid = await bcrypt.compare(password, share.password_hash);
-            if (!isValid) return res.status(401).json({ error: { message: 'Invalid password' } });
-          }
-          hasAccess = true;
-        }
-      }
-    }
-    if (!hasAccess) {
-      return res.status(403).json({ error: { message: 'Access denied' } });
-    }
-
-    async function getAllFiles(fid, basePath = '') {
-      const files = await FileModel.findByFolder(fid, false);
-      const subfolders = await FolderModel.findByOwner(folderOwnerId, fid, false);
-      const result = [];
-      for (const file of files) {
-        result.push({ ...file, path: `${basePath}/${file.name}` });
-      }
-      for (const sub of subfolders) {
-        const subFiles = await getAllFiles(sub.id, `${basePath}/${sub.name}`);
-        result.push(...subFiles);
-      }
-      return result;
-    }
-
-    const allFiles = await getAllFiles(id, folder.name);
-    if (allFiles.length === 0) {
-      return res.status(400).json({ error: { message: 'Folder is empty' } });
-    }
-
-    // Un seul passage : ne garder que les fichiers présents sur le disque (évite double boucle + accélère)
-    // path.resolve pour que chemins relatifs/absolus fonctionnent quel que soit le CWD (ex. déploiement)
-    const filesToZip = [];
-    for (const file of allFiles) {
-      try {
-        const resolvedPath = path.resolve(file.file_path);
-        await fs.access(resolvedPath);
-        filesToZip.push({ ...file, file_path: resolvedPath });
-      } catch {
-        // ignoré
-      }
-    }
-    if (filesToZip.length === 0) {
-      return res.status(404).json({
-        error: {
-          message: 'Le dossier ne contient aucun fichier accessible sur le serveur.',
-          code: 'FOLDER_EMPTY_OR_ORPHANED'
-        }
-      });
-    }
-
-    // CORS explicite pour les réponses streamées (aligné avec config.cors + CORS_ORIGIN)
-    const origin = req.get('Origin') || '';
-    const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
-    const fromList = origin && corsOrigins.indexOf(origin) !== -1;
-    const fromPattern = origin && (origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost'));
-    const allowed = fromList || fromPattern;
-    const allowOrigin = allowed ? origin : (corsOrigins[0] || '*');
-    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(folder.name)}.zip"`);
-
-    // Niveau 0 = stockage seul (pas de compression) : beaucoup plus rapide pour dossiers avec beaucoup de fichiers
-    const archive = archiver('zip', { zlib: { level: 0 } });
-    archive.on('error', (err) => {
-      if (!res.headersSent) res.status(500).json({ error: { message: 'Failed to create archive' } });
-    });
-    archive.on('warning', (err) => {
-      if (err.code !== 'ENOENT') console.warn('[downloadFolder] warning:', err.code, err.message);
-    });
-    archive.pipe(res);
-
-    for (const file of filesToZip) {
-      archive.file(path.resolve(file.file_path), { name: file.path });
-    }
-    await archive.finalize();
-  } catch (err) {
-    if (!res.headersSent) next(err);
-  }
-}
-
 // Restaurer un dossier
 async function restoreFolder(req, res, next) {
   try {
@@ -440,7 +310,6 @@ module.exports = {
   updateFolder,
   deleteFolder,
   restoreFolder,
-  downloadFolder,
   listTrash,
 };
 

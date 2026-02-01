@@ -365,13 +365,6 @@ class ApiService {
     return _dio.patch('/folders/$folderId', data: {'parent_id': parentId});
   }
   
-  Future<Response> downloadFolder(String folderId) {
-    return _dio.get(
-      '/folders/$folderId/download',
-      options: Options(responseType: ResponseType.bytes),
-    );
-  }
-  
   // Share
   Future<Response> createPublicShare({
     String? fileId,

@@ -18,7 +18,7 @@ flowchart TB
 
     subgraph Cas_d_usage_publics
         UC1[Accéder à un lien public partagé]
-        UC2[Télécharger fichier/dossier via lien]
+        UC2[Télécharger fichier via lien]
     end
 
     subgraph Authentification
@@ -70,7 +70,7 @@ flowchart TB
 | Id  | Cas d’usage | Description |
 |-----|-------------|-------------|
 | UC1 | Accéder à un lien public partagé | Ouvrir une URL de partage (sans compte) |
-| UC2 | Télécharger via lien | Télécharger un fichier ou un dossier (ZIP) via le lien public |
+| UC2 | Télécharger via lien | Télécharger un fichier via le lien public |
 | UC3 | S’inscrire | Créer un compte (email + mot de passe) |
 | UC4 | Se connecter (email/mdp) | Connexion classique |
 | UC5 | Se connecter OAuth2 | Connexion avec Google ou GitHub |

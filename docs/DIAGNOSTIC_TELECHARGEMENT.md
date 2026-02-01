@@ -58,10 +58,10 @@ Une fois que la page **« Une erreur s'est produite »** s’affiche :
   window.addEventListener('unhandledrejection', function(e) {
     log('unhandledrejection', { reason: String(e.reason), stack: e.reason && e.reason.stack });
   });
-  log('Écoute des erreurs activée. Cliquez sur "Télécharger (ZIP)" puis regardez la console.');
-  log('--- Test fetch GET /api/folders/:id/download (ID factice) ---');
+  log('Écoute des erreurs activée. Cliquez sur "Télécharger" (fichier) puis regardez la console.');
+  log('--- Test fetch GET /api/files/:id/download (ID factice) ---');
   var testId = '000000000000000000000001';
-  fetch(apiUrl + '/api/folders/' + encodeURIComponent(testId) + '/download', {
+  fetch(apiUrl + '/api/files/' + encodeURIComponent(testId) + '/download', {
     method: 'GET',
     headers: token ? { Authorization: 'Bearer ' + token } : {}
   }).then(function(r) {
@@ -78,7 +78,7 @@ Une fois que la page **« Une erreur s'est produite »** s’affiche :
 ```
 
 3. Regardez les lignes `[DIAG]` dans la console.
-4. Cliquez sur **« Télécharger (ZIP) »** sur un dossier.
+4. Cliquez sur **« Télécharger »** sur un fichier.
 5. Si la page d’erreur réapparaît ou si de nouvelles lignes `[DIAG]` s’affichent, notez :
    - **window.onerror** ou **unhandledrejection** : erreur JS ou promesse non gérée.
    - **Réponse test download** : statut HTTP et CORS (si 401/403/404 ou pas de CORS, le problème vient de l’API ou du token).
@@ -122,6 +122,6 @@ Variables d’environnement optionnelles : `API_URL`, `TEST_FOLDER_ID`, `TEST_AC
 - **Mauvaise API URL** : en build Netlify, définir `VITE_API_URL` (ex. `https://supfile.fly.dev`) pour que le front appelle le bon backend.
 - **CORS** : le backend doit renvoyer `Access-Control-Allow-Origin` avec l’origine du front (ex. `https://supfile.netlify.app`). Vérifier la config CORS du backend (Fly.io).
 - **Erreur dans le rendu React** : `window.__SUPFILE_LAST_ERROR__.componentStack` indique le composant ; le **stack** indique la ligne de code (fichier source ou bundle).
-- **Dossier vide ou inexistant** : le test avec un ID factice renverra 404 ; avec un vrai ID de dossier vide, le backend peut renvoyer une erreur type `FOLDER_EMPTY_OR_ORPHANED` (à gérer côté front par un toast au lieu de faire planter la page).
+- **Fichier ou ressource inexistante** : le test avec un ID factice renverra 404.
 
 En cas de doute, envoyer le contenu de `window.__SUPFILE_LAST_ERROR__` et les lignes `[DIAG]` de la console pour analyse.

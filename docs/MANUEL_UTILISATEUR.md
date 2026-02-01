@@ -76,7 +76,7 @@ Les éléments supprimés vont dans la **Corbeille** (voir ci-dessous).
 ### 4.5 Télécharger
 
 - **Fichier** : bouton **« Télécharger »** sur un fichier (ou dans le menu) pour le télécharger sur votre appareil.
-- **Dossier** : bouton **« Télécharger (ZIP) »** pour obtenir une archive ZIP du dossier entier, générée à la volée par le serveur.
+- **Dossier** : téléchargement en ZIP non disponible pour l’instant.
 
 ---
 

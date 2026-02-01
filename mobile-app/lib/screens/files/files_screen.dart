@@ -581,16 +581,6 @@ class _FilesScreenState extends State<FilesScreen> {
               ],
             ),
           ),
-          const PopupMenuItem(
-            value: 'download',
-            child: Row(
-              children: [
-                Icon(Icons.download, size: 20),
-                SizedBox(width: 8),
-                Text('Télécharger (ZIP)'),
-              ],
-            ),
-          ),
           if (!isRootFolder) ...[
             const PopupMenuItem(
               value: 'move',
@@ -649,8 +639,6 @@ class _FilesScreenState extends State<FilesScreen> {
         onSelected: (value) async {
           if (value == 'share') {
             context.go('/share?folder=${folder.id}');
-          } else if (value == 'download') {
-            await _downloadFolder(folder.id);
           } else if (value == 'move' && !isRootFolder) {
             _showMoveDialog(context, folder.id, folder.name, true);
           } else if (value == 'rename' && !isRootFolder) {
@@ -1099,61 +1087,6 @@ class _FilesScreenState extends State<FilesScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _downloadFolder(String folderId) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      try {
-        final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-        final response = await filesProvider.downloadFolder(folderId);
-        
-        if (response.statusCode == 200) {
-          final directory = await getExternalStorageDirectory();
-          if (directory != null) {
-            final folderName = 'folder_$folderId.zip';
-            final filePath = '${directory.path}/Download/$folderName';
-            final savedFile = File(filePath);
-            await savedFile.create(recursive: true);
-            await savedFile.writeAsBytes(response.data);
-            
-            if (mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Dossier téléchargé: $filePath'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   void _showMoveDialog(BuildContext context, String id, String name, bool isFolder) {

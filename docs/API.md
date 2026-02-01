@@ -420,22 +420,6 @@ Supprimer un dossier et son contenu.
 
 ---
 
-#### GET `/folders/:id/download`
-
-Télécharger un dossier entier en ZIP.
-
-**Authentification** : Optionnelle (JWT dans `Authorization: Bearer …`) ou partage public avec `?token=…` et éventuellement `?password=…`.
-
-**Réponse** (200) : Fichier ZIP en streaming (`Content-Type: application/zip`).
-
-**Erreurs** :
-- 400 : ID invalide ou dossier vide
-- 403 : Accès refusé
-- 404 : Dossier non trouvé ou aucun fichier accessible sur le serveur (`FOLDER_EMPTY_OR_ORPHANED`)
-- 503 : Erreur de connexion base de données
-
----
-
 ### 📄 FICHIERS
 
 #### GET `/files`

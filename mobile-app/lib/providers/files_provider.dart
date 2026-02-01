@@ -403,10 +403,6 @@ class FilesProvider with ChangeNotifier {
     }
   }
   
-  Future<Response> downloadFolder(String folderId) async {
-    return await _apiService.downloadFolder(folderId);
-  }
-  
   void setCurrentFolder(FolderItem? folder) {
     _currentFolder = folder;
     notifyListeners();

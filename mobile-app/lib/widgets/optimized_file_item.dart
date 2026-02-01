@@ -127,16 +127,6 @@ class _FolderItemWidget extends StatelessWidget {
             ),
           ),
           PopupMenuItem(
-            value: 'download',
-            child: Row(
-              children: [
-                Icon(Icons.download, size: 20),
-                SizedBox(width: 8),
-                Text('Télécharger (ZIP)'),
-              ],
-            ),
-          ),
-          PopupMenuItem(
             value: 'move',
             child: Row(
               children: [

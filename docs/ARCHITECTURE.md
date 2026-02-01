@@ -34,7 +34,7 @@
 │  │  - Authentication (JWT)    - Validation             │    │
 │  │  - Authorization (ACL)     - Error Handling         │    │
 │  │  - File Upload Handler     - Caching                │    │
-│  │  - Compression/ZIP         - Rate Limiting          │    │
+│  │  - Rate Limiting            - Request Logging        │    │
 │  │  - Image/PDF Preview       - Request Logging        │    │
 │  └──────────────────────────────────────────────────────┘    │
 └──────┬──────────────────────────────────────┬─────────────────┘
@@ -651,7 +651,6 @@ backend_data  → /usr/src/app/uploads
 | **BDD** | MongoDB | Schéma flexible, scalabilité horizontale, adapté aux métadonnées fichiers |
 | **Auth** | JWT + bcryptjs | Sans session serveur, standard pour les API REST |
 | **Upload** | Multer | Middleware standard pour multipart/form-data |
-| **Zip** | Archiver | Génération de ZIP en stream |
 | **Image** | Sharp | Redimensionnement et optimisation d’images |
 | **Conteneurisation** | Docker | Portabilité, reproductibilité, déploiement simplifié |
 

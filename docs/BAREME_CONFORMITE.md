@@ -124,7 +124,7 @@ Critères appréciés :
 
 - **Auth (inscription, connexion, OAuth, JWT)** : `backend/controllers/authController.js`, `usersController.js`, `backend/config/passport.js`, `backend/routes/auth.js`, `backend/middlewares/authMiddleware.js`, `backend/utils/jwt.js`.
 - **Fichiers & dossiers** : `backend/controllers/filesController.js`, `foldersController.js`, `backend/models/fileModel.js`, `folderModel.js`, `frontend-web/src/pages/Files.jsx`, `Trash.jsx`, mobile `lib/screens/files/`, `TrashScreen`.
-- **Prévisualisation & téléchargement** : `filesController.js` (`previewFile`, `streamFile`, download, ZIP), `frontend-web/src/pages/Preview.jsx`, mobile Preview / galerie / lecteurs.
+- **Prévisualisation & téléchargement** : `filesController.js` (`previewFile`, `streamFile`, download fichier), `frontend-web/src/pages/Preview.jsx`, mobile Preview / galerie / lecteurs.
 - **Partage** : `backend/controllers/shareController.js`, `shareModel.js`, `frontend-web/src/pages/Share.jsx`, `mobile-app/lib/screens/share/`, `PublicShareScreen`.
 - **Dashboard & recherche** : `backend/controllers/dashboardController.js`, `searchController.js`, `frontend-web/src/pages/Dashboard.jsx`, `Search.jsx`, mobile dashboard et search.
 - **Documentation** : `docs/INSTALLATION.md`, `ARCHITECTURE.md`, `DATABASE.md`, `API.md`, `DIAGRAMMES_UML.md`, `MANUEL_UTILISATEUR.md`, `RENDU.md`.
