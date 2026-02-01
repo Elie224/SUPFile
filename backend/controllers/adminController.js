@@ -221,10 +221,16 @@ async function updateUser(req, res, next) {
   }
 }
 
-// Supprimer un utilisateur
+// Supprimer un utilisateur — réservé au seul admin principal (<SUPER_ADMIN_EMAIL>)
 // body: { blockEmail?: boolean } - si true, bloque l'email ; si false, l'utilisateur peut recréer un compte
 async function deleteUser(req, res, next) {
   try {
+    if (req.user?.email !== SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({
+        error: { message: 'Seul l\'administrateur principal peut supprimer des utilisateurs.' }
+      });
+    }
+
     const userId = req.params.id;
     const blockEmail = req.body?.blockEmail === true;
 

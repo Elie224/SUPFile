@@ -4,6 +4,8 @@ import { useAuthStore } from '../services/authStore';
 import { API_URL } from '../config';
 import { useToast } from '../components/Toast';
 
+const SUPER_ADMIN_EMAIL = '<SUPER_ADMIN_EMAIL>';
+
 export default function Admin() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -356,21 +358,23 @@ export default function Admin() {
                           >
                             Modifier
                           </button>
-                          <button
-                            onClick={() => handleDeleteClick(u)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#f44336',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            Supprimer
-                          </button>
+                          {user?.email === SUPER_ADMIN_EMAIL && (
+                            <button
+                              onClick={() => handleDeleteClick(u)}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#f44336',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '600'
+                              }}
+                            >
+                              Supprimer
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
