@@ -238,11 +238,11 @@ async function downloadFolder(req, res, next) {
 
     // Vérifier la propriété ou le partage public
     let hasAccess = false;
-    
+    const folderOwnerId = String(folder.owner_id || '');
+
     // Vérifier si l'utilisateur est le propriétaire
     if (userId) {
-      const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
-      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      const userOwnerId = String(userId);
       if (folderOwnerId === userOwnerId) {
         hasAccess = true;
       }

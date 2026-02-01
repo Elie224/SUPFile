@@ -146,6 +146,40 @@ export default function Preview() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const apiUrlForDownload = import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com';
+  const handleDownload = async () => {
+    if (!id) return;
+    const t = localStorage.getItem('access_token');
+    if (!t) {
+      window.location.href = '/login';
+      return;
+    }
+    try {
+      const response = await fetch(`${apiUrlForDownload}/api/files/${id}/download`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error?.message || 'Erreur lors du téléchargement');
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition');
+      const match = disposition && disposition.match(/filename="?([^";]+)"?/);
+      const filename = match ? match[1].trim() : (file?.name || 'download');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert(err.message || 'Erreur lors du téléchargement');
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
@@ -159,15 +193,25 @@ export default function Preview() {
       <div style={{ padding: 24, textAlign: 'center' }}>
         <h2>Erreur</h2>
         <p>{error}</p>
-        <a href={`${import.meta.env.VITE_API_URL || 'https://supfile-1.onrender.com'}/api/files/${id}/download`} download>
+        <button
+          type="button"
+          onClick={handleDownload}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+          }}
+        >
           Télécharger le fichier
-        </a>
+        </button>
       </div>
     );
   }
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const downloadUrl = `${apiUrl}/api/files/${id}/download`;
   const token = localStorage.getItem('access_token');
 
   const hasGallery = previewType === 'image' && galleryImages.length > 1;
@@ -177,19 +221,20 @@ export default function Preview() {
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0 }}>Prévisualisation</h1>
-        <a
-          href={downloadUrl}
-          download
+        <button
+          type="button"
+          onClick={handleDownload}
           style={{
             padding: '8px 16px',
             backgroundColor: '#2196F3',
             color: 'white',
-            textDecoration: 'none',
+            border: 'none',
             borderRadius: 4,
+            cursor: 'pointer',
           }}
         >
           Télécharger
-        </a>
+        </button>
       </div>
 
       <div style={{ border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
@@ -291,20 +336,20 @@ export default function Preview() {
         {previewType === 'download' && (
           <div style={{ padding: 48, textAlign: 'center' }}>
             <p>Ce type de fichier ne peut pas être prévisualisé.</p>
-            <a
-              href={downloadUrl}
-              download
+            <button
+              type="button"
+              onClick={handleDownload}
               style={{
                 padding: '12px 24px',
                 backgroundColor: '#2196F3',
                 color: 'white',
-                textDecoration: 'none',
+                border: 'none',
                 borderRadius: 4,
-                display: 'inline-block',
+                cursor: 'pointer',
               }}
             >
               Télécharger le fichier
-            </a>
+            </button>
           </div>
         )}
       </div>

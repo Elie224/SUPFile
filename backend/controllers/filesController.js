@@ -311,11 +311,11 @@ async function downloadFile(req, res, next) {
 
     // Vérifier la propriété ou le partage public
     let hasAccess = false;
-    
+    const fileOwnerId = String(file.owner_id || '');
+
     // Vérifier si l'utilisateur est le propriétaire
     if (userId) {
-      const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
-      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      const userOwnerId = String(userId);
       if (fileOwnerId === userOwnerId) {
         hasAccess = true;
       }

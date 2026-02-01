@@ -7,7 +7,7 @@ const { validateFileUpload } = require('../middlewares/fileValidation');
 const { uploadLimiter } = require('../middlewares/rateLimiter');
 
 // Télécharger un fichier (peut être public avec token de partage - DOIT être avant authMiddleware)
-router.get('/:id/download', optionalAuthMiddleware, filesController.downloadFile);
+router.get('/:id/download', optionalAuthMiddleware, validateObjectId, filesController.downloadFile);
 
 // Routes protégées (toutes les autres routes nécessitent une authentification)
 router.use(authMiddleware);
