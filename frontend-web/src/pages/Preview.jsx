@@ -475,22 +475,22 @@ function VideoPreview({ url, token }) {
   const [isFallback, setIsFallback] = useState(false);
   const [isFallbackLoading, setIsFallbackLoading] = useState(false);
 
-  // Construire l'URL avec le token en query param pour streaming natif
-  const streamUrl = useMemo(() => {
-    if (!url || !token) return null;
+  const effectiveToken = token || localStorage.getItem('access_token');
+  const streamUrl = (() => {
+    if (!url || !effectiveToken) return null;
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}token=${encodeURIComponent(token)}`;
-  }, [url, token]);
+    return `${url}${separator}token=${encodeURIComponent(effectiveToken)}`;
+  })();
 
   const tryFallback = async () => {
-    if (!url || !token) {
+    if (!url || !effectiveToken) {
       setError('Impossible de charger la vidéo. Vérifiez que le fichier existe sur le serveur.');
       return;
     }
     setIsFallbackLoading(true);
     try {
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${effectiveToken}` },
       });
       if (!response.ok) {
         throw new Error(`Erreur de streaming (${response.status})`);
@@ -551,22 +551,22 @@ function AudioPreview({ url, token }) {
   const [isFallback, setIsFallback] = useState(false);
   const [isFallbackLoading, setIsFallbackLoading] = useState(false);
 
-  // Construire l'URL avec le token en query param pour streaming natif
-  const streamUrl = useMemo(() => {
-    if (!url || !token) return null;
+  const effectiveToken = token || localStorage.getItem('access_token');
+  const streamUrl = (() => {
+    if (!url || !effectiveToken) return null;
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}token=${encodeURIComponent(token)}`;
-  }, [url, token]);
+    return `${url}${separator}token=${encodeURIComponent(effectiveToken)}`;
+  })();
 
   const tryFallback = async () => {
-    if (!url || !token) {
+    if (!url || !effectiveToken) {
       setError('Impossible de charger l\'audio. Vérifiez que le fichier existe sur le serveur.');
       return;
     }
     setIsFallbackLoading(true);
     try {
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${effectiveToken}` },
       });
       if (!response.ok) {
         throw new Error(`Erreur de streaming (${response.status})`);

@@ -481,9 +481,19 @@ async function completeChunkedUpload(req, res, next) {
       writeStream.on('error', reject);
     });
 
-    // Vérifier que le fichier existe physiquement
+    // Vérifier que le fichier existe physiquement et que la taille est correcte
     try {
-      await fs.access(finalPath);
+      const stat = await fs.stat(finalPath);
+      if (stat.size !== metadata.size) {
+        await fs.unlink(finalPath).catch(() => {});
+        logger.logError(new Error('Assembled file size mismatch'), {
+          context: 'completeChunkedUpload - size mismatch',
+          finalPath,
+          expected: metadata.size,
+          actual: stat.size,
+        });
+        return res.status(500).json({ error: { message: 'Failed to assemble file' } });
+      }
     } catch (accessErr) {
       logger.logError(accessErr, { context: 'completeChunkedUpload - file not accessible', finalPath });
       return res.status(500).json({ error: { message: 'Failed to assemble file' } });
