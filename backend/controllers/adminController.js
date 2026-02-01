@@ -222,9 +222,11 @@ async function updateUser(req, res, next) {
 }
 
 // Supprimer un utilisateur
+// body: { blockEmail?: boolean } - si true, bloque l'email ; si false, l'utilisateur peut recréer un compte
 async function deleteUser(req, res, next) {
   try {
     const userId = req.params.id;
+    const blockEmail = req.body?.blockEmail === true;
 
     const User = mongoose.models.User || mongoose.model('User');
     const targetUser = await User.findById(userId);
@@ -264,15 +266,18 @@ async function deleteUser(req, res, next) {
     await File.deleteMany({ owner_id: userId });
     await Folder.deleteMany({ owner_id: userId });
 
-    // Bloquer l'adresse email pour empêcher toute création de compte futur
-    await BlockedEmailModel.add(targetUser.email, req.user?.id);
+    if (blockEmail) {
+      await BlockedEmailModel.add(targetUser.email, req.user?.id);
+    }
 
     await User.findByIdAndDelete(userId);
 
+    const message = blockEmail
+      ? 'Utilisateur supprimé. Cette adresse email est bloquée et ne pourra plus créer de compte.'
+      : 'Utilisateur supprimé. Cette adresse email pourra recréer un compte à l\'avenir.';
+
     res.status(200).json({
-      data: {
-        message: 'Utilisateur supprimé définitivement. Cette adresse email est bloquée et ne pourra plus créer de compte.'
-      }
+      data: { message }
     });
   } catch (err) {
     next(err);

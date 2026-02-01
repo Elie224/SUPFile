@@ -17,7 +17,6 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ display_name: '', quota_limit: '', is_active: true, is_admin: false });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [userToDelete, setUserToDelete] = useState(null);
-  const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
@@ -125,18 +124,21 @@ export default function Admin() {
 
   const handleDeleteClick = (user) => {
     setUserToDelete(user);
-    setDeleteConfirmChecked(false);
   };
 
-  const handleDeleteUser = async () => {
-    if (!userToDelete || !deleteConfirmChecked) return;
+  const handleDeleteUser = async (blockEmail) => {
+    if (!userToDelete) return;
 
     setDeleteLoading(true);
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_URL}/api/admin/users/${userToDelete.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ blockEmail: !!blockEmail })
       });
 
       const data = await response.json();
@@ -145,7 +147,7 @@ export default function Admin() {
         throw new Error(data.error?.message || 'Erreur lors de la suppression');
       }
 
-      showMessage('success', data.data?.message || 'Utilisateur supprimé définitivement et adresse bloquée.');
+      showMessage('success', data.data?.message || 'Utilisateur supprimé.');
       setUserToDelete(null);
       loadUsers();
       loadStats();
@@ -564,27 +566,55 @@ export default function Admin() {
             border: '1px solid var(--border-color)'
           }}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px', fontWeight: '600', color: 'var(--text-color)' }}>
-              Supprimer définitivement cet utilisateur ?
+              Supprimer cet utilisateur ?
             </h3>
-            <p style={{ marginBottom: '16px', color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '14px' }}>
+            <p style={{ marginBottom: '20px', color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '14px' }}>
               L&apos;utilisateur <strong style={{ color: 'var(--text-color)' }}>{userToDelete.email}</strong> sera supprimé de toute l&apos;application (compte, fichiers, dossiers, sessions).
             </p>
-            <p style={{ marginBottom: '20px', color: 'var(--danger-color)', lineHeight: 1.5, fontSize: '14px', fontWeight: 600 }}>
-              Cette adresse email sera bloquée et ne pourra plus créer de compte à l&apos;avenir.
+            <p style={{ marginBottom: '20px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+              Choisissez une option :
             </p>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '24px' }}>
-              <input
-                type="checkbox"
-                checked={deleteConfirmChecked}
-                onChange={(e) => setDeleteConfirmChecked(e.target.checked)}
-              />
-              <span style={{ fontSize: '14px', color: 'var(--text-color)' }}>
-                Je confirme : supprimer définitivement cet utilisateur et bloquer l&apos;adresse email.
-              </span>
-            </label>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
               <button
-                onClick={() => { setUserToDelete(null); setDeleteConfirmChecked(false); }}
+                onClick={() => handleDeleteUser(false)}
+                disabled={deleteLoading}
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: deleteLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  textAlign: 'left',
+                  fontSize: '14px'
+                }}
+              >
+                <span style={{ display: 'block', marginBottom: '4px' }}>Supprimer sans bloquer</span>
+                <span style={{ fontSize: '12px', fontWeight: 400, opacity: 0.9 }}>L&apos;utilisateur pourra recréer un compte avec cette adresse</span>
+              </button>
+              <button
+                onClick={() => handleDeleteUser(true)}
+                disabled={deleteLoading}
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: deleteLoading ? '#666' : 'rgba(239, 68, 68, 0.15)',
+                  color: deleteLoading ? '#999' : '#dc2626',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '8px',
+                  cursor: deleteLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  textAlign: 'left',
+                  fontSize: '14px'
+                }}
+              >
+                <span style={{ display: 'block', marginBottom: '4px' }}>Supprimer et bloquer l&apos;email</span>
+                <span style={{ fontSize: '12px', fontWeight: 400, opacity: 0.9 }}>Cette adresse ne pourra plus créer de compte</span>
+              </button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setUserToDelete(null)}
                 disabled={deleteLoading}
                 style={{
                   padding: '10px 20px',
@@ -597,21 +627,6 @@ export default function Admin() {
                 }}
               >
                 Annuler
-              </button>
-              <button
-                onClick={handleDeleteUser}
-                disabled={!deleteConfirmChecked || deleteLoading}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: (!deleteConfirmChecked || deleteLoading) ? '#999' : '#f44336',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: (!deleteConfirmChecked || deleteLoading) ? 'not-allowed' : 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                {deleteLoading ? 'Suppression...' : 'Supprimer définitivement'}
               </button>
             </div>
           </div>
