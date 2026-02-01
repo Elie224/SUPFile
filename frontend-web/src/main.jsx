@@ -12,6 +12,19 @@ import syncService from './services/syncService';
 import offlineDB from './services/offlineDB';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
+import { ensureDownloadContainer } from './utils/downloadBlob';
+
+// Conteneur de téléchargement créé avant tout rendu React pour éviter insertBefore pendant les clics
+if (typeof document !== 'undefined') {
+  const init = () => {
+    try { ensureDownloadContainer(); } catch (_) {}
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}
 
 // Capturer les erreurs globales (promesses, window.onerror) pour diagnostic même si ErrorBoundary ne les voit pas
 function captureGlobalError(payload) {

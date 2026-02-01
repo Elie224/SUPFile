@@ -692,8 +692,10 @@ export default function Files() {
         toast.warning(safeT('mustBeConnected', 'Vous devez être connecté.'));
         return;
       }
-      // Mise à jour de l'état au prochain tick pour éviter re-render pendant le clic
-      setTimeout(() => setDownloadingFolder(id), 0);
+      // Mise à jour de l'état après la prochaine frame pour éviter conflit insertBefore avec React
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setDownloadingFolder(id));
+      });
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), FOLDER_DOWNLOAD_TIMEOUT_MS);
       toast.info(safeT('downloadStarting', 'Téléchargement en cours...'), 2000);
@@ -1430,7 +1432,7 @@ export default function Files() {
                   
                   return (
                   <tr 
-                    key={itemId} 
+                    key={`${itemId}-${index}`} 
                     style={{ 
                       borderBottom: index < sortedItems.length - 1 ? '1px solid var(--border-color)' : 'none',
                       backgroundColor: selectedItems.includes(itemId)
