@@ -1700,19 +1700,22 @@ export default function Files() {
                                     toast.warning(typeof t === 'function' ? t('mustBeConnected') : 'Vous devez être connecté.');
                                     return;
                                   }
-                                  const response = await fileService.downloadBlob(String(itemId));
-                                  const disposition = response.headers?.['content-disposition'];
-                                  const match = disposition && disposition.match(/filename="?([^";]+)"?/);
-                                  const filename = match ? match[1].trim() : sanitizeDownloadFilename(item?.name, 'download');
-                                  downloadBlob(response.data, filename);
+                                  // Téléchargement direct pour démarrer immédiatement
+                                  const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                                  window.location.href = `${apiUrl}/api/files/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                  return;
                                 } catch (err) {
                                   console.error('Download failed:', err);
-                                  // Fallback direct pour éviter les erreurs CORS / ERR_FAILED
-                                  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
-                                  if (token) {
-                                    const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-                                    window.location.href = `${apiUrl}/api/files/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                  // Fallback blob si nécessaire
+                                  try {
+                                    const response = await fileService.downloadBlob(String(itemId));
+                                    const disposition = response.headers?.['content-disposition'];
+                                    const match = disposition && disposition.match(/filename="?([^";]+)"?/);
+                                    const filename = match ? match[1].trim() : sanitizeDownloadFilename(item?.name, 'download');
+                                    downloadBlob(response.data, filename);
                                     return;
+                                  } catch (fallbackErr) {
+                                    console.error('Download fallback failed:', fallbackErr);
                                   }
                                   toast.error(typeof err?.message === 'string' ? err.message : (typeof t === 'function' ? t('downloadError') : 'Erreur lors du téléchargement'));
                                 }

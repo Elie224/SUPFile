@@ -152,17 +152,21 @@ export default function Preview() {
       return;
     }
     try {
-      const response = await fileService.downloadBlob(id);
-      const disposition = response.headers?.['content-disposition'];
-      const match = disposition && disposition.match(/filename="?([^";]+)"?/);
-      const filename = match ? match[1].trim() : (file?.name || 'download');
-      downloadBlob(response.data, filename);
+      // Téléchargement direct pour démarrer immédiatement
+      window.location.href = `${apiUrlForDownload}/api/files/${id}/download?access_token=${encodeURIComponent(t)}`;
+      return;
     } catch (err) {
       console.error('Download failed:', err);
-      // Fallback direct pour éviter les erreurs CORS / ERR_FAILED
-      if (t) {
-        window.location.href = `${apiUrlForDownload}/api/files/${id}/download?access_token=${encodeURIComponent(t)}`;
+      // Fallback blob si nécessaire
+      try {
+        const response = await fileService.downloadBlob(id);
+        const disposition = response.headers?.['content-disposition'];
+        const match = disposition && disposition.match(/filename="?([^";]+)"?/);
+        const filename = match ? match[1].trim() : (file?.name || 'download');
+        downloadBlob(response.data, filename);
         return;
+      } catch (fallbackErr) {
+        console.error('Download fallback failed:', fallbackErr);
       }
       alert(err.message || 'Erreur lors du téléchargement');
     }
