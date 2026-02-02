@@ -165,6 +165,11 @@ export default function Preview() {
       downloadBlob(blob, filename);
     } catch (err) {
       console.error('Download failed:', err);
+      // Fallback direct pour éviter les erreurs CORS / ERR_FAILED
+      if (t) {
+        window.location.href = `${apiUrlForDownload}/api/files/${id}/download?access_token=${encodeURIComponent(t)}`;
+        return;
+      }
       alert(err.message || 'Erreur lors du téléchargement');
     }
   };

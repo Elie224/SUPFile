@@ -69,11 +69,12 @@ async function authMiddleware(req, res, next) {
  * Accepte le token depuis :
  *   1. Header Authorization: Bearer <token>
  *   2. Query param ?token=<token> (utile pour <video src="...?token=xxx">)
+ *   3. Query param ?access_token=<token> (utile pour téléchargement direct)
  */
 function optionalAuthMiddleware(req, res, next) {
   try {
     // Priorité au header, puis au query param
-    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token || req.query.access_token;
 
     if (token) {
       try {

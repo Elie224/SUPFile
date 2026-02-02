@@ -1712,6 +1712,13 @@ export default function Files() {
                                   downloadBlob(blob, sanitizeDownloadFilename(item?.name, 'download'));
                                 } catch (err) {
                                   console.error('Download failed:', err);
+                                  // Fallback direct pour éviter les erreurs CORS / ERR_FAILED
+                                  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+                                  if (token) {
+                                    const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                                    window.location.href = `${apiUrl}/api/files/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                    return;
+                                  }
                                   toast.error(typeof err?.message === 'string' ? err.message : (typeof t === 'function' ? t('downloadError') : 'Erreur lors du téléchargement'));
                                 }
                               })().catch(() => {});
