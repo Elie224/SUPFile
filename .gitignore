@@ -28,6 +28,12 @@ Thumbs.db
 
 # Docker
 .docker-compose.override.yml
+# Local debug scripts (do not commit)
+create-account.js
+forgot-password.js
+login-test.js
+resend-verification.js
+test-auth-flow.ps1
 
 # Uploads (gros fichiers)
 backend/uploads/*
