@@ -1,3 +1,5 @@
+import '../utils/constants.dart';
+
 class User {
   final String id;
   final String email;
@@ -63,11 +65,16 @@ class User {
     final twoFactorEnabled = json['two_factor_enabled'] == true;
     final isAdmin = json['is_admin'] == true;
 
+    final rawAvatarUrl = json['avatar_url']?.toString();
+    final avatarUrl = (rawAvatarUrl != null && rawAvatarUrl.startsWith('/'))
+        ? '${AppConstants.apiBaseUrl}$rawAvatarUrl'
+        : rawAvatarUrl;
+
     return User(
       id: id,
       email: email,
       displayName: json['display_name']?.toString(),
-      avatarUrl: json['avatar_url']?.toString(),
+      avatarUrl: avatarUrl,
       quotaUsed: quotaUsed,
       quotaLimit: quotaLimit,
       preferences: json['preferences'] is Map ? json['preferences'] as Map<String, dynamic> : null,

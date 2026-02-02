@@ -1,18 +1,18 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/secure_logger.dart';
+import '../../utils/secure_storage.dart';
 import '../../models/file.dart';
-import '../../providers/files_provider.dart';
+import '../../widgets/app_back_button.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String fileId;
@@ -35,6 +35,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
   AudioPlayer? _audioPlayer;
   bool _isPlaying = false;
 
+  Map<String, String> _authHeaders = const {};
+  Uint8List? _pdfBytes;
+  Uint8List? _imageBytes;
+  String? _textContent;
+  String? _previewMimeType;
+
   @override
   void initState() {
     super.initState();
@@ -50,58 +56,58 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Future<void> _loadFile() async {
     try {
-      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-      
-      // Charger tous les fichiers du dossier courant
-      final response = await _apiService.listFiles();
-      if (response.statusCode == 200) {
-        final items = response.data['data']['items'] ?? [];
-        _filesInFolder = [];
-        
-        // Extraire les fichiers du dossier
-        for (var item in items) {
-          if (item['type'] == 'file' || item['folder_id'] != null) {
-            final file = FileItem.fromJson(item);
-            _filesInFolder.add(file);
-            
-            // Trouver le fichier courant et son index
-            if (file.id == widget.fileId) {
-              _file = file;
-              _currentFileIndex = _filesInFolder.length - 1;
-              _folderId = file.folderId;
-            }
-          }
-        }
-        
-        // Si le fichier n'a pas été trouvé dans la liste, le charger directement
-        if (_file == null) {
-          for (var item in items) {
-            if ((item['id']?.toString() ?? item['_id']?.toString()) == widget.fileId) {
-              _file = FileItem.fromJson(item);
-              _folderId = _file!.folderId;
-              break;
-            }
-          }
-          
-          if (_file == null) {
-            setState(() {
-              _error = 'Fichier non trouvé';
-              _isLoading = false;
-            });
-            return;
-          }
-        }
-        
+      // 1) Charger les métadonnées du fichier (requête authentifiée + refresh auto)
+      final fileRes = await _apiService.getFile(widget.fileId);
+      if (fileRes.statusCode != 200) {
         setState(() {
+          _error = 'Erreur lors du chargement (code: ${fileRes.statusCode ?? '??'})';
           _isLoading = false;
         });
-        _loadPreview();
-      } else {
-        setState(() {
-          _error = 'Erreur lors du chargement';
-          _isLoading = false;
-        });
+        return;
       }
+
+      final fileData = (fileRes.data is Map && (fileRes.data as Map)['data'] is Map)
+          ? Map<String, dynamic>.from((fileRes.data as Map)['data'] as Map)
+          : null;
+      if (fileData == null) {
+        setState(() {
+          _error = 'Réponse serveur invalide';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _file = FileItem.fromJson(fileData);
+      _folderId = _file!.folderId;
+
+      // 2) Préparer les headers Authorization pour les widgets réseau (image/video)
+      final token = await SecureStorage.getAccessToken();
+      _authHeaders = token != null ? <String, String>{'Authorization': 'Bearer $token'} : const {};
+
+      // 3) Charger les fichiers du même dossier pour navigation précédent/suivant
+      final listRes = await _apiService.listFiles(folderId: _folderId);
+      if (listRes.statusCode == 200) {
+        final items = (listRes.data is Map && (listRes.data as Map)['data'] is Map)
+            ? (((listRes.data as Map)['data'] as Map)['items'] as List? ?? const [])
+            : const [];
+        _filesInFolder = [];
+        for (final item in items) {
+          if (item is! Map) continue;
+          final map = Map<String, dynamic>.from(item as Map);
+          final type = map['type']?.toString();
+          if (type == 'file') {
+            final f = FileItem.fromJson(map);
+            _filesInFolder.add(f);
+          }
+        }
+        _currentFileIndex = _filesInFolder.indexWhere((f) => f.id == widget.fileId);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      _loadPreview();
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -114,17 +120,73 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_file == null) return;
 
     try {
+      // Le backend renvoie la prévisualisation via /preview (JSON + base64)
+      if (_file!.isImage || _file!.isPdf || _file!.isText) {
+        final res = await _apiService.previewFile(_file!.id, size: 'large');
+        final code = res.statusCode ?? 0;
+        if (code != 200) {
+          throw Exception('Impossible de charger le preview (code: $code)');
+        }
+
+        final data = (res.data is Map && (res.data as Map)['data'] is Map)
+            ? Map<String, dynamic>.from((res.data as Map)['data'] as Map)
+            : null;
+        if (data == null) {
+          throw Exception('Réponse preview invalide');
+        }
+
+        final content = data['content'];
+        final mime = data['mime_type']?.toString();
+        _previewMimeType = mime;
+
+        Uint8List decoded;
+        if (content is String) {
+          try {
+            final b64 = content.contains(',') ? content.split(',').last : content;
+            decoded = base64Decode(b64);
+          } catch (_) {
+            decoded = Uint8List.fromList(utf8.encode(content));
+          }
+        } else {
+          decoded = Uint8List(0);
+        }
+
+        if (_file!.isImage) {
+          _imageBytes = decoded;
+        } else if (_file!.isPdf) {
+          _pdfBytes = decoded;
+        } else if (_file!.isText) {
+          _textContent = utf8.decode(decoded, allowMalformed: true);
+        }
+
+        if (mounted) setState(() {});
+        return;
+      }
+
+      // Audio/Vidéo: streaming via /stream
       if (_file!.isVideo) {
         // Construire l'URL de streaming
         final streamUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream';
-        _videoController = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
+        _videoController = VideoPlayerController.networkUrl(
+          Uri.parse(streamUrl),
+          httpHeaders: _authHeaders,
+        );
         await _videoController!.initialize();
         setState(() {});
       } else if (_file!.isAudio) {
         _audioPlayer = AudioPlayer();
-        // Construire l'URL de streaming
-        final streamUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream';
-        await _audioPlayer!.play(UrlSource(streamUrl));
+        // Télécharger le flux en local pour éviter les 401 (UrlSource ne supporte pas toujours les headers)
+        final bytesRes = await _apiService.streamFileBytes(_file!.id);
+        final code = bytesRes.statusCode ?? 0;
+        if (code == 200 && bytesRes.data != null) {
+          final dir = await getTemporaryDirectory();
+          final path = '${dir.path}${Platform.pathSeparator}${_file!.name}';
+          final out = File(path);
+          await out.writeAsBytes(bytesRes.data!);
+          await _audioPlayer!.play(DeviceFileSource(out.path));
+        } else {
+          throw Exception('Impossible de charger le flux audio (code: $code)');
+        }
         setState(() {
           _isPlaying = true;
         });
@@ -189,28 +251,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_file == null) return;
     
     try {
-      // Demander les permissions de stockage
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Permission de stockage refusée')),
-            );
-          }
-          return;
-        }
-      }
-      
       // Télécharger le fichier
       final response = await _apiService.downloadFile(_file!.id);
       if (response.statusCode == 200 && response.data is List<int>) {
-        // Obtenir le répertoire de téléchargements
+        // Enregistrer dans un dossier app-specific (pas de permission requise)
         Directory? directory;
         if (Platform.isAndroid) {
           directory = await getExternalStorageDirectory();
-          directory = Directory('${directory?.path}/Download');
-        } else if (Platform.isIOS) {
+        } else {
           directory = await getApplicationDocumentsDirectory();
         }
         
@@ -231,7 +279,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Fichier sauvegardé: ${_file!.name}'),
+              content: Text('Fichier sauvegardé: $filePath'),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
@@ -254,7 +302,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   void _navigateToPrevious() {
     if (_currentFileIndex > 0 && _filesInFolder.isNotEmpty) {
       final previousFile = _filesInFolder[_currentFileIndex - 1];
-      context.go('/preview/${previousFile.id}');
+      context.push('/preview/${previousFile.id}');
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Premier fichier atteint')),
@@ -266,7 +314,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   void _navigateToNext() {
     if (_currentFileIndex >= 0 && _currentFileIndex < _filesInFolder.length - 1) {
       final nextFile = _filesInFolder[_currentFileIndex + 1];
-      context.go('/preview/${nextFile.id}');
+      context.push('/preview/${nextFile.id}');
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Dernier fichier atteint')),
@@ -279,10 +327,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
+          leading: const AppBackButton(fallbackLocation: '/files'),
           title: const Text('Chargement...'),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -292,10 +337,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_error != null || _file == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
+          leading: const AppBackButton(fallbackLocation: '/files'),
           title: const Text('Erreur'),
         ),
         body: Center(
@@ -313,10 +355,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/files'),
         title: Text(_file!.name),
         actions: [
           IconButton(
@@ -352,13 +391,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildImagePreview() {
-    final imageUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/preview';
+    if (_imageBytes == null || _imageBytes!.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Center(
       child: InteractiveViewer(
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          placeholder: (context, url) => const CircularProgressIndicator(),
-          errorWidget: (context, url, error) => Column(
+        child: Image.memory(
+          _imageBytes!,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
@@ -366,7 +408,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
               Text('Erreur: $error'),
             ],
           ),
-          fit: BoxFit.contain,
         ),
       ),
     );
@@ -468,42 +509,26 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildPdfPreview() {
-    final pdfUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream';
-    return SfPdfViewer.network(pdfUrl);
+    if (_pdfBytes == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return SfPdfViewer.memory(_pdfBytes!);
   }
 
   Widget _buildTextPreview() {
-    return FutureBuilder(
-      future: _apiService.previewFile(_file!.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Erreur: ${snapshot.error}'),
-              ],
-            ),
-          );
-        }
-        final textContent = snapshot.data?.data['content'] ?? 
-                           snapshot.data?.data.toString() ?? 
-                           'Contenu non disponible';
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: SelectableText(
-              textContent,
-              style: const TextStyle(fontFamily: 'monospace'),
-            ),
-          ),
-        );
-      },
+    final text = _textContent;
+    if (text == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: SelectableText(
+          text,
+          style: const TextStyle(fontFamily: 'monospace'),
+        ),
+      ),
     );
   }
 

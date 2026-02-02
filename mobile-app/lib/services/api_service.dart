@@ -1,14 +1,11 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 import '../utils/secure_storage.dart';
 import '../utils/rate_limiter.dart';
 import '../utils/network_utils.dart';
 import '../utils/secure_logger.dart';
 import '../utils/security_utils.dart';
-import '../utils/http_cache.dart';
 import '../utils/performance_cache.dart';
 
 class ApiService {
@@ -31,20 +28,15 @@ class ApiService {
       persistentConnection: true,
     ));
     
-    // Initialiser le cache HTTP de manière asynchrone
-    HttpCache.initialize();
-    
-    // Intercepteur de cache HTTP (si disponible)
-    final cacheInterceptor = HttpCache.getInterceptor();
-    if (cacheInterceptor != null) {
-      _dio.interceptors.add(cacheInterceptor);
-    }
+    // Note: le cache HTTP (ETag/304) peut provoquer des statuts 304 que l'UI
+    // interprète comme des erreurs. L'app utilise déjà PerformanceCache + OfflineStorage,
+    // donc on désactive le cache HTTP Dio pour fiabiliser le comportement.
     
     // Intercepteur de compression
     _dio.interceptors.add(NetworkUtils.createCompressionInterceptor());
     
     // Intercepteur de retry avec backoff exponentiel
-    _dio.interceptors.add(NetworkUtils.createRetryInterceptor());
+    _dio.interceptors.add(NetworkUtils.createRetryInterceptor(dio: _dio));
     
     // Intercepteur pour ajouter le token et rate limiting
     _dio.interceptors.add(InterceptorsWrapper(
@@ -76,6 +68,37 @@ class ApiService {
         
         return handler.next(options);
       },
+      onResponse: (response, handler) async {
+        // IMPORTANT:
+        // validateStatus accepte les 4xx (status < 500), donc les 401 ne passent pas
+        // dans onError. On gère donc aussi le refresh ici.
+        if (response.statusCode == 401) {
+          final opts = response.requestOptions;
+
+          // Éviter les boucles: ne pas retry deux fois la même requête.
+          final alreadyRetried = opts.extra['__authRetry'] == true;
+          final isAuthRoute = opts.path.startsWith('/auth/') || opts.path.contains('/auth/');
+          if (!alreadyRetried && !isAuthRoute) {
+            final refreshed = await _refreshToken();
+            if (refreshed) {
+              final token = await SecureStorage.getAccessToken();
+              if (token != null) {
+                opts.headers['Authorization'] = 'Bearer $token';
+              }
+              opts.extra['__authRetry'] = true;
+              try {
+                final retryResponse = await _dio.fetch(opts);
+                return handler.resolve(retryResponse);
+              } catch (_) {
+                await SecureStorage.clearAll();
+              }
+            } else {
+              await SecureStorage.clearAll();
+            }
+          }
+        }
+        return handler.next(response);
+      },
       onError: (error, handler) async {
         // Logging sécurisé des erreurs
         SecureLogger.error(
@@ -93,6 +116,7 @@ class ApiService {
             if (token != null) {
               opts.headers['Authorization'] = 'Bearer $token';
             }
+            opts.extra['__authRetry'] = true;
             try {
               final response = await _dio.fetch(opts);
               return handler.resolve(response);
@@ -352,16 +376,51 @@ class ApiService {
   Future<Response> downloadFile(String fileId) {
     return _dio.get(
       '/files/$fileId/download',
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  /// Récupère les métadonnées d'un fichier
+  Future<Response> getFile(String fileId) {
+    return _dio.get('/files/$fileId', options: Options(headers: const {'Cache-Control': 'no-cache'}));
+  }
+  
+  /// Prévisualiser un fichier (image, PDF, texte). La réponse est du JSON avec `data.content` en base64.
+  Future<Response> previewFile(String fileId, {String? size}) {
+    return _dio.get(
+      '/files/$fileId/preview',
+      queryParameters: {
+        if (size != null && size.isNotEmpty) 'size': size,
+      },
+      options: Options(headers: const {'Cache-Control': 'no-cache'}),
     );
   }
   
-  Future<Response> previewFile(String fileId) {
-    return _dio.get('/files/$fileId/preview');
-  }
-  
   Future<Response> streamFile(String fileId) {
-    return _dio.get('/files/$fileId/stream');
+    return _dio.get('/files/$fileId/stream', options: Options(headers: const {'Cache-Control': 'no-cache'}));
+  }
+
+  /// Récupère le flux en bytes (PDF / audio / etc.)
+  Future<Response<List<int>>> streamFileBytes(String fileId) {
+    return _dio.get<List<int>>(
+      '/files/$fileId/stream',
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  // Trash
+  Future<Response> listTrashFiles() {
+    return _dio.get('/files/trash', options: Options(headers: const {'Cache-Control': 'no-cache'}));
+  }
+
+  Future<Response> listTrashFolders() {
+    return _dio.get('/folders/trash', options: Options(headers: const {'Cache-Control': 'no-cache'}));
   }
   
   // Folders
@@ -521,15 +580,6 @@ class ApiService {
   
   Future<Response> listUsers(String search) {
     return _dio.get('/users', queryParameters: {'search': search});
-  }
-  
-  // Trash
-  Future<Response> listTrashFiles() {
-    return _dio.get('/files/trash');
-  }
-  
-  Future<Response> listTrashFolders() {
-    return _dio.get('/folders/trash');
   }
   
   Future<Response> restoreFile(String fileId) {

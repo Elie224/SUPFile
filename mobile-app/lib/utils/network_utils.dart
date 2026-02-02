@@ -16,6 +16,7 @@ class NetworkUtils {
 
   /// Créer un intercepteur de retry avec backoff exponentiel
   static Interceptor createRetryInterceptor({
+    required Dio dio,
     int maxRetries = 3,
     Duration baseDelay = const Duration(seconds: 1),
   }) {
@@ -40,12 +41,8 @@ class NetworkUtils {
             requestOptions.extra['retryCount'] = retryCount + 1;
             
             try {
-              // Utiliser la même instance Dio pour éviter les problèmes de configuration
-              final response = await Dio(BaseOptions(
-                baseUrl: requestOptions.baseUrl,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 15),
-              )).fetch(requestOptions);
+              // Réutiliser la même instance Dio pour préserver la configuration
+              final response = await dio.fetch(requestOptions);
               return handler.resolve(response);
             } catch (e) {
               // Si la retry échoue, continuer avec l'erreur originale
@@ -63,8 +60,10 @@ class NetworkUtils {
   static Interceptor createCompressionInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) {
-        // Ajouter les en-têtes de compression
-        options.headers['Accept-Encoding'] = 'gzip, deflate, br';
+        // Éviter Brotli (br) : selon les stacks réseau, la réponse peut ne pas être décodée
+        // correctement, ce qui peut provoquer des FormatException lors du parsing JSON.
+        // Laisser gzip (supporté largement) suffit.
+        options.headers['Accept-Encoding'] = 'gzip';
         return handler.next(options);
       },
     );

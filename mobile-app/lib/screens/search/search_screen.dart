@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/api_service.dart';
 import '../../services/sync_service.dart';
@@ -8,6 +7,7 @@ import '../../services/offline_storage_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/performance_optimizer.dart';
+import '../../widgets/app_back_button.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -125,26 +125,55 @@ class _SearchScreenState extends State<SearchScreen> {
         dateTo: _dateTo?.toIso8601String(),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        final data = response.data['data'] ?? {};
-        final items = data['items'] ?? [];
-        
-        setState(() {
-          _files = [];
-          _folders = [];
-          
-          for (var item in items) {
-            if (item['type'] == 'file' || item['folder_id'] != null) {
-              _files.add(FileItem.fromJson(item));
+        final data = response.data is Map<String, dynamic>
+            ? (response.data['data'] ?? const <String, dynamic>{})
+            : const <String, dynamic>{};
+        final items = (data is Map && data['items'] is List) ? (data['items'] as List) : const [];
+
+        final files = <FileItem>[];
+        final folders = <FolderItem>[];
+
+        for (final item in items) {
+          if (item is! Map) continue;
+          final map = Map<String, dynamic>.from(item as Map);
+          try {
+            final type = map['type']?.toString();
+            if (type == 'folder') {
+              folders.add(FolderItem.fromJson(map));
+            } else if (type == 'file') {
+              files.add(FileItem.fromJson(map));
             } else {
-              _folders.add(FolderItem.fromJson(item));
+              // Fallback heuristics
+              if (map.containsKey('mime_type') || map.containsKey('size') || map.containsKey('file_path')) {
+                files.add(FileItem.fromJson(map));
+              } else {
+                folders.add(FolderItem.fromJson(map));
+              }
             }
+          } catch (_) {
+            // Ignore malformed items instead of failing the whole search
           }
-          
+        }
+
+        setState(() {
+          _files = files;
+          _folders = folders;
+          _isLoading = false;
+        });
+      } else {
+        final message = (response.data is Map && (response.data as Map)['error'] is Map)
+            ? ((response.data as Map)['error']['message']?.toString() ?? 'Erreur du chargement')
+            : 'Erreur du chargement';
+        setState(() {
+          _error = message;
           _isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -156,10 +185,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: const Text('Recherche'),
       ),
       body: Column(
@@ -418,7 +444,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       subtitle: const Text('Dossier'),
                       onTap: () {
                         // Naviguer vers le dossier
-                        context.go('/files?folder=${folder.id}');
+                        context.push('/files?folder=${folder.id}');
                       },
                     );
                   } else {
@@ -469,7 +495,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       subtitle: Text('${file.formattedSize} • ${file.mimeType ?? 'Fichier'}'),
                       onTap: () {
                         // Naviguer vers la prévisualisation du fichier
-                        context.go('/preview/${file.id}');
+                        context.push('/preview/${file.id}');
                       },
                     );
                   }

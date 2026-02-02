@@ -421,7 +421,11 @@ class _ShareScreenState extends State<ShareScreen> {
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundImage: user['avatar_url'] != null
-                                    ? NetworkImage(user['avatar_url'])
+                                  ? NetworkImage(
+                                    (user['avatar_url'] is String && (user['avatar_url'] as String).startsWith('/'))
+                                      ? '${AppConstants.apiBaseUrl}${user['avatar_url']}'
+                                      : user['avatar_url'],
+                                    )
                                     : null,
                                 child: user['avatar_url'] == null
                                     ? const Icon(Icons.person)

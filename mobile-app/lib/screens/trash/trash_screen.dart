@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../../services/api_service.dart';
 import '../../services/sync_service.dart';
 import '../../services/offline_storage_service.dart';
-import '../../providers/files_provider.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_back_button.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -89,6 +87,16 @@ class _TrashScreenState extends State<TrashScreen> {
             _folders = foldersItems
                 .map((item) => FolderItem.fromJson(Map<String, dynamic>.from(item as Map)))
                 .toList();
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          final message = (filesResponse.data is Map && (filesResponse.data as Map)['error'] is Map)
+              ? ((filesResponse.data as Map)['error']['message']?.toString() ?? 'Erreur de chargement')
+              : 'Erreur de chargement';
+          setState(() {
+            _error = message;
             _isLoading = false;
           });
         }
@@ -188,8 +196,7 @@ class _TrashScreenState extends State<TrashScreen> {
 
     if (confirmed == true) {
       try {
-        final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-        await filesProvider.deleteFile(fileId);
+        await _apiService.deleteFile(fileId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -234,8 +241,7 @@ class _TrashScreenState extends State<TrashScreen> {
 
     if (confirmed == true) {
       try {
-        final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-        await filesProvider.deleteFolder(folderId);
+        await _apiService.deleteFolder(folderId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -306,14 +312,13 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     try {
-      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
       int successCount = 0;
       int failCount = 0;
 
       // Supprimer définitivement tous les fichiers
       for (final file in _files) {
         try {
-          await filesProvider.deleteFile(file.id);
+          await _apiService.deleteFile(file.id);
           successCount++;
         } catch (e) {
           failCount++;
@@ -323,7 +328,7 @@ class _TrashScreenState extends State<TrashScreen> {
       // Supprimer définitivement tous les dossiers
       for (final folder in _folders) {
         try {
-          await filesProvider.deleteFolder(folder.id);
+          await _apiService.deleteFolder(folder.id);
           successCount++;
         } catch (e) {
           failCount++;
@@ -366,10 +371,7 @@ class _TrashScreenState extends State<TrashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: const Text('Corbeille'),
         actions: [
           if (_files.isNotEmpty || _folders.isNotEmpty)

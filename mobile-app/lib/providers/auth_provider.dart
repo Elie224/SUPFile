@@ -124,11 +124,39 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return signupResultRequiresVerification;
       }
+
+      // Gestion explicite des erreurs (le client Dio accepte les 4xx via validateStatus)
+      final status = response.statusCode;
+      if (status != null && status >= 400) {
+        final dynamic body = response.data;
+        if (body is Map<String, dynamic>) {
+          _error = (body['error']?['message'] as String?) ??
+              (body['message'] as String?) ??
+              "Erreur lors de l'inscription (code: $status)";
+          _errorCode = body['error']?['code']?.toString();
+        } else {
+          _error = "Le serveur API ne répond pas correctement. Vérifiez que l'API est accessible à: ${AppConstants.apiBaseUrl}";
+        }
+      } else {
+        _error = "Erreur lors de l'inscription";
+      }
     } catch (e) {
       if (e is DioException) {
-        _error = (e.response?.data['error']?['message'] as String?) ??
-                 (e.error?.toString() ?? "Erreur lors de l'inscription");
-        _errorCode = e.response?.data['error']?['code']?.toString();
+        // Si la réponse n'est pas du JSON (HTML, binaire, etc.), Dio peut remonter une FormatException.
+        final errStr = e.error?.toString();
+        if (e.error is FormatException || (errStr != null && errStr.contains('FormatException'))) {
+          _error = "Le serveur API ne répond pas correctement. Vérifiez que l'API est accessible à: ${AppConstants.apiBaseUrl}";
+        } else {
+          final dynamic body = e.response?.data;
+          if (body is Map<String, dynamic>) {
+            _error = (body['error']?['message'] as String?) ??
+                (body['message'] as String?) ??
+                (errStr ?? "Erreur lors de l'inscription");
+            _errorCode = body['error']?['code']?.toString();
+          } else {
+            _error = errStr ?? "Erreur lors de l'inscription";
+          }
+        }
       } else {
         _error = "Erreur lors de l'inscription";
       }

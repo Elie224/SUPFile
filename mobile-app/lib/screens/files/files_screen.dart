@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../providers/files_provider.dart';
 import '../../services/api_service.dart';
 import '../../models/file.dart';
@@ -14,7 +13,7 @@ import '../../utils/input_validator.dart';
 import '../../services/sync_service.dart';
 import '../../widgets/offline_banner.dart';
 import '../../widgets/sync_indicator.dart';
-import 'image_gallery_screen.dart';
+import '../../widgets/app_back_button.dart';
 
 class FilesScreen extends StatefulWidget {
   final String? folderId;
@@ -98,7 +97,7 @@ class _FilesScreenState extends State<FilesScreen> {
     
     if (images.isEmpty) {
       // Aucune autre image, ouvrir juste la prévisualisation
-      context.go('/preview/${imageFile.id}');
+      context.push('/preview/${imageFile.id}');
       return;
     }
     
@@ -115,54 +114,49 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Future<void> _downloadFile(FileItem file) async {
     try {
-      // Demander la permission de stockage
-      if (await Permission.storage.request().isGranted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
 
-        try {
-          final response = await _apiService.downloadFile(file.id);
-          
-          if (response.statusCode == 200) {
-            final directory = await getExternalStorageDirectory();
-            if (directory != null) {
-              final filePath = '${directory.path}/Download/${file.name}';
-              final savedFile = File(filePath);
-              await savedFile.create(recursive: true);
-              await savedFile.writeAsBytes(response.data);
-              
-              if (mounted) {
-                Navigator.pop(context); // Fermer le dialogue
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Fichier téléchargé: $filePath'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+      try {
+        final response = await _apiService.downloadFile(file.id);
+
+        if (response.statusCode == 200) {
+          // App-specific external dir on Android (no permission required)
+          final directory = await getExternalStorageDirectory();
+          if (directory != null) {
+            final filePath = '${directory.path}${Platform.pathSeparator}${file.name}';
+            final savedFile = File(filePath);
+            await savedFile.create(recursive: true);
+            await savedFile.writeAsBytes(response.data);
+
+            if (mounted) {
+              Navigator.pop(context); // Fermer le dialogue
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Fichier sauvegardé: $filePath'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             }
+          } else {
+            throw Exception('Répertoire de stockage indisponible');
           }
-        } catch (e) {
-          if (mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erreur: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+        } else {
+          throw Exception('Erreur téléchargement (code: ${response.statusCode ?? '??'})');
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permission de stockage refusée'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -182,12 +176,7 @@ class _FilesScreenState extends State<FilesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: widget.folderId != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.pop(),
-              )
-            : null,
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,7 +317,7 @@ class _FilesScreenState extends State<FilesScreen> {
                               ),
                               const SizedBox(width: 4),
                               InkWell(
-                                onTap: () => context.go('/files?folder=${folder.id}'),
+                                onTap: () => context.push('/files?folder=${folder.id}'),
                                 borderRadius: BorderRadius.circular(8),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -557,7 +546,7 @@ class _FilesScreenState extends State<FilesScreen> {
             ),
           ),
           onTap: () {
-            context.go('/files?folder=${folder.id}');
+            context.push('/files?folder=${folder.id}');
           },
           trailing: PopupMenuButton(
             icon: Icon(
@@ -753,7 +742,7 @@ class _FilesScreenState extends State<FilesScreen> {
           if (file.isImage) {
             _openImageGallery(file);
           } else {
-            context.go('/preview/${file.id}');
+            context.push('/preview/${file.id}');
           }
         },
         trailing: PopupMenuButton(
@@ -1210,8 +1199,7 @@ class _FilesScreenState extends State<FilesScreen> {
       
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: null, // Permet tous les types de fichiers
+        type: FileType.any,
       );
 
       if (result != null && result.files.isNotEmpty) {

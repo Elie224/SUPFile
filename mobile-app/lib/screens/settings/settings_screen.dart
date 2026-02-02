@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_back_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -637,11 +638,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: const Text('Paramètres'),
+        elevation: 0,
       ),
       body: ListView(
         children: [

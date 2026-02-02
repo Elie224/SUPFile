@@ -1,12 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/file.dart';
-import '../../utils/constants.dart';
 import '../../services/api_service.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 /// Galerie d'images pour naviguer entre les images d'un dossier
@@ -28,18 +27,43 @@ class ImageGalleryScreen extends StatefulWidget {
 class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
   late PageController _pageController;
   late int _currentIndex;
+  late final ApiService _apiService;
+  final Map<String, Future<Uint8List?>> _previewFutures = {};
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _apiService = ApiService();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<Uint8List?> _getPreviewBytes(FileItem image, {required String size}) {
+    final key = '${image.id}:$size';
+    return _previewFutures.putIfAbsent(key, () async {
+      final res = await _apiService.previewFile(image.id, size: size);
+      if (res.statusCode != 200 || res.data == null) return null;
+
+      final body = res.data;
+      if (body is! Map) return null;
+      final data = body['data'];
+      if (data is! Map) return null;
+
+      final content = data['content']?.toString();
+      if (content == null || content.isEmpty) return null;
+
+      try {
+        return base64Decode(content);
+      } catch (_) {
+        return null;
+      }
+    });
   }
 
   @override
@@ -91,29 +115,34 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
             },
             itemBuilder: (context, index) {
               final image = widget.images[index];
-              final imageUrl = '${AppConstants.apiBaseUrl}/api/files/${image.id}/preview';
-              
+
               return InteractiveViewer(
                 minScale: 0.5,
                 maxScale: 4.0,
                 child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    ),
-                    errorWidget: (context, url, error) => Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.white),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Erreur: $error',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    fit: BoxFit.contain,
+                  child: FutureBuilder<Uint8List?>(
+                    future: _getPreviewBytes(image, size: 'large'),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      }
+
+                      final bytes = snapshot.data;
+                      if (bytes == null || bytes.isEmpty) {
+                        return const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, size: 64, color: Colors.white),
+                            SizedBox(height: 16),
+                            Text('Impossible de charger l\'image', style: TextStyle(color: Colors.white)),
+                          ],
+                        );
+                      }
+
+                      return Image.memory(bytes, fit: BoxFit.contain);
+                    },
                   ),
                 ),
               );
@@ -133,7 +162,6 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
                 itemCount: widget.images.length,
                 itemBuilder: (context, index) {
                   final image = widget.images[index];
-                  final imageUrl = '${AppConstants.apiBaseUrl}/api/files/${image.id}/preview';
                   final isSelected = index == _currentIndex;
                   
                   return GestureDetector(
@@ -156,19 +184,26 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[800],
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[800],
-                            child: const Icon(Icons.error, color: Colors.white),
-                          ),
+                        child: FutureBuilder<Uint8List?>(
+                          future: _getPreviewBytes(image, size: 'small'),
+                          builder: (context, snapshot) {
+                            final bytes = snapshot.data;
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return Container(
+                                color: Colors.grey[800],
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              );
+                            }
+                            if (bytes == null || bytes.isEmpty) {
+                              return Container(
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.error, color: Colors.white),
+                              );
+                            }
+                            return Image.memory(bytes, fit: BoxFit.cover);
+                          },
                         ),
                       ),
                     ),
@@ -251,58 +286,43 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
 
   Future<void> _downloadImage(FileItem image) async {
     try {
-      // Demander la permission de stockage
-      if (await Permission.storage.request().isGranted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
 
-        try {
-          final apiService = ApiService();
-          final response = await apiService.downloadFile(image.id);
-          
-          if (response.statusCode == 200) {
-            final directory = await getExternalStorageDirectory();
-            if (directory != null) {
-              final filePath = '${directory.path}/Download/${image.name}';
-              final savedFile = File(filePath);
-              await savedFile.create(recursive: true);
-              await savedFile.writeAsBytes(response.data);
-              
-              if (mounted) {
-                Navigator.pop(context); // Fermer le dialogue
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Image téléchargée: ${image.name}'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            }
-          }
-        } catch (e) {
-          if (mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erreur: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } else {
+      final response = await _apiService.downloadFile(image.id);
+      if (response.statusCode != 200) {
+        throw Exception('Erreur téléchargement (code: ${response.statusCode ?? '??'})');
+      }
+
+      // App-specific external dir on Android (no permission required)
+      final directory = await getExternalStorageDirectory();
+      if (directory == null) {
+        throw Exception('Répertoire de stockage indisponible');
+      }
+
+      final filePath = '${directory.path}${Platform.pathSeparator}${image.name}';
+      final savedFile = File(filePath);
+      await savedFile.create(recursive: true);
+      await savedFile.writeAsBytes(response.data);
+
+      if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permission de stockage refusée'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: Text('Image sauvegardée: $filePath'),
+            backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        // If the dialog is open, close it.
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur: $e'),
