@@ -264,6 +264,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+      ),
       body: Column(
         children: [
           Consumer<SyncService>(

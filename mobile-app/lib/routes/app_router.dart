@@ -5,6 +5,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/reset_password_screen.dart';
+import '../screens/auth/verify_email_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/files/files_screen.dart';
 import '../screens/files/preview_screen.dart';
@@ -13,6 +14,7 @@ import '../screens/search/search_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/share/share_screen.dart';
 import '../screens/share/public_share_screen.dart';
+import '../screens/share/manage_shares_screen.dart';
 import '../screens/trash/trash_screen.dart';
 import '../screens/admin/admin_screen.dart';
 import '../screens/intro/intro_screen.dart';
@@ -50,6 +52,13 @@ class AppRouter {
           builder: (context, state) {
             final token = state.uri.queryParameters['token'];
             return ResetPasswordScreen(token: token);
+          },
+        ),
+        GoRoute(
+          path: '/verify-email',
+          builder: (context, state) {
+            final token = state.uri.queryParameters['token'];
+            return VerifyEmailScreen(token: token);
           },
         ),
         GoRoute(
@@ -112,6 +121,10 @@ class AppRouter {
             return ShareScreen(fileId: fileId, folderId: folderId);
           },
         ),
+        GoRoute(
+          path: '/shares',
+          builder: (context, state) => const ManageSharesScreen(),
+        ),
         // Route pour les liens de partage publics (accessible sans authentification)
         GoRoute(
           path: '/share/:token',
@@ -129,7 +142,8 @@ class AppRouter {
             state.matchedLocation == '/login' ||
             state.matchedLocation == '/signup' ||
             state.matchedLocation == '/forgot-password' ||
-            state.matchedLocation.startsWith('/reset-password');
+            state.matchedLocation.startsWith('/reset-password') ||
+            state.matchedLocation.startsWith('/verify-email');
         final isPublicShareRoute = state.matchedLocation.startsWith('/share/') && 
                                    state.pathParameters.containsKey('token');
         

@@ -741,6 +741,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(),
 
           ListTile(
+            leading: const Icon(Icons.link),
+            title: const Text('Gérer mes partages'),
+            subtitle: const Text('Voir et désactiver les liens'),
+            onTap: () => context.go('/shares'),
+          ),
+
+          const Divider(),
+
+          ListTile(
             leading: const Icon(Icons.cloud_off),
             title: const Text('À propos du mode hors ligne'),
             subtitle: const Text('Utilisation et synchronisation'),

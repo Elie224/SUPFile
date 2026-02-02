@@ -103,7 +103,7 @@ class SUPFileApp extends StatelessWidget {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
-              cardTheme: CardTheme(
+              cardTheme: CardThemeData(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -170,7 +170,7 @@ class SUPFileApp extends StatelessWidget {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
-              cardTheme: CardTheme(
+              cardTheme: CardThemeData(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

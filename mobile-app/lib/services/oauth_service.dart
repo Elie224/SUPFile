@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 import 'dart:async';
 import '../utils/constants.dart';
 import '../utils/secure_logger.dart';
 
 // Initialiser le stream de deep links une seule fois
+final AppLinks _appLinks = AppLinks();
 Stream<Uri>? _uriLinkStream;
 Stream<Uri> get _linkStream {
-  _uriLinkStream ??= getUriLinksStream();
+  _uriLinkStream ??= _appLinks.uriLinkStream;
   return _uriLinkStream!;
 }
 
@@ -64,7 +65,7 @@ class OAuthService {
 
       // Vérifier d'abord si l'app a été ouverte avec un deep link
       try {
-        final initialLink = await getInitialUri();
+        final initialLink = await _appLinks.getInitialLink();
         if (initialLink != null && initialLink.toString().startsWith('supfile://oauth/github/callback')) {
           final token = initialLink.queryParameters['token'];
           final refreshToken = initialLink.queryParameters['refresh_token'];
@@ -81,9 +82,9 @@ class OAuthService {
 
       // Écouter les nouveaux deep links
       linkSubscription = _linkStream.listen((Uri uri) {
-        final link = uri?.toString() ?? '';
+        final link = uri.toString();
         if (link.startsWith('supfile://oauth/github/callback')) {
-          final callbackUri = uri ?? Uri.parse(link);
+          final callbackUri = uri;
           final token = callbackUri.queryParameters['token'];
           final refreshToken = callbackUri.queryParameters['refresh_token'];
           

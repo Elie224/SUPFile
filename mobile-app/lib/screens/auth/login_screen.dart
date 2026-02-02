@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _twoFactorCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _show2FAStep = false;
+  bool _resendLoading = false;
 
   @override
   void dispose() {
@@ -137,6 +138,27 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _handleResendVerification() async {
+    if (_emailController.text.trim().isEmpty) return;
+    setState(() => _resendLoading = true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.resendVerificationEmail(
+      _emailController.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() => _resendLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Email de vérification renvoyé. Vérifiez votre boîte mail.'
+              : (authProvider.error ?? 'Erreur lors de l\'envoi'),
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   @override
@@ -301,6 +323,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    if (authProvider.errorCode == 'EMAIL_NOT_VERIFIED') ...[
+                      TextButton.icon(
+                        onPressed: _resendLoading ? null : _handleResendVerification,
+                        icon: _resendLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.mark_email_read),
+                        label: const Text('Renvoyer l\'email de vérification'),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     // Lien vers inscription
                     TextButton(
                       onPressed: () => context.go('/signup'),
@@ -383,6 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

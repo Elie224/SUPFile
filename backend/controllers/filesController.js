@@ -669,16 +669,24 @@ async function downloadFile(req, res, next) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    // Vérifier que le fichier existe physiquement
+    // Vérifier que le fichier existe physiquement et récupérer la taille réelle
+    let stat;
     try {
-      await fs.access(file.file_path);
+      const filePath = path.resolve(file.file_path);
+      stat = await fs.stat(filePath);
     } catch {
       return res.status(404).json({ error: { message: 'File not found on disk' } });
     }
 
+    // Utiliser la taille réelle du fichier (évite incohérences BDD)
+    const realSize = stat.size;
+    if (file.size && file.size !== realSize) {
+      logger.logWarn('Download size mismatch detected', { fileId: id, expected: file.size, actual: realSize });
+    }
+
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
-    res.setHeader('Content-Length', file.size);
+    res.setHeader('Content-Length', realSize);
 
     res.sendFile(path.resolve(file.file_path));
   } catch (err) {
@@ -785,6 +793,9 @@ async function streamFile(req, res, next) {
     }
 
     const fileSize = stat.size;
+    if (file.size && file.size !== fileSize) {
+      logger.logWarn('Stream size mismatch detected', { fileId: id, expected: file.size, actual: fileSize });
+    }
 
     // Ajouter les headers CORS explicites pour le streaming
     const origin = req.get('Origin');
@@ -800,11 +811,14 @@ async function streamFile(req, res, next) {
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      // Limiter la taille du chunk à 5 Mo pour éviter les timeouts et améliorer la réactivité
-      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 Mo
-      const requestedEnd = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const end = Math.min(start + CHUNK_SIZE - 1, requestedEnd, fileSize - 1);
-      const chunksize = end - start + 1;
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (Number.isNaN(start) || Number.isNaN(end) || start >= fileSize || end < start) {
+        res.status(416).setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.end();
+      }
+
+      const chunksize = (end - start) + 1;
 
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,

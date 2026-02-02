@@ -15,6 +15,7 @@ class AuthProvider with ChangeNotifier {
   String? _refreshToken;
   bool _isLoading = false;
   String? _error;
+  String? _errorCode;
   
   final ApiService _apiService = ApiService();
   
@@ -23,6 +24,7 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _user != null && _accessToken != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get errorCode => _errorCode;
   
   AuthProvider() {
     _loadStoredAuth();
@@ -70,9 +72,14 @@ class AuthProvider with ChangeNotifier {
   }
   
   
-  Future<bool> signup(String email, String password) async {
+  static const String signupResultSuccess = 'success';
+  static const String signupResultRequiresVerification = 'requires_verification';
+  static const String signupResultError = 'error';
+
+  Future<String> signup(String email, String password) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
     
     // Validation côté client
@@ -80,40 +87,48 @@ class AuthProvider with ChangeNotifier {
       _error = "Email invalide";
       _isLoading = false;
       notifyListeners();
-      return false;
+      return signupResultError;
     }
     
     if (!InputValidator.isValidPassword(password)) {
       _error = "Le mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre";
       _isLoading = false;
       notifyListeners();
-      return false;
+      return signupResultError;
     }
     
     try {
       final response = await _apiService.signup(email, password);
       if (response.statusCode == 201) {
         final data = response.data['data'];
-        final accessToken = data['access_token'] as String;
-        final refreshToken = data['refresh_token'] as String;
-        _user = User.fromJson(data['user']);
-        
-        // Sauvegarder les tokens (non obfuscatés pour le stockage)
-        await SecureStorage.saveAccessToken(accessToken);
-        await SecureStorage.saveRefreshToken(refreshToken);
-        // Obfuscater en mémoire
-        _accessToken = SecurityUtils.obfuscate(accessToken);
-        _refreshToken = SecurityUtils.obfuscate(refreshToken);
-        await _saveUser(_user!);
-        
+        if (data is Map<String, dynamic> && data['access_token'] != null) {
+          final accessToken = data['access_token'] as String;
+          final refreshToken = data['refresh_token'] as String;
+          _user = User.fromJson(data['user']);
+          
+          // Sauvegarder les tokens (non obfuscatés pour le stockage)
+          await SecureStorage.saveAccessToken(accessToken);
+          await SecureStorage.saveRefreshToken(refreshToken);
+          // Obfuscater en mémoire
+          _accessToken = SecurityUtils.obfuscate(accessToken);
+          _refreshToken = SecurityUtils.obfuscate(refreshToken);
+          await _saveUser(_user!);
+          
+          _isLoading = false;
+          notifyListeners();
+          return signupResultSuccess;
+        }
+
+        // Par défaut, la vérification d'email est requise avant connexion
         _isLoading = false;
         notifyListeners();
-        return true;
+        return signupResultRequiresVerification;
       }
     } catch (e) {
       if (e is DioException) {
-        _error = (e.response?.data['error']?['message'] as String?) ?? 
+        _error = (e.response?.data['error']?['message'] as String?) ??
                  (e.error?.toString() ?? "Erreur lors de l'inscription");
+        _errorCode = e.response?.data['error']?['code']?.toString();
       } else {
         _error = "Erreur lors de l'inscription";
       }
@@ -121,7 +136,7 @@ class AuthProvider with ChangeNotifier {
     
     _isLoading = false;
     notifyListeners();
-    return false;
+    return signupResultError;
   }
   
   /// Résultat de la connexion : succès, 2FA requis, ou erreur
@@ -134,6 +149,7 @@ class AuthProvider with ChangeNotifier {
   Future<String> login(String email, String password) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
 
     if (!InputValidator.isValidEmail(email)) {
@@ -200,12 +216,15 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return loginResultSuccess;
       } else {
-        _error = "Erreur lors de la connexion (code: ${response.statusCode})";
+        _error = (response.data?['error']?['message'] as String?) ??
+            "Erreur lors de la connexion (code: ${response.statusCode})";
+        _errorCode = response.data?['error']?['code']?.toString();
       }
     } catch (e) {
       if (e is DioException) {
         _error = (e.response?.data['error']?['message'] as String?) ??
             (e.error?.toString() ?? "Erreur lors de la connexion");
+        _errorCode = e.response?.data['error']?['code']?.toString();
       } else {
         _error = "Erreur lors de la connexion";
       }
@@ -287,6 +306,7 @@ class AuthProvider with ChangeNotifier {
   Future<bool> oauthLogin(String provider, Map<String, dynamic> oauthData) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
     
     try {
@@ -371,6 +391,37 @@ class AuthProvider with ChangeNotifier {
     await SecureStorage.clearAll();
     
     notifyListeners();
+  }
+
+  Future<bool> resendVerificationEmail(String email) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+    try {
+      final response = await _apiService.resendVerification(email);
+      if (response.statusCode == 200) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      _error = response.data?['error']?['message']?.toString() ??
+          "Erreur lors de l'envoi de l'email";
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      if (e is DioException) {
+        _error = (e.response?.data['error']?['message'] as String?) ??
+            (e.error?.toString() ?? "Erreur lors de l'envoi de l'email");
+        _errorCode = e.response?.data['error']?['code']?.toString();
+      } else {
+        _error = "Erreur lors de l'envoi de l'email";
+      }
+    }
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
   
   Future<void> _saveUser(User user) async {

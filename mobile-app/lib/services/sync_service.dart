@@ -32,12 +32,9 @@ class SyncService extends ChangeNotifier {
     Connectivity().onConnectivityChanged.listen(_updateConnectivity);
   }
 
-  void _updateConnectivity(List<ConnectivityResult> results) {
+  void _updateConnectivity(ConnectivityResult result) {
     final wasOnline = _isOnline;
-    _isOnline = results.any((r) =>
-        r == ConnectivityResult.wiFi ||
-        r == ConnectivityResult.mobile ||
-        r == ConnectivityResult.ethernet);
+    _isOnline = result != ConnectivityResult.none;
     if (wasOnline != _isOnline) {
       notifyListeners();
       if (!wasOnline && _isOnline) {

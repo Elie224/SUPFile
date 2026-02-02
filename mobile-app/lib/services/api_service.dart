@@ -172,9 +172,41 @@ class ApiService {
       );
     }
     
-    return _dio.post('/auth/signup', data: {
+    try {
+      final response = await _dio.post('/auth/signup', data: {
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      });
+      
+      // Vérifier que la réponse est valide
+      if (response.statusCode == null || response.data == null) {
+        throw DioException(
+          requestOptions: RequestOptions(path: '/auth/signup'),
+          type: DioExceptionType.unknown,
+          error: 'Réponse vide du serveur. Vérifiez que l\'API est accessible à: ${AppConstants.apiBaseUrl}',
+        );
+      }
+      
+      return response;
+    } on DioException {
+      rethrow;
+    } catch (e) {
+      SecureLogger.error('Signup error', error: e);
+      throw DioException(
+        requestOptions: RequestOptions(path: '/auth/signup'),
+        type: DioExceptionType.unknown,
+        error: 'Erreur lors de la connexion à l\'API: $e',
+      );
+    }
+  }
+
+  Future<Response> verifyEmail(String token) {
+    return _dio.get('/auth/verify-email', queryParameters: {'token': token});
+  }
+
+  Future<Response> resendVerification(String email) {
+    return _dio.post('/auth/resend-verification', data: {
       'email': email.trim().toLowerCase(),
-      'password': password,
     });
   }
   
@@ -401,6 +433,16 @@ class ApiService {
       receiveTimeout: const Duration(seconds: 15),
     ));
     return publicDio.get('/share/$token', queryParameters: queryParams);
+  }
+
+  Future<Response> listShares({String? type}) {
+    return _dio.get('/share', queryParameters: {
+      if (type != null && type.isNotEmpty) 'type': type,
+    });
+  }
+
+  Future<Response> deactivateShare(String shareId) {
+    return _dio.delete('/share/$shareId');
   }
   
   // Dashboard

@@ -34,31 +34,28 @@ const signupSchema = Joi.object({
   first_name: Joi.string()
     .min(1)
     .max(100)
-    .required()
+    .optional()
     .trim()
     .messages({
-      'any.required': 'First name is required',
       'string.min': 'First name is required',
     }),
   last_name: Joi.string()
     .min(1)
     .max(100)
-    .required()
+    .optional()
     .trim()
     .messages({
-      'any.required': 'Last name is required',
       'string.min': 'Last name is required',
     }),
   country: Joi.string()
-    .required()
+    .optional()
     .custom((value, helpers) => {
-      if (!isValidCountry(value)) {
+      if (value && !isValidCountry(value)) {
         return helpers.error('any.invalid');
       }
-      return value.trim();
+      return value ? value.trim() : value;
     }, 'valid country')
     .messages({
-      'any.required': 'Country is required',
       'any.invalid': 'Please select a valid country',
     }),
 }).unknown(true);

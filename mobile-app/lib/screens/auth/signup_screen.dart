@@ -19,6 +19,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String _successMessage = '';
+  String _resendSuccess = '';
+  bool _resendLoading = false;
 
   @override
   void dispose() {
@@ -33,24 +36,79 @@ class _SignupScreenState extends State<SignupScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    final success = await authProvider.signup(
+    final result = await authProvider.signup(
       _emailController.text.trim(),
       _passwordController.text,
     );
 
-    if (success) {
+    if (result == AuthProvider.signupResultSuccess) {
       if (mounted) {
         context.go('/dashboard');
       }
+    } else if (result == AuthProvider.signupResultRequiresVerification) {
+      if (mounted) {
+        setState(() {
+          _successMessage =
+              'Compte créé. Un email de vérification a été envoyé. '
+              'Cliquez sur le lien pour activer votre compte, puis connectez-vous.';
+          _resendSuccess = '';
+        });
+      }
     } else {
       if (mounted) {
+        String errorMsg = authProvider.error ?? 'Erreur';
+        
+        // Améliorer les messages d'erreur
+        if (errorMsg.contains('FormatException')) {
+          errorMsg = 'Le serveur API ne répond pas correctement. '
+              'Vérifiez que l\'API est accessible à: ${AppConstants.apiBaseUrl}';
+        } else if (errorMsg.contains('Connection refused') || 
+                   errorMsg.contains('Connection timed out')) {
+          errorMsg = 'Impossible de se connecter au serveur. '
+              'Vérifiez que l\'API est en cours d\'exécution à: ${AppConstants.apiBaseUrl}';
+        } else if (errorMsg.contains('already exists') || 
+                   errorMsg.contains('Email already')) {
+          errorMsg = 'Cet email est déjà utilisé.';
+        } else if (errorMsg.contains('Invalid credentials') || 
+                   errorMsg.contains('Invalid password')) {
+          errorMsg = 'Email ou mot de passe invalide.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.error ?? 'Erreur'),
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleResendVerification() async {
+    if (_emailController.text.trim().isEmpty) return;
+    setState(() {
+      _resendLoading = true;
+      _resendSuccess = '';
+    });
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.resendVerificationEmail(
+      _emailController.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _resendLoading = false;
+      _resendSuccess = success
+          ? 'Email de vérification renvoyé. Vérifiez votre boîte mail.'
+          : '';
+    });
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Erreur lors de l\'envoi'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -118,6 +176,57 @@ class _SignupScreenState extends State<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
+                  if (_successMessage.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Icon(Icons.mark_email_read, color: Colors.green, size: 32),
+                          const SizedBox(height: 8),
+                          Text(
+                            _successMessage,
+                            style: const TextStyle(fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_resendSuccess.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _resendSuccess,
+                              style: const TextStyle(color: Colors.green, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _resendLoading ? null : _handleResendVerification,
+                            icon: _resendLoading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.refresh),
+                            label: const Text('Renvoyer l\'email de vérification'),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () => context.go('/login'),
+                            child: const Text('Aller à la connexion'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  if (_successMessage.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                  ] else ...[
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -281,10 +390,12 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-              ],
+                  ],
+                  ],
             ),
           ),
         ),
+      ),
       ),
     );
   }

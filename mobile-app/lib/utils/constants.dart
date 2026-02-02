@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class AppConstants {
   // API Configuration
   // Par défaut, utiliser l'API en production sur Render

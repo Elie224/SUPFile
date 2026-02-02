@@ -96,6 +96,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
           _isLoading = false;
         });
         _loadPreview();
+      } else {
+        setState(() {
+          _error = 'Erreur lors du chargement';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();

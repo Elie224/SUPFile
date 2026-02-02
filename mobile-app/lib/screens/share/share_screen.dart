@@ -201,6 +201,13 @@ class _ShareScreenState extends State<ShareScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text('Partager'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.link),
+            tooltip: 'Mes partages',
+            onPressed: () => context.go('/shares'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

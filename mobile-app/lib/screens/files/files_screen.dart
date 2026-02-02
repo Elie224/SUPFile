@@ -277,124 +277,124 @@ class _FilesScreenState extends State<FilesScreen> {
           return Column(
             children: [
               sync.isOnline ? const SizedBox.shrink() : const OfflineBanner(),
-              // Breadcrumbs (Fil d'Ariane) amélioré
               if (_breadcrumbs.isNotEmpty || widget.folderId != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade300,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () => context.go('/files'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.home_outlined, size: 18, color: AppConstants.supinfoPurple),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Racine',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: AppConstants.supinfoPurple,
-                              ),
-                            ),
-                          ],
-                        ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade300,
+                        width: 1,
                       ),
                     ),
-                    ..._breadcrumbs.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final folder = entry.value;
-                      final isLast = index == _breadcrumbs.length - 1;
-                      
-                      return Row(
-                        children: [
-                          Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          InkWell(
-                            onTap: () => context.go('/files?folder=${folder.id}'),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isLast)
-                                    Icon(Icons.folder, size: 18, color: Colors.amber.shade700)
-                                  else
-                                    Icon(Icons.folder_outlined, size: 18, color: Colors.grey.shade600),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    folder.name,
-                                    style: TextStyle(
-                                      fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
-                                      color: isLast ? Colors.black87 : Colors.grey.shade700,
-                                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () => context.go('/files'),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.home_outlined, size: 18, color: AppConstants.supinfoPurple),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Racine',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppConstants.supinfoPurple,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ),
-          // Liste des fichiers
-          Expanded(
-            child: filesProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : filesProvider.allItems.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.folder_open, size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Dossier vide',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ce dossier est vide pour le moment',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        ..._breadcrumbs.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final folder = entry.value;
+                          final isLast = index == _breadcrumbs.length - 1;
+
+                          return Row(
+                            children: [
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => context.go('/files?folder=${folder.id}'),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isLast)
+                                        Icon(Icons.folder, size: 18, color: Colors.amber.shade700)
+                                      else
+                                        Icon(Icons.folder_outlined, size: 18, color: Colors.grey.shade600),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        folder.name,
+                                        style: TextStyle(
+                                          fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
+                                          color: isLast ? Colors.black87 : Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => filesProvider.loadFiles(folderId: widget.folderId),
-                  child: _buildSortedList(filesProvider),
                 ),
-            ),
-              sync.pendingCount > 0 ? const Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child: SyncIndicator(),
-              ) : const SizedBox.shrink(),
+              Expanded(
+                child: filesProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filesProvider.allItems.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Dossier vide',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Ce dossier est vide pour le moment',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => filesProvider.loadFiles(folderId: widget.folderId),
+                            child: _buildSortedList(filesProvider),
+                          ),
+              ),
+              sync.pendingCount > 0
+                  ? const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: SyncIndicator(),
+                    )
+                  : const SizedBox.shrink(),
             ],
           );
         },
@@ -437,40 +437,30 @@ class _FilesScreenState extends State<FilesScreen> {
     }
     
     return ListView.builder(
-                    itemCount: items.length,
-                    // Optimisations de performance
-                    cacheExtent: 500, // Cache étendu pour scroll fluide
-                    addAutomaticKeepAlives: false, // Ne pas garder les widgets hors écran
-                    addRepaintBoundaries: true, // Isoler les repaints
-                    itemExtent: 72.0, // Hauteur fixe pour meilleure performance
-                    itemBuilder: (context, index) {
-                      // Validation de l'index pour éviter out of bounds
-                      if (index < 0 || index >= items.length) {
-                        return const SizedBox.shrink();
-                      }
-                      
-                      final item = items[index];
-                      
-                      // Validation de la structure de l'item
-                      if (item is! Map<String, dynamic> || 
-                          item['type'] == null || 
-                          item['item'] == null) {
-                        return const SizedBox.shrink();
-                      }
-                      
-                      // Utiliser RepaintBoundary pour isoler les repaints
-                      return RepaintBoundary(
-                        key: ValueKey('${item['type']}_${item['item'].id}'),
-                        child: item['type'] == 'folder'
-                            ? _buildFolderItem(item['item'] as FolderItem)
-                            : _buildFileItem(item['item'] as FileItem),
-                      );
-                    },
-                  ),
-                ),
-            ),
-        ],
-      ),
+      itemCount: items.length,
+      cacheExtent: 500,
+      addAutomaticKeepAlives: false,
+      addRepaintBoundaries: true,
+      itemExtent: 72.0,
+      itemBuilder: (context, index) {
+        if (index < 0 || index >= items.length) {
+          return const SizedBox.shrink();
+        }
+
+        final item = items[index];
+        if (item is! Map<String, dynamic> ||
+            item['type'] == null ||
+            item['item'] == null) {
+          return const SizedBox.shrink();
+        }
+
+        return RepaintBoundary(
+          key: ValueKey("${item['type']}_${item['item'].id}"),
+          child: item['type'] == 'folder'
+              ? _buildFolderItem(item['item'] as FolderItem)
+              : _buildFileItem(item['item'] as FileItem),
+        );
+      },
     );
   }
 
@@ -569,93 +559,98 @@ class _FilesScreenState extends State<FilesScreen> {
           onTap: () {
             context.go('/files?folder=${folder.id}');
           },
-      trailing: PopupMenuButton(
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'share',
-            child: Row(
-              children: [
-                Icon(Icons.share, size: 20),
-                SizedBox(width: 8),
-                Text('Partager'),
-              ],
+          trailing: PopupMenuButton(
+            icon: Icon(
+              Icons.more_vert,
+              color: AppConstants.supinfoPurple,
             ),
-          ),
-          if (!isRootFolder) ...[
-            const PopupMenuItem(
-              value: 'move',
-              child: Row(
-                children: [
-                  Icon(Icons.drive_file_move, size: 20),
-                  SizedBox(width: 8),
-                  Text('Déplacer'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'rename',
-              enabled: !isRootFolder,
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 20, color: isRootFolder ? Colors.grey : null),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Renommer',
-                    style: TextStyle(color: isRootFolder ? Colors.grey : null),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'delete',
-              enabled: !isRootFolder,
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 20, color: isRootFolder ? Colors.grey : Colors.red),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Supprimer',
-                    style: TextStyle(color: isRootFolder ? Colors.grey : Colors.red),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            PopupMenuItem(
-              enabled: false,
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Actions limitées pour Root',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-        onSelected: (value) async {
-          if (value == 'share') {
-            context.go('/share?folder=${folder.id}');
-          } else if (value == 'move' && !isRootFolder) {
-            _showMoveDialog(context, folder.id, folder.name, true);
-          } else if (value == 'rename' && !isRootFolder) {
-            _showRenameDialog(context, folder.id, folder.name, true);
-          } else if (value == 'delete' && !isRootFolder) {
-            _showDeleteDialog(context, folder.id, folder.name, true);
-          } else if (isRootFolder && (value == 'rename' || value == 'delete')) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Impossible de renommer ou supprimer la racine'),
-                  backgroundColor: Colors.orange,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, size: 20),
+                    SizedBox(width: 8),
+                    Text('Partager'),
+                  ],
                 ),
-              );
-            }
-          }
-        },
+              ),
+              if (!isRootFolder) ...[
+                const PopupMenuItem(
+                  value: 'move',
+                  child: Row(
+                    children: [
+                      Icon(Icons.drive_file_move, size: 20),
+                      SizedBox(width: 8),
+                      Text('Déplacer'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'rename',
+                  enabled: !isRootFolder,
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 20, color: isRootFolder ? Colors.grey : null),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Renommer',
+                        style: TextStyle(color: isRootFolder ? Colors.grey : null),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  enabled: !isRootFolder,
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, size: 20, color: isRootFolder ? Colors.grey : Colors.red),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Supprimer',
+                        style: TextStyle(color: isRootFolder ? Colors.grey : Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                PopupMenuItem(
+                  enabled: false,
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Actions limitées pour Root',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+            onSelected: (value) async {
+              if (value == 'share') {
+                context.go('/share?folder=${folder.id}');
+              } else if (value == 'move' && !isRootFolder) {
+                _showMoveDialog(context, folder.id, folder.name, true);
+              } else if (value == 'rename' && !isRootFolder) {
+                _showRenameDialog(context, folder.id, folder.name, true);
+              } else if (value == 'delete' && !isRootFolder) {
+                _showDeleteDialog(context, folder.id, folder.name, true);
+              } else if (isRootFolder && (value == 'rename' || value == 'delete')) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Impossible de renommer ou supprimer la racine'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
         ),
       ),
     );
