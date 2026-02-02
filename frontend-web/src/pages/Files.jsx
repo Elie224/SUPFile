@@ -1700,16 +1700,11 @@ export default function Files() {
                                     toast.warning(typeof t === 'function' ? t('mustBeConnected') : 'Vous devez être connecté.');
                                     return;
                                   }
-                                  const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-                                  const response = await fetch(`${apiUrl}/api/files/${encodeURIComponent(String(itemId))}/download`, {
-                                    headers: { Authorization: `Bearer ${token}` }
-                                  });
-                                  if (!response.ok) {
-                                    const error = await response.json().catch(() => ({ error: { message: 'Erreur' } }));
-                                    throw new Error(error.error?.message || `Erreur ${response.status}`);
-                                  }
-                                  const blob = await response.blob();
-                                  downloadBlob(blob, sanitizeDownloadFilename(item?.name, 'download'));
+                                  const response = await fileService.downloadBlob(String(itemId));
+                                  const disposition = response.headers?.['content-disposition'];
+                                  const match = disposition && disposition.match(/filename="?([^";]+)"?/);
+                                  const filename = match ? match[1].trim() : sanitizeDownloadFilename(item?.name, 'download');
+                                  downloadBlob(response.data, filename);
                                 } catch (err) {
                                   console.error('Download failed:', err);
                                   // Fallback direct pour éviter les erreurs CORS / ERR_FAILED

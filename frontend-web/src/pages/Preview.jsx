@@ -151,18 +151,11 @@ export default function Preview() {
       return;
     }
     try {
-      const response = await fetch(`${apiUrlForDownload}/api/files/${id}/download`, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error?.message || 'Erreur lors du téléchargement');
-      }
-      const blob = await response.blob();
-      const disposition = response.headers.get('Content-Disposition');
+      const response = await fileService.downloadBlob(id);
+      const disposition = response.headers?.['content-disposition'];
       const match = disposition && disposition.match(/filename="?([^";]+)"?/);
       const filename = match ? match[1].trim() : (file?.name || 'download');
-      downloadBlob(blob, filename);
+      downloadBlob(response.data, filename);
     } catch (err) {
       console.error('Download failed:', err);
       // Fallback direct pour éviter les erreurs CORS / ERR_FAILED

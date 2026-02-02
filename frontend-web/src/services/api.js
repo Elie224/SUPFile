@@ -179,6 +179,7 @@ export const fileService = {
   getChunkedUploadStatus: (uploadId) =>
     apiClient.get('/files/upload/status', { params: { upload_id: uploadId } }),
   download: (fileId) => apiClient.get(`/files/${fileId}/download`),
+  downloadBlob: (fileId) => apiClient.get(`/files/${fileId}/download`, { responseType: 'blob' }),
   delete: (fileId) => apiClient.delete(`/files/${fileId}`),
   restore: (fileId) => apiClient.post(`/files/${fileId}/restore`),
   listTrash: () => apiClient.get('/files/trash'),
