@@ -188,6 +188,63 @@ Future<void> main(List<String> args) async {
       ? ((uploadRes.data as Map)['data']['id']?.toString())
       : null;
 
+  // 6b) Fetch file metadata + download bytes
+  if (uploadedFileId != null) {
+    await _request(apiDio, () => apiDio.get('/files/$uploadedFileId'), label: 'GET /api/files/$uploadedFileId');
+    final downloadRes = await _request(
+      apiDio,
+      () => apiDio.get(
+        '/files/$uploadedFileId/download',
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: const {'Cache-Control': 'no-cache'},
+        ),
+      ),
+      label: 'GET /api/files/$uploadedFileId/download',
+      verboseOnError: true,
+    );
+    if (downloadRes.statusCode == 200 && downloadRes.data is List<int>) {
+      stdout.writeln('  download bytes=${(downloadRes.data as List<int>).length}');
+    }
+  }
+
+  // 6c) Upload a tiny PNG image file and test preview sizes
+  final imageFile = File('${tmpDir.path}${Platform.pathSeparator}tiny-$ts.png');
+  await imageFile.writeAsBytes(_tinyPngBytes());
+  final imageUploadForm = FormData.fromMap({
+    'file': await MultipartFile.fromFile(imageFile.path, filename: imageFile.uri.pathSegments.last),
+    'folder_id': folderId,
+  });
+  final imageUploadRes = await _request(
+    apiDio,
+    () => apiDio.post('/files/upload', data: imageUploadForm),
+    label: 'POST /api/files/upload (image, folder_id=$folderId)',
+  );
+  final uploadedImageId = (imageUploadRes.data is Map && (imageUploadRes.data as Map)['data'] is Map)
+      ? ((imageUploadRes.data as Map)['data']['id']?.toString())
+      : null;
+  if (uploadedImageId != null) {
+    for (final size in const ['small', 'medium', 'large']) {
+      final previewRes = await _request(
+        apiDio,
+        () => apiDio.get('/files/$uploadedImageId/preview', queryParameters: {'size': size}),
+        label: 'GET /api/files/$uploadedImageId/preview?size=$size',
+        verboseOnError: true,
+      );
+      if (previewRes.statusCode == 200 && previewRes.data is Map) {
+        final data = (previewRes.data as Map)['data'];
+        if (data is Map) {
+          final mimeType = data['mime_type']?.toString();
+          final content = data['content']?.toString();
+          if (content != null && content.isNotEmpty) {
+            final decoded = base64Decode(content);
+            stdout.writeln('  image preview size=$size mime=$mimeType bytes=${decoded.length}');
+          }
+        }
+      }
+    }
+  }
+
   // 7) List folder
   await _request(apiDio, () => apiDio.get('/files', queryParameters: {'folder_id': folderId, 'skip': 0, 'limit': 50}), label: 'GET /api/files (folder)');
 
@@ -195,6 +252,10 @@ Future<void> main(List<String> args) async {
   if (uploadedFileId != null) {
     final newName = 'hello-renamed-$ts.txt';
     await _request(apiDio, () => apiDio.patch('/files/$uploadedFileId', data: {'name': newName}), label: 'PATCH /api/files/$uploadedFileId (rename)');
+
+    // 8a) Move file to root then back to folder (tests "update" behaviors used by the UI)
+    await _request(apiDio, () => apiDio.patch('/files/$uploadedFileId', data: {'folder_id': null}), label: 'PATCH /api/files/$uploadedFileId (move to root)');
+    await _request(apiDio, () => apiDio.patch('/files/$uploadedFileId', data: {'folder_id': folderId}), label: 'PATCH /api/files/$uploadedFileId (move back)');
 
     // 8b) Preview (base64 JSON) - should work for text files
     final previewRes = await _request(
