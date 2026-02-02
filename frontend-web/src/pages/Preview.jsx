@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { API_URL } from '../config';
 import { downloadBlob } from '../utils/downloadBlob';
 import { formatBytes } from '../utils/storageUtils';
@@ -7,6 +7,7 @@ import { fileService } from '../services/api';
 
 export default function Preview() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -207,7 +208,26 @@ export default function Preview() {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>Prévisualisation</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#f5f5f5',
+              color: '#333',
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              cursor: 'pointer',
+            }}
+            aria-label="Retour"
+            title="Retour"
+          >
+            <i className="bi bi-arrow-left me-1" aria-hidden="true"></i>
+            Retour
+          </button>
+          <h1 style={{ margin: 0 }}>Prévisualisation</h1>
+        </div>
         <button
           type="button"
           onClick={handleDownload}
