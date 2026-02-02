@@ -138,7 +138,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
         for (final item in items) {
           if (item is! Map) continue;
-          final map = Map<String, dynamic>.from(item as Map);
+          final map = Map<String, dynamic>.from(item);
           try {
             final type = map['type']?.toString();
             if (type == 'folder') {
@@ -226,8 +226,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedType,
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _selectedType,
                         decoration: const InputDecoration(
                           labelText: 'Type',
                           border: OutlineInputBorder(),
@@ -248,8 +248,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedMimeType,
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _selectedMimeType,
                         decoration: const InputDecoration(
                           labelText: 'Format',
                           border: OutlineInputBorder(),
@@ -403,14 +403,14 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             )
           else if (_files.isEmpty && _folders.isEmpty && _searchController.text.isNotEmpty)
-            Expanded(
+            const Expanded(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text('Aucun résultat trouvé'),
+                    Icon(Icons.search_off, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('Aucun résultat trouvé'),
                   ],
                 ),
               ),
@@ -435,7 +435,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                                    color: Colors.blue.withAlpha((0.1 * 255).round()),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.folder, color: Colors.blue, size: 24),
@@ -486,7 +486,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: iconColor.withOpacity(0.1),
+                                    color: iconColor.withAlpha((0.1 * 255).round()),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(icon, color: iconColor, size: 24),

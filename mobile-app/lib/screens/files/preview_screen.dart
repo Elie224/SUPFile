@@ -39,7 +39,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Uint8List? _pdfBytes;
   Uint8List? _imageBytes;
   String? _textContent;
-  String? _previewMimeType;
 
   @override
   void initState() {
@@ -93,7 +92,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _filesInFolder = [];
         for (final item in items) {
           if (item is! Map) continue;
-          final map = Map<String, dynamic>.from(item as Map);
+          final map = Map<String, dynamic>.from(item);
           final type = map['type']?.toString();
           if (type == 'file') {
             final f = FileItem.fromJson(map);
@@ -136,8 +135,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
         }
 
         final content = data['content'];
-        final mime = data['mime_type']?.toString();
-        _previewMimeType = mime;
 
         Uint8List decoded;
         if (content is String) {

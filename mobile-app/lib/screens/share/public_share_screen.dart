@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../../services/api_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
-import '../../utils/constants.dart';
-import '../files/preview_screen.dart';
 import '../files/files_screen.dart';
 
 /// Écran pour accéder aux liens de partage publics sans être connecté
@@ -27,7 +25,6 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
   bool _isPasswordRequired = false;
   bool _isPasswordChecking = false;
   String? _error;
-  Map<String, dynamic>? _shareData;
   FileItem? _file;
   FolderItem? _folder;
 
@@ -58,8 +55,6 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
       if (response.statusCode == 200) {
         final data = response.data['data'];
         setState(() {
-          _shareData = data;
-          
           // Vérifier si le partage nécessite un mot de passe
           if (data['requires_password'] == true && password == null) {
             _isPasswordRequired = true;
@@ -120,6 +115,8 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
     });
 
     await _loadShare(password: _passwordController.text);
+
+    if (!mounted) return;
 
     setState(() {
       _isPasswordChecking = false;

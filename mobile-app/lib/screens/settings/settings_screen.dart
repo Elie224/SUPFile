@@ -90,8 +90,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? _displayNameController.text.trim()
             : null,
       );
-
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.refreshUser();
 
       if (mounted) {
@@ -156,9 +154,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton(
             onPressed: _isUpdatingProfile ? null : () async {
               await _updateProfile();
-              if (mounted) {
-                Navigator.pop(context);
-              }
+              if (!context.mounted) return;
+              Navigator.pop(context);
             },
             child: _isUpdatingProfile
                 ? const SizedBox(
@@ -175,6 +172,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _uploadAvatar() async {
     try {
+      final screenContext = context;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
@@ -183,54 +185,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
         imageQuality: 85,
       );
 
+      if (!mounted) return;
+
       if (image != null) {
         final file = File(image.path);
         
         // Vérifier la taille
         final fileSize = await file.length();
         if (fileSize > AppConstants.maxImageSize) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('L\'image est trop grande (max 5 MB)'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          if (!mounted) return;
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('L\'image est trop grande (max 5 MB)'),
+              backgroundColor: Colors.red,
+            ),
+          );
           return;
         }
 
         // Afficher un indicateur de progression
+        if (!screenContext.mounted) return;
         showDialog(
-          context: context,
+          context: screenContext,
           barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
+          builder: (dialogContext) =>
+              const Center(child: CircularProgressIndicator()),
         );
 
         try {
           await _apiService.uploadAvatar(file);
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
           await authProvider.refreshUser();
-          
-          if (mounted) {
-            Navigator.pop(context); // Fermer le dialogue
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Avatar mis à jour'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
+
+          if (!mounted) return;
+          navigator.pop(); // Fermer le dialogue
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Avatar mis à jour'),
+              backgroundColor: Colors.green,
+            ),
+          );
         } catch (e) {
-          if (mounted) {
-            Navigator.pop(context); // Fermer le dialogue
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erreur: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          if (!mounted) return;
+          navigator.pop(); // Fermer le dialogue
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -514,19 +516,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     backupCodes,
                   );
                   if (!ctx.mounted) return;
+                  if (!mounted) return;
                   if (response.statusCode == 200) {
                     Navigator.pop(ctx);
                     setState(() => _twoFactorEnabled = true);
                     final authProvider = Provider.of<AuthProvider>(context, listen: false);
                     await authProvider.refreshUser();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Double authentification activée'),
                           backgroundColor: Colors.green,
                         ),
                       );
-                    }
                   } else {
                     final msg = response.data['error']?['message'] ?? 'Code invalide';
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -579,39 +581,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: loading
                     ? null
                     : () async {
+                        final screenContext = this.context;
+                        final messenger = ScaffoldMessenger.of(screenContext);
+                        final authProvider =
+                            Provider.of<AuthProvider>(screenContext, listen: false);
+
                         final password = passwordController.text;
                         if (password.isEmpty) return;
                         setDialogState(() => loading = true);
                         try {
                           await _apiService.disable2FA(password);
-                          if (mounted) {
-                            Navigator.pop(ctx);
-                            setState(() {
-                              _twoFactorEnabled = false;
-                              _twoFactorBackupCodesCount = 0;
-                            });
-                            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                            await authProvider.refreshUser();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Double authentification désactivée'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
+                          if (!ctx.mounted) return;
+                          if (!mounted) return;
+                          Navigator.pop(ctx);
+                          setState(() {
+                            _twoFactorEnabled = false;
+                            _twoFactorBackupCodesCount = 0;
+                          });
+                          await authProvider.refreshUser();
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Double authentification désactivée'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
                         } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().contains('401')
-                                      ? 'Mot de passe incorrect'
-                                      : e.toString(),
-                                ),
-                                backgroundColor: Colors.red,
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                e.toString().contains('401')
+                                    ? 'Mot de passe incorrect'
+                                    : e.toString(),
                               ),
-                            );
-                          }
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                         } finally {
                           if (mounted) setDialogState(() => loading = false);
                         }
@@ -710,9 +716,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   themeProvider.setThemeMode(
                     value ? ThemeMode.dark : ThemeMode.light,
                   );
-                  _apiService.updatePreferences({
-                    'theme': value ? 'dark' : 'light',
-                  }).catchError((_) {});
+                  () async {
+                    try {
+                      await _apiService.updatePreferences({
+                        'theme': value ? 'dark' : 'light',
+                      });
+                    } catch (_) {
+                      // Ignore API failures for theme sync; local theme already applied.
+                    }
+                  }();
                 },
               );
             },
@@ -798,9 +810,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Déconnexion
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: Text(
+            title: const Text(
               'Déconnexion',
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.red),
             ),
             onTap: () async {
               await authProvider.logout();

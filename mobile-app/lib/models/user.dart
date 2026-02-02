@@ -43,12 +43,12 @@ class User {
     // Validation des champs requis
     final id = json['id']?.toString() ?? json['_id']?.toString();
     if (id == null || id.isEmpty) {
-      throw FormatException('User requires a valid id');
+      throw const FormatException('User requires a valid id');
     }
     
     final email = json['email']?.toString() ?? '';
     if (email.isEmpty) {
-      throw FormatException('User requires a valid email');
+      throw const FormatException('User requires a valid email');
     }
     
     // Validation des quotas (doivent être >= 0)
@@ -59,7 +59,7 @@ class User {
                         32212254720;
     
     if (quotaUsed < 0 || quotaLimit < 0) {
-      throw FormatException('User quotas must be >= 0');
+      throw const FormatException('User quotas must be >= 0');
     }
     
     final twoFactorEnabled = json['two_factor_enabled'] == true;

@@ -29,6 +29,13 @@ class _FilesScreenState extends State<FilesScreen> {
   List<FolderItem> _breadcrumbs = [];
   String? _sortBy; // 'name', 'size', 'modified'
   bool _sortAscending = true;
+
+  String _safeZipName(String folderName) {
+    final trimmed = folderName.trim().isEmpty ? 'dossier' : folderName.trim();
+    // Android is permissive, but sanitize common forbidden characters.
+    final sanitized = trimmed.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    return sanitized.endsWith('.zip') ? sanitized : '$sanitized.zip';
+  }
   
   @override
   void initState() {
@@ -170,6 +177,61 @@ class _FilesScreenState extends State<FilesScreen> {
     }
   }
 
+  Future<void> _downloadFolderZip(FolderItem folder) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        final response = await _apiService.downloadFolderZip(folder.id);
+
+        if (response.statusCode == 200 && response.data != null) {
+          final directory = await getExternalStorageDirectory();
+          if (directory == null) {
+            throw Exception('Répertoire de stockage indisponible');
+          }
+
+          final zipName = _safeZipName(folder.name);
+          final filePath = '${directory.path}${Platform.pathSeparator}$zipName';
+          final savedFile = File(filePath);
+          await savedFile.create(recursive: true);
+          await savedFile.writeAsBytes(response.data!);
+
+          if (!mounted) return;
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ZIP sauvegardé: $filePath'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          throw Exception('Erreur téléchargement ZIP (code: ${response.statusCode ?? '??'})');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur ZIP: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filesProvider = Provider.of<FilesProvider>(context);
@@ -242,9 +304,9 @@ class _FilesScreenState extends State<FilesScreen> {
               ),
               if (_sortBy != null) ...[
                 const PopupMenuDivider(),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'clear',
-                  child: const Text('Annuler le tri'),
+                  child: Text('Annuler le tri'),
                 ),
               ],
             ],
@@ -270,7 +332,7 @@ class _FilesScreenState extends State<FilesScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     border: Border(
                       bottom: BorderSide(
                         color: Colors.grey.shade300,
@@ -285,13 +347,13 @@ class _FilesScreenState extends State<FilesScreen> {
                         InkWell(
                           onTap: () => context.go('/files'),
                           borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.home_outlined, size: 18, color: AppConstants.supinfoPurple),
-                                const SizedBox(width: 6),
+                                SizedBox(width: 6),
                                 Text(
                                   'Racine',
                                   style: TextStyle(
@@ -404,11 +466,11 @@ class _FilesScreenState extends State<FilesScreen> {
         dynamic aValue, bValue;
         
         if (_sortBy == 'name') {
-          aValue = aItem.name?.toLowerCase() ?? '';
-          bValue = bItem.name?.toLowerCase() ?? '';
+          aValue = aItem.name.toLowerCase();
+          bValue = bItem.name.toLowerCase();
         } else if (_sortBy == 'size') {
-          aValue = aItem is FileItem ? (aItem.size ?? 0) : 0;
-          bValue = bItem is FileItem ? (bItem.size ?? 0) : 0;
+          aValue = aItem is FileItem ? aItem.size : 0;
+          bValue = bItem is FileItem ? bItem.size : 0;
         } else if (_sortBy == 'modified') {
           final aDate = aItem.updatedAt ?? aItem.createdAt;
           final bDate = bItem.updatedAt ?? bItem.createdAt;
@@ -467,7 +529,7 @@ class _FilesScreenState extends State<FilesScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha((0.05 * 255).round()),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -478,7 +540,7 @@ class _FilesScreenState extends State<FilesScreen> {
           leading: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
                   AppConstants.supinfoPurple,
                   AppConstants.supinfoPurpleLight,
@@ -487,7 +549,7 @@ class _FilesScreenState extends State<FilesScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppConstants.supinfoPurple.withOpacity(0.3),
+                  color: AppConstants.supinfoPurple.withAlpha((0.3 * 255).round()),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -549,7 +611,7 @@ class _FilesScreenState extends State<FilesScreen> {
             context.push('/files?folder=${folder.id}');
           },
           trailing: PopupMenuButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.more_vert,
               color: AppConstants.supinfoPurple,
             ),
@@ -561,6 +623,16 @@ class _FilesScreenState extends State<FilesScreen> {
                     Icon(Icons.share, size: 20),
                     SizedBox(width: 8),
                     Text('Partager'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_zip',
+                child: Row(
+                  children: [
+                    Icon(Icons.download, size: 20),
+                    SizedBox(width: 8),
+                    Text('Télécharger (ZIP)'),
                   ],
                 ),
               ),
@@ -604,13 +676,13 @@ class _FilesScreenState extends State<FilesScreen> {
                   ),
                 ),
               ] else ...[
-                PopupMenuItem(
+                const PopupMenuItem(
                   enabled: false,
                   child: Row(
                     children: [
                       Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         'Actions limitées pour Root',
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
@@ -622,6 +694,8 @@ class _FilesScreenState extends State<FilesScreen> {
             onSelected: (value) async {
               if (value == 'share') {
                 context.go('/share?folder=${folder.id}');
+              } else if (value == 'download_zip') {
+                await _downloadFolderZip(folder);
               } else if (value == 'move' && !isRootFolder) {
                 _showMoveDialog(context, folder.id, folder.name, true);
               } else if (value == 'rename' && !isRootFolder) {
@@ -684,7 +758,7 @@ class _FilesScreenState extends State<FilesScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -698,13 +772,13 @@ class _FilesScreenState extends State<FilesScreen> {
             gradient: LinearGradient(
               colors: [
                 iconColor,
-                iconColor.withOpacity(0.7),
+                iconColor.withAlpha((0.7 * 255).round()),
               ],
             ),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: iconColor.withOpacity(0.3),
+                color: iconColor.withAlpha((0.3 * 255).round()),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -746,7 +820,7 @@ class _FilesScreenState extends State<FilesScreen> {
           }
         },
         trailing: PopupMenuButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.more_vert,
             color: AppConstants.supinfoPurple,
           ),
@@ -1121,7 +1195,8 @@ class _FilesScreenState extends State<FilesScreen> {
                   if (isLoadingFolders)
                     const Center(child: CircularProgressIndicator())
                   else
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedFolderId,
                       decoration: const InputDecoration(
                         labelText: 'Dossier de destination',
                         border: OutlineInputBorder(),
@@ -1202,6 +1277,8 @@ class _FilesScreenState extends State<FilesScreen> {
         type: FileType.any,
       );
 
+      if (!context.mounted) return;
+
       if (result != null && result.files.isNotEmpty) {
         final totalFiles = result.files.length;
         int currentFileIndex = 0;
@@ -1209,6 +1286,9 @@ class _FilesScreenState extends State<FilesScreen> {
         int failCount = 0;
         String? currentFileName;
         double currentProgress = 0.0;
+
+        void Function(void Function())? setDialogStateRef;
+        DateTime lastUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
 
         // Créer un dialogue de progression avec StatefulBuilder
         BuildContext? dialogContext;
@@ -1219,6 +1299,7 @@ class _FilesScreenState extends State<FilesScreen> {
             dialogContext = ctx;
             return StatefulBuilder(
               builder: (context, setDialogState) {
+                setDialogStateRef = setDialogState;
                 return AlertDialog(
                   title: const Text('Upload en cours'),
                   content: Column(
@@ -1276,13 +1357,20 @@ class _FilesScreenState extends State<FilesScreen> {
             currentFileName = pickedFile.name;
             currentProgress = 0.0;
 
+            setDialogStateRef?.call(() {});
+
             final success = await filesProvider.uploadFile(
               filePath.path,
               folderId: widget.folderId,
               onProgress: (sent, total) {
-                if (context.mounted && dialogContext != null) {
-                  // La progression est suivie mais le dialogue se mettra à jour après chaque fichier
-                  currentProgress = total > 0 ? sent / total : 0.0;
+                if (!context.mounted || dialogContext == null) return;
+                currentProgress = total > 0 ? sent / total : 0.0;
+
+                // Throttle UI updates to avoid excessive rebuilds.
+                final now = DateTime.now();
+                if (now.difference(lastUiUpdate) >= const Duration(milliseconds: 120)) {
+                  lastUiUpdate = now;
+                  setDialogStateRef?.call(() {});
                 }
               },
             );
@@ -1296,10 +1384,13 @@ class _FilesScreenState extends State<FilesScreen> {
           
           currentFileIndex++;
           currentProgress = 1.0; // Fichier terminé
+          setDialogStateRef?.call(() {});
         }
 
         if (context.mounted) {
-          Navigator.pop(context); // Fermer le dialogue de progression
+          if (dialogContext != null) {
+            Navigator.of(dialogContext!).pop();
+          }
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1314,8 +1405,10 @@ class _FilesScreenState extends State<FilesScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        // Fermer le dialogue s'il est encore ouvert
-        Navigator.pop(context);
+        // Fermer le dialogue s'il est encore ouvert (best-effort)
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context);
+        }
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

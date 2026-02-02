@@ -13,7 +13,7 @@ class SecureLogger {
         message,
         name: _tag,
         level: 800, // INFO level
-        error: sanitizedData != null ? sanitizedData.toString() : null,
+        error: sanitizedData?.toString(),
       );
     }
   }

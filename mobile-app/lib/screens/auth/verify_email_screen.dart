@@ -137,7 +137,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.1),
+                    AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],

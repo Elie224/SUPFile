@@ -412,13 +412,5 @@ class FilesProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-  
-  /// Invalider le cache pour le dossier courant
-  Future<void> _invalidateCache() async {
-    final folderId = _currentFolder?.id ?? 'root';
-    for (int skip = 0; skip < 1000; skip += 50) {
-      await PerformanceCache.remove('files_${folderId}_${skip}_50');
-    }
-  }
 }
 

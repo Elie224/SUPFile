@@ -7,21 +7,21 @@ class OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return const Material(
       color: AppConstants.warningColor,
       elevation: 2,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
-              const Icon(Icons.cloud_off, color: Colors.white, size: 22),
-              const SizedBox(width: 12),
+              Icon(Icons.cloud_off, color: Colors.white, size: 22),
+              SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Vous êtes hors ligne. Les modifications seront synchronisées à la reconnexion.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/intl.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/files_provider.dart';
@@ -42,26 +41,24 @@ class SUPFileApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               useMaterial3: true,
-              colorScheme: ColorScheme.light(
+              colorScheme: const ColorScheme.light(
                 primary: AppConstants.supinfoPurple,
                 secondary: AppConstants.supinfoPurpleLight,
                 surface: AppConstants.supinfoWhite,
-                background: AppConstants.supinfoGrey,
                 error: AppConstants.errorColor,
                 onPrimary: AppConstants.supinfoWhite,
                 onSecondary: AppConstants.supinfoWhite,
                 onSurface: AppConstants.supinfoPurpleDark,
-                onBackground: AppConstants.supinfoPurpleDark,
                 onError: AppConstants.supinfoWhite,
                 brightness: Brightness.light,
               ),
               scaffoldBackgroundColor: AppConstants.supinfoGrey,
-              appBarTheme: AppBarTheme(
+              appBarTheme: const AppBarTheme(
                 backgroundColor: AppConstants.supinfoPurple,
                 foregroundColor: AppConstants.supinfoWhite,
                 elevation: 0,
                 centerTitle: true,
-                titleTextStyle: const TextStyle(
+                titleTextStyle: TextStyle(
                   color: AppConstants.supinfoWhite,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -113,26 +110,24 @@ class SUPFileApp extends StatelessWidget {
             ),
             darkTheme: ThemeData(
               useMaterial3: true,
-              colorScheme: ColorScheme.dark(
+              colorScheme: const ColorScheme.dark(
                 primary: AppConstants.supinfoPurpleLight,
                 secondary: AppConstants.supinfoPurple,
-                surface: const Color(0xFF1E1E1E),
-                background: const Color(0xFF121212),
+                surface: Color(0xFF1E1E1E),
                 error: AppConstants.errorColor,
                 onPrimary: AppConstants.supinfoWhite,
                 onSecondary: AppConstants.supinfoWhite,
                 onSurface: AppConstants.supinfoWhite,
-                onBackground: AppConstants.supinfoWhite,
                 onError: AppConstants.supinfoWhite,
                 brightness: Brightness.dark,
               ),
               scaffoldBackgroundColor: const Color(0xFF121212),
-              appBarTheme: AppBarTheme(
+              appBarTheme: const AppBarTheme(
                 backgroundColor: AppConstants.supinfoPurpleDark,
                 foregroundColor: AppConstants.supinfoWhite,
                 elevation: 0,
                 centerTitle: true,
-                titleTextStyle: const TextStyle(
+                titleTextStyle: TextStyle(
                   color: AppConstants.supinfoWhite,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

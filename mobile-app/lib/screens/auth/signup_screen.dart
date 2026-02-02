@@ -134,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.1),
+                    AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],
@@ -156,7 +156,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     useGradient: true,
                   ),
                   const SizedBox(height: 24),
-                  Text(
+                  const Text(
                     'Créer un compte',
                     style: TextStyle(
                       fontSize: 28,
@@ -180,9 +180,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withAlpha((0.1 * 255).round()),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(color: Colors.green.withAlpha((0.3 * 255).round())),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -316,7 +316,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   // Bouton d'inscription avec gradient
                   Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [
                           AppConstants.supinfoPurple,
                           AppConstants.supinfoPurpleLight,
@@ -325,7 +325,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: AppConstants.supinfoPurple.withOpacity(0.4),
+                          color: AppConstants.supinfoPurple.withAlpha((0.4 * 255).round()),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

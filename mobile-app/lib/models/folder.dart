@@ -34,17 +34,17 @@ class FolderItem {
     // Validation des champs requis
     final id = json['id']?.toString() ?? json['_id']?.toString();
     if (id == null || id.isEmpty) {
-      throw FormatException('FolderItem requires a valid id');
+      throw const FormatException('FolderItem requires a valid id');
     }
     
     final name = json['name']?.toString() ?? '';
     if (name.isEmpty) {
-      throw FormatException('FolderItem requires a valid name');
+      throw const FormatException('FolderItem requires a valid name');
     }
     
     final ownerId = json['owner_id']?.toString() ?? '';
     if (ownerId.isEmpty) {
-      throw FormatException('FolderItem requires a valid owner_id');
+      throw const FormatException('FolderItem requires a valid owner_id');
     }
     
     return FolderItem(

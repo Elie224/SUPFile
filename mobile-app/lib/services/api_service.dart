@@ -312,7 +312,7 @@ class ApiService {
   // Files
   Future<Response> listFiles({String? folderId, int skip = 0, int limit = 50}) async {
     // Vérifier le cache d'abord
-    final cacheKey = 'files_${folderId ?? 'root'}_$skip\_$limit';
+    final cacheKey = 'files_${folderId ?? 'root'}_${skip}_$limit';
     final cached = await PerformanceCache.get<Map<String, dynamic>>(cacheKey);
     if (cached != null) {
       return Response(
@@ -376,6 +376,18 @@ class ApiService {
   Future<Response> downloadFile(String fileId) {
     return _dio.get(
       '/files/$fileId/download',
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  /// Télécharger un dossier complet en ZIP.
+  /// Endpoint backend: GET /api/folders/:id/download
+  Future<Response<List<int>>> downloadFolderZip(String folderId) {
+    return _dio.get<List<int>>(
+      '/folders/$folderId/download',
       options: Options(
         responseType: ResponseType.bytes,
         headers: const {'Cache-Control': 'no-cache'},

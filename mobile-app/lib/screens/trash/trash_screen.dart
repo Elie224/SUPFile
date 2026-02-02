@@ -296,6 +296,8 @@ class _TrashScreenState extends State<TrashScreen> {
       return;
     }
 
+    if (!mounted) return;
+
     // Afficher un indicateur de progression
     showDialog(
       context: context,
@@ -413,12 +415,12 @@ class _TrashScreenState extends State<TrashScreen> {
                         margin: const EdgeInsets.all(8),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: AppConstants.warningColor.withOpacity(0.15),
+                          color: AppConstants.warningColor.withAlpha((0.15 * 255).round()),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 20),
+                            const Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -467,7 +469,7 @@ class _TrashScreenState extends State<TrashScreen> {
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
+                                  color: Colors.blue.withAlpha((0.1 * 255).round()),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(Icons.folder, color: Colors.blue, size: 24),
@@ -519,7 +521,7 @@ class _TrashScreenState extends State<TrashScreen> {
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: iconColor.withOpacity(0.1),
+                                  color: iconColor.withAlpha((0.1 * 255).round()),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(icon, color: iconColor, size: 24),

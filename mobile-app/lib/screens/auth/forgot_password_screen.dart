@@ -74,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.1),
+                    AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],
@@ -200,7 +200,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Container(
           width: 80,
           height: 80,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppConstants.successColor,
             shape: BoxShape.circle,
           ),

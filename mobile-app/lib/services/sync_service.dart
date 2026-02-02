@@ -3,8 +3,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'offline_storage_service.dart';
 import 'api_service.dart';
-import '../models/file.dart';
-import '../models/folder.dart';
 
 /// Service de synchronisation offline-first : envoie les opérations en attente au serveur
 /// et met à jour le cache local quand on est en ligne.

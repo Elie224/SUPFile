@@ -98,7 +98,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       drawer: Drawer(
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -134,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withAlpha((0.2 * 255).round()),
                             blurRadius: 10,
                           ),
                         ],
@@ -144,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         backgroundImage: authProvider.user?.avatarUrl != null
                             ? NetworkImage(authProvider.user!.avatarUrl!)
                             : null,
-                        backgroundColor: AppConstants.supinfoWhite.withOpacity(0.2),
+                        backgroundColor: AppConstants.supinfoWhite.withAlpha((0.2 * 255).round()),
                         child: authProvider.user?.avatarUrl == null
                             ? const Icon(
                                 Icons.person,
@@ -166,9 +166,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (authProvider.user?.email != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        authProvider.user!.email!,
+                        authProvider.user!.email,
                         style: TextStyle(
-                          color: AppConstants.supinfoWhite.withOpacity(0.9),
+                          color: AppConstants.supinfoWhite.withAlpha((0.9 * 255).round()),
                           fontSize: 14,
                         ),
                       ),
@@ -177,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             Container(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withAlpha((0.05 * 255).round()),
               child: ListTile(
                 leading: const Icon(Icons.dashboard, color: AppConstants.supinfoWhite),
                 title: const Text(
@@ -247,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
             ],
-            Divider(color: AppConstants.supinfoWhite.withOpacity(0.3)),
+            Divider(color: AppConstants.supinfoWhite.withAlpha((0.3 * 255).round())),
             ListTile(
               leading: const Icon(Icons.logout, color: AppConstants.errorColor),
               title: const Text(
@@ -286,13 +286,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: AppConstants.warningColor.withOpacity(0.15),
+                            color: AppConstants.warningColor.withAlpha((0.15 * 255).round()),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppConstants.warningColor.withOpacity(0.5)),
+                            border: Border.all(color: AppConstants.warningColor.withAlpha((0.5 * 255).round())),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 24),
+                              const Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 24),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
@@ -306,7 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // Quota - Carte moderne avec gradient
                       Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
@@ -317,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: AppConstants.supinfoPurple.withOpacity(0.3),
+                              color: AppConstants.supinfoPurple.withAlpha((0.3 * 255).round()),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -333,7 +333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: AppConstants.supinfoWhite.withOpacity(0.2),
+                                      color: AppConstants.supinfoWhite.withAlpha((0.2 * 255).round()),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -359,7 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         Text(
                                           '${_stats!['quota']['percentage']}% utilisé',
                                           style: TextStyle(
-                                            color: AppConstants.supinfoWhite.withOpacity(0.9),
+                                            color: AppConstants.supinfoWhite.withAlpha((0.9 * 255).round()),
                                             fontSize: 14,
                                           ),
                                         ),
@@ -374,7 +374,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: LinearProgressIndicator(
                                   value: _stats!['quota']['percentage'] / 100,
                                   minHeight: 12,
-                                  backgroundColor: AppConstants.supinfoWhite.withOpacity(0.2),
+                                  backgroundColor: AppConstants.supinfoWhite.withAlpha((0.2 * 255).round()),
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     _stats!['quota']['percentage'] > 80
                                         ? AppConstants.errorColor
@@ -394,7 +394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Container(
                                     width: 1,
                                     height: 30,
-                                    color: AppConstants.supinfoWhite.withOpacity(0.3),
+                                    color: AppConstants.supinfoWhite.withAlpha((0.3 * 255).round()),
                                   ),
                                   _buildStatItem(
                                     'Disponible',
@@ -424,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: AppConstants.supinfoPurple.withOpacity(0.1),
+                                      color: AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -470,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: AppConstants.supinfoPurple.withOpacity(0.1),
+                                      color: AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -528,7 +528,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     leading: Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: iconColor.withOpacity(0.1),
+                                        color: iconColor.withAlpha((0.1 * 255).round()),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Icon(icon, color: iconColor, size: 20),
@@ -568,7 +568,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           label,
           style: TextStyle(
-            color: textColor.withOpacity(0.8),
+            color: textColor.withAlpha((0.8 * 255).round()),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -594,10 +594,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withAlpha((0.3 * 255).round()),
           width: 1,
         ),
       ),

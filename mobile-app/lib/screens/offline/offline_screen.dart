@@ -30,7 +30,7 @@ class OfflineScreen extends StatelessWidget {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.08),
+                    AppConstants.supinfoPurple.withAlpha((0.08 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],
@@ -49,7 +49,7 @@ class OfflineScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppConstants.warningColor.withOpacity(0.2),
+                      color: AppConstants.warningColor.withAlpha((0.2 * 255).round()),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -118,7 +118,7 @@ class OfflineScreen extends StatelessWidget {
                         label: const Text('Mes fichiers'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppConstants.supinfoPurple,
-                          side: BorderSide(color: AppConstants.supinfoPurple),
+                          side: const BorderSide(color: AppConstants.supinfoPurple),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

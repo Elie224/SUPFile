@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.1),
+                    AppConstants.supinfoPurple.withAlpha((0.1 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],
@@ -265,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Bouton de connexion avec gradient
                     Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [
                             AppConstants.supinfoPurple,
                             AppConstants.supinfoPurpleLight,
@@ -274,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppConstants.supinfoPurple.withOpacity(0.4),
+                            color: AppConstants.supinfoPurple.withAlpha((0.4 * 255).round()),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -538,7 +538,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha((0.05 * 255).round()),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
-import '../../providers/files_provider.dart';
-import '../../models/file.dart';
-import '../../models/folder.dart';
 import '../../utils/constants.dart';
 
 class ShareScreen extends StatefulWidget {
@@ -129,7 +125,7 @@ class _ShareScreenState extends State<ShareScreen> {
         final data = response.data['data'];
         setState(() {
           _shareToken = data['token'];
-          _shareUrl = data['share_url'] ?? '${AppConstants.apiBaseUrl}/share/${_shareToken}';
+          _shareUrl = data['share_url'] ?? '${AppConstants.apiBaseUrl}/share/$_shareToken';
           _isLoading = false;
         });
       }
@@ -148,12 +144,16 @@ class _ShareScreenState extends State<ShareScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
+
+    if (!mounted) return;
     
     if (picked != null) {
       final TimeOfDay? time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
+
+      if (!mounted) return;
       
       if (time != null) {
         setState(() {

@@ -50,7 +50,7 @@ class SyncIndicator extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   else
-                    Icon(
+                    const Icon(
                       Icons.sync,
                       size: 20,
                       color: AppConstants.supinfoPurple,
@@ -66,7 +66,7 @@ class SyncIndicator extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   if (!sync.isSyncing && sync.isOnline)
-                    Text(
+                    const Text(
                       'Synchroniser',
                       style: TextStyle(
                         fontSize: 12,

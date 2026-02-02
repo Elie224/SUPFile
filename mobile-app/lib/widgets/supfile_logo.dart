@@ -46,7 +46,7 @@ class SupFileLogo extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppConstants.supinfoPurple.withOpacity(0.3),
+                  color: AppConstants.supinfoPurple.withAlpha((0.3 * 255).round()),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -63,7 +63,7 @@ class SupFileLogo extends StatelessWidget {
                   height: 1.0,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withAlpha((0.3 * 255).round()),
                       offset: const Offset(0, 2),
                       blurRadius: 4,
                     ),

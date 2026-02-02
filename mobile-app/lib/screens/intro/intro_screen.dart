@@ -110,7 +110,7 @@ class _IntroScreenState extends State<IntroScreen> {
                     const Color(0xFF121212),
                   ]
                 : [
-                    AppConstants.supinfoPurple.withOpacity(0.08),
+                    AppConstants.supinfoPurple.withAlpha((0.08 * 255).round()),
                     AppConstants.supinfoGrey,
                     AppConstants.supinfoWhite,
                   ],
@@ -269,7 +269,7 @@ class _IntroScreenState extends State<IntroScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     size: 20,
                     color: AppConstants.supinfoPurple,

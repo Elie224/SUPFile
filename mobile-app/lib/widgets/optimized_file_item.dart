@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/file.dart';
@@ -21,7 +23,7 @@ class _FileItemWidget extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
+          color: iconColor.withAlpha((0.1 * 255).round()),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: iconColor, size: 24),
@@ -104,13 +106,13 @@ class _FolderItemWidget extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: Colors.blue.withAlpha((0.1 * 255).round()),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Icon(Icons.folder, color: Colors.blue, size: 24),
       ),
       title: Text(folder.name),
-      subtitle: Text('Dossier'),
+      subtitle: const Text('Dossier'),
       onTap: () {
         context.go('/files?folder=${folder.id}');
       },

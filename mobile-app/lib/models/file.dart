@@ -37,24 +37,24 @@ class FileItem {
     // Validation des champs requis
     final id = json['id']?.toString() ?? json['_id']?.toString();
     if (id == null || id.isEmpty) {
-      throw FormatException('FileItem requires a valid id');
+      throw const FormatException('FileItem requires a valid id');
     }
     
     final name = json['name']?.toString() ?? '';
     if (name.isEmpty) {
-      throw FormatException('FileItem requires a valid name');
+      throw const FormatException('FileItem requires a valid name');
     }
     
     final ownerId = json['owner_id']?.toString() ?? '';
     if (ownerId.isEmpty) {
-      throw FormatException('FileItem requires a valid owner_id');
+      throw const FormatException('FileItem requires a valid owner_id');
     }
     
     // Validation de la taille (doit être >= 0)
     final size = json['size'] is int ? json['size'] as int : 
                  json['size'] is String ? int.tryParse(json['size']) ?? 0 : 0;
     if (size < 0) {
-      throw FormatException('FileItem size must be >= 0');
+      throw const FormatException('FileItem size must be >= 0');
     }
     
     return FileItem(
@@ -71,11 +71,86 @@ class FileItem {
     );
   }
   
-  bool get isImage => mimeType?.startsWith('image/') ?? false;
-  bool get isVideo => mimeType?.startsWith('video/') ?? false;
-  bool get isAudio => mimeType?.startsWith('audio/') ?? false;
-  bool get isPdf => mimeType == 'application/pdf';
-  bool get isText => mimeType?.startsWith('text/') ?? false;
+  String get _lowerName => name.toLowerCase();
+
+  String get _extension {
+    final idx = _lowerName.lastIndexOf('.');
+    if (idx < 0 || idx == _lowerName.length - 1) return '';
+    return _lowerName.substring(idx + 1);
+  }
+
+  bool get isVideo {
+    final ext = _extension;
+    const videoExt = {
+      'mp4',
+      'm4v',
+      'mov',
+      'avi',
+      'mkv',
+      'webm',
+      '3gp',
+      'ts',
+    };
+    if (videoExt.contains(ext)) return true;
+    return mimeType?.startsWith('video/') ?? false;
+  }
+
+  bool get isAudio {
+    final ext = _extension;
+    const audioExt = {
+      'mp3',
+      'm4a',
+      'aac',
+      'wav',
+      'ogg',
+      'flac',
+      'opus',
+    };
+    if (audioExt.contains(ext)) return true;
+    return mimeType?.startsWith('audio/') ?? false;
+  }
+
+  bool get isPdf {
+    if (_extension == 'pdf') return true;
+    return mimeType == 'application/pdf';
+  }
+
+  bool get isText {
+    final ext = _extension;
+    const textExt = {
+      'txt',
+      'md',
+      'csv',
+      'log',
+      'json',
+      'xml',
+      'yml',
+      'yaml',
+    };
+    if (textExt.contains(ext)) return true;
+    return mimeType?.startsWith('text/') ?? false;
+  }
+
+  bool get isImage {
+    // If it's clearly a video/audio by extension, never treat it as an image.
+    if (isVideo || isAudio) return false;
+
+    final ext = _extension;
+    const imageExt = {
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'bmp',
+      'heic',
+      'heif',
+      'tif',
+      'tiff',
+    };
+    if (imageExt.contains(ext)) return true;
+    return mimeType?.startsWith('image/') ?? false;
+  }
   
   String get formattedSize {
     if (size < 1024) return '$size B';

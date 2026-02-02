@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_links/app_links.dart';
@@ -56,12 +55,11 @@ class OAuthService {
   static Future<Map<String, dynamic>?> signInWithGitHub() async {
     try {
       // URL de callback pour capturer le token
-      final callbackUrl = 'supfile://oauth/github/callback';
-      final oauthUrl = '${AppConstants.apiBaseUrl}/api/auth/github?redirect_uri=$callbackUrl';
+      const callbackUrl = 'supfile://oauth/github/callback';
+      const oauthUrl = '${AppConstants.apiBaseUrl}/api/auth/github?redirect_uri=$callbackUrl';
       
       // Écouter les deep links
       final completer = Completer<Map<String, dynamic>?>();
-      StreamSubscription? linkSubscription;
 
       // Vérifier d'abord si l'app a été ouverte avec un deep link
       try {
@@ -81,6 +79,7 @@ class OAuthService {
       }
 
       // Écouter les nouveaux deep links
+      late final StreamSubscription<Uri> linkSubscription;
       linkSubscription = _linkStream.listen((Uri uri) {
         final link = uri.toString();
         if (link.startsWith('supfile://oauth/github/callback')) {
@@ -97,11 +96,11 @@ class OAuthService {
             completer.complete(null);
           }
           
-          linkSubscription?.cancel();
+          linkSubscription.cancel();
         }
       }, onError: (err) {
         completer.completeError(err);
-        linkSubscription?.cancel();
+        linkSubscription.cancel();
       });
 
       // Ouvrir le navigateur pour l'authentification
@@ -116,12 +115,12 @@ class OAuthService {
         return await completer.future.timeout(
           const Duration(minutes: 5),
           onTimeout: () {
-            linkSubscription?.cancel();
+            linkSubscription.cancel();
             throw TimeoutException('OAuth timeout');
           },
         );
       } else {
-        linkSubscription?.cancel();
+        linkSubscription.cancel();
         throw 'Impossible d\'ouvrir le navigateur';
       }
     } catch (e) {

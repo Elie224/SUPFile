@@ -405,7 +405,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppConstants.supinfoPurple.withOpacity(0.2),
+                              color: AppConstants.supinfoPurple.withAlpha((0.2 * 255).round()),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text('Admin', style: TextStyle(fontSize: 11)),
