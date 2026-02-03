@@ -7,7 +7,6 @@ import Logo from '../components/Logo';
 const PAGES = [
   {
     id: 1,
-    icon: '1',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     title: 'Bienvenue sur SUPFile',
     subtitle: 'Votre espace de stockage cloud professionnel',
@@ -16,7 +15,6 @@ const PAGES = [
   },
   {
     id: 2,
-    icon: '2',
     gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
     title: 'Organisation intelligente',
     subtitle: 'Gérez vos fichiers comme un pro',
@@ -25,7 +23,6 @@ const PAGES = [
   },
   {
     id: 3,
-    icon: '3',
     gradient: 'linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)',
     title: 'Prévisualisation instantanée',
     subtitle: 'Visualisez sans télécharger',
@@ -34,7 +31,6 @@ const PAGES = [
   },
   {
     id: 4,
-    icon: '4',
     gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     title: 'Partage sécurisé',
     subtitle: 'Collaborez en toute confiance',
@@ -43,7 +39,6 @@ const PAGES = [
   },
   {
     id: 5,
-    icon: '5',
     gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     title: 'Tableau de bord complet',
     subtitle: 'Gardez le contrôle total',
@@ -605,8 +600,7 @@ export default function Intro() {
             Page {currentPage + 1} sur {PAGES.length}
           </div>
 
-          {/* Icon */}
-          <div style={styles.iconBox} className="intro-icon-box">{page.icon}</div>
+          {/* Icon removed (no emojis/pictograms) */}
 
           {/* Title */}
           <h1 style={styles.title}>{page.title}</h1>
@@ -648,14 +642,14 @@ export default function Intro() {
                 disabled={isFirst}
                 className="btn-hover intro-nav-btn"
               >
-                ← Précédent
+                Précédent
               </button>
               <button
                 style={styles.btnNext}
                 onClick={goNext}
                 className="btn-hover intro-nav-btn"
               >
-                {isLast ? 'Commencer' : 'Suivant →'}
+                {isLast ? 'Commencer' : 'Suivant'}
               </button>
             </div>
           </div>
