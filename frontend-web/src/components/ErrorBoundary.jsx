@@ -36,7 +36,8 @@ class ErrorBoundary extends React.Component {
     });
 
     // Envoyer l'erreur à un service de logging si disponible
-    if (process.env.NODE_ENV === 'production') {
+    const isProd = typeof import.meta !== 'undefined' && !!import.meta.env && import.meta.env.PROD;
+    if (isProd) {
       // TODO: Envoyer à un service de logging (Sentry, LogRocket, etc.)
     }
   }
@@ -50,7 +51,7 @@ class ErrorBoundary extends React.Component {
   render() {
     // Toujours afficher un fallback en cas d'erreur (dev + prod) pour éviter page blanche
     if (this.state.hasError) {
-      const isDev = process.env.NODE_ENV === 'development';
+      const isDev = typeof import.meta !== 'undefined' && !!import.meta.env && import.meta.env.DEV;
       // Lire l'erreur depuis state ou sessionStorage (reste après rechargement)
       let lastError = null;
       try {

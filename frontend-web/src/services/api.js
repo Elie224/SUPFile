@@ -44,6 +44,15 @@ const apiClient = axios.create({
   timeout: 20000, // 20 s : éviter chargement infini si le backend ne répond pas (CORS, crash, etc.)
 });
 
+// Instance dédiée aux endpoints d'auth (évite d'envoyer un Bearer potentiellement expiré sur /auth/refresh)
+const authClient = axios.create({
+  baseURL: `${API_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 20000,
+});
+
 // Instance séparée pour les uploads (sans Content-Type par défaut)
 const uploadClient = axios.create({
   baseURL: `${API_URL}/api`,
@@ -124,6 +133,7 @@ apiClient.interceptors.response.use(
           localStorage.setItem('refresh_token', refresh_token);
           
           error.config._retry = true;
+          if (!error.config.headers) error.config.headers = {};
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return apiClient.request(error.config);
         } catch (refreshError) {
@@ -148,16 +158,16 @@ apiClient.interceptors.response.use(
 // Services d'authentification
 export const authService = {
   signup: (email, password, first_name, last_name, country) =>
-    apiClient.post('/auth/signup', { email, password, first_name, last_name, country }),
+    authClient.post('/auth/signup', { email, password, first_name, last_name, country }),
   login: (email, password) =>
-    apiClient.post('/auth/login', { email, password }),
+    authClient.post('/auth/login', { email, password }),
   refresh: (refreshToken) =>
-    apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
-  logout: (refreshToken) => apiClient.post('/auth/logout', { refresh_token: refreshToken }),
+    authClient.post('/auth/refresh', { refresh_token: refreshToken }),
+  logout: (refreshToken) => authClient.post('/auth/logout', { refresh_token: refreshToken }),
   verifyEmail: (token) =>
-    apiClient.get('/auth/verify-email', { params: { token } }),
+    authClient.get('/auth/verify-email', { params: { token } }),
   resendVerification: (email) =>
-    apiClient.post('/auth/resend-verification', { email }),
+    authClient.post('/auth/resend-verification', { email }),
 };
 
 // Services fichiers

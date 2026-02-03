@@ -15,6 +15,9 @@ dist/
 build/
 *.log
 
+# Vite PWA dev output (generated)
+frontend-web/dev-dist/
+
 # IDE
 .vscode/
 .idea/
