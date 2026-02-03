@@ -110,15 +110,25 @@ async function createInternalShare(req, res, next) {
     // Vérifier la propriété
     if (file_id) {
       const file = await FileModel.findById(file_id);
-      if (!file || file.owner_id !== userId) {
+      if (!file) {
         return res.status(404).json({ error: { message: 'File not found' } });
+      }
+      const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
+      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      if (fileOwnerId !== userOwnerId) {
+        return res.status(403).json({ error: { message: 'Access denied' } });
       }
     }
 
     if (folder_id) {
       const folder = await FolderModel.findById(folder_id);
-      if (!folder || folder.owner_id !== userId) {
+      if (!folder) {
         return res.status(404).json({ error: { message: 'Folder not found' } });
+      }
+      const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
+      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      if (folderOwnerId !== userOwnerId) {
+        return res.status(403).json({ error: { message: 'Access denied' } });
       }
     }
 
@@ -141,23 +151,27 @@ async function getPublicShare(req, res, next) {
     const { token } = req.params;
     const { password } = req.query; // Récupérer depuis query string pour GET
 
-    const share = await ShareModel.findByToken(token);
-    if (!share) {
+    const mongoose = require('mongoose');
+    const Share = mongoose.models.Share;
+    const shareDoc = await Share.findOne({ public_token: token }).lean();
+    if (!shareDoc) {
       return res.status(404).json({ error: { message: 'Share not found or expired' } });
     }
 
     // Vérifier si le partage est expiré
-    if (share.expires_at && new Date(share.expires_at) < new Date()) {
+    if (shareDoc.expires_at && new Date(shareDoc.expires_at) < new Date()) {
       return res.status(410).json({ error: { message: 'Share expired' } });
     }
 
     // Vérifier si le partage est désactivé
-    if (share.is_active === false) {
+    if (shareDoc.is_active === false) {
       return res.status(403).json({ error: { message: 'Share deactivated' } });
     }
 
+    const share = ShareModel.toDTO(shareDoc);
+
     // Vérifier le mot de passe si requis
-    if (share.password_hash) {
+    if (shareDoc.password_hash) {
       if (!password) {
         return res.status(401).json({ 
           error: { message: 'Password required' },
@@ -169,8 +183,7 @@ async function getPublicShare(req, res, next) {
           }
         });
       }
-      const bcrypt = require('bcryptjs');
-      const isValid = await bcrypt.compare(password, share.password_hash);
+      const isValid = await bcrypt.compare(password, shareDoc.password_hash);
       if (!isValid) {
         return res.status(401).json({ error: { message: 'Invalid password' } });
       }
@@ -178,11 +191,17 @@ async function getPublicShare(req, res, next) {
 
     // Récupérer les détails du fichier ou dossier
     let resource = null;
-    if (share.file_id) {
-      resource = await FileModel.findById(share.file_id);
+    if (shareDoc.file_id) {
+      resource = await FileModel.findById(shareDoc.file_id);
+      if (!resource) {
+        return res.status(404).json({ error: { message: 'File not found' } });
+      }
       resource.type = 'file';
-    } else if (share.folder_id) {
-      resource = await FolderModel.findById(share.folder_id);
+    } else if (shareDoc.folder_id) {
+      resource = await FolderModel.findById(shareDoc.folder_id);
+      if (!resource) {
+        return res.status(404).json({ error: { message: 'Folder not found' } });
+      }
       resource.type = 'folder';
     }
 
