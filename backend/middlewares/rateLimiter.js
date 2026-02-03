@@ -93,6 +93,22 @@ const emailSensitiveLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter pour vérification et usage des tokens de réinitialisation (anti brute-force / anti-DB hammering)
+const RESET_FLOW_WINDOW_MS = parseInt(process.env.RESET_FLOW_RATE_LIMIT_WINDOW_MS, 10) || 60 * 60 * 1000; // 1 heure
+const RESET_FLOW_MAX = parseInt(process.env.RESET_FLOW_RATE_LIMIT_MAX, 10) || 20; // 20 req / heure par IP
+const resetFlowLimiter = rateLimit({
+  windowMs: RESET_FLOW_WINDOW_MS,
+  max: RESET_FLOW_MAX,
+  message: {
+    error: {
+      message: 'Trop de tentatives. Réessayez plus tard.',
+      status: 429,
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
@@ -100,6 +116,7 @@ module.exports = {
   chunkUploadLimiter,
   shareLimiter,
   emailSensitiveLimiter,
+  resetFlowLimiter,
 };
 
 

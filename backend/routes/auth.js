@@ -3,7 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { validate, signupSchema, loginSchema } = require('../middlewares/validation');
 const { initiateOAuth, handleOAuthCallback } = require('../controllers/oauthController');
-const { emailSensitiveLimiter } = require('../middlewares/rateLimiter');
+const { emailSensitiveLimiter, resetFlowLimiter } = require('../middlewares/rateLimiter');
 
 // POST /api/auth/signup
 router.post('/signup', validate(signupSchema), authController.signup);
@@ -31,10 +31,10 @@ router.post('/verify-email', authController.verifyEmail);
 router.post('/resend-verification', emailSensitiveLimiter, authController.resendVerification);
 
 // GET /api/auth/verify-reset-token/:token
-router.get('/verify-reset-token/:token', authController.verifyResetToken);
+router.get('/verify-reset-token/:token', resetFlowLimiter, authController.verifyResetToken);
 
 // POST /api/auth/reset-password
-router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password', resetFlowLimiter, authController.resetPassword);
 
 // Routes OAuth - Initiation
 router.get('/google', initiateOAuth('google'));
