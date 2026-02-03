@@ -92,6 +92,15 @@ const ShareModel = {
     return shares.map(s => this.toDTO(s));
   },
 
+  async findByCreator(userId, { type } = {}) {
+    const query = { created_by_id: userId };
+    if (type === 'public' || type === 'internal') {
+      query.share_type = type;
+    }
+    const shares = await Share.find(query).lean();
+    return shares.map(s => this.toDTO(s));
+  },
+
   async incrementAccessCount(token) {
     await Share.findOneAndUpdate(
       { public_token: token },

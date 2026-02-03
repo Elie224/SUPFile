@@ -105,8 +105,9 @@ const renameSchema = Joi.object({
 const publicShareSchema = Joi.object({
   file_id: Joi.string().optional().allow(null, ''),
   folder_id: Joi.string().optional().allow(null, ''),
-  password: Joi.string().min(6).optional().allow(null, '').messages({
+  password: Joi.string().min(6).max(128).optional().allow(null, '').messages({
     'string.min': 'Password must be at least 6 characters',
+    'string.max': 'Password must not exceed 128 characters',
   }),
   expires_at: Joi.alternatives().try(
     Joi.date().iso(),

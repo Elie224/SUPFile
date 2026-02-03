@@ -235,7 +235,8 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Body parser middleware - ne pas parser pour multipart/form-data (géré par multer)
-const bodyLimit = process.env.JSON_BODY_LIMIT || '50mb';
+// Défaut plus strict pour limiter les abus (uploads passent par multipart/multer)
+const bodyLimit = process.env.JSON_BODY_LIMIT || '2mb';
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ limit: bodyLimit, extended: true, parameterLimit: 10000 }));
 

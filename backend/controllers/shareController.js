@@ -3,6 +3,7 @@ const ShareModel = require('../models/shareModel');
 const FileModel = require('../models/fileModel');
 const FolderModel = require('../models/folderModel');
 const { AppError } = require('../middlewares/errorHandler');
+const { normalizePublicShareToken, normalizeSharePasswordForCompare } = require('../utils/shareSecurity');
 
 // Créer un partage public
 async function createPublicShare(req, res, next) {
@@ -70,6 +71,16 @@ async function createPublicShare(req, res, next) {
         if (isNaN(expiresAtDate.getTime())) {
           return res.status(400).json({ error: { message: 'Invalid expiration date format' } });
         }
+      }
+
+      // Refuser les dates passées ou trop lointaines (anti-abus / cohérence)
+      const now = Date.now();
+      if (expiresAtDate.getTime() < now) {
+        return res.status(400).json({ error: { message: 'Expiration date must be in the future' } });
+      }
+      const maxFutureMs = 5 * 365 * 24 * 60 * 60 * 1000; // 5 ans
+      if (expiresAtDate.getTime() > now + maxFutureMs) {
+        return res.status(400).json({ error: { message: 'Expiration date is too far in the future' } });
       }
     }
 
@@ -148,8 +159,19 @@ async function createInternalShare(req, res, next) {
 // Accéder à un partage public (sans authentification)
 async function getPublicShare(req, res, next) {
   try {
-    const { token } = req.params;
-    const { password } = req.query; // Récupérer depuis query string pour GET
+    const token = normalizePublicShareToken(req.params.token);
+    if (!token) {
+      return res.status(404).json({ error: { message: 'Share not found or expired' } });
+    }
+
+    let password = req.query.password; // Récupérer depuis query string pour GET
+    if (password !== undefined && password !== null) {
+      const normalized = normalizeSharePasswordForCompare(password);
+      if (!normalized) {
+        return res.status(400).json({ error: { message: 'Invalid password format' } });
+      }
+      password = normalized;
+    }
 
     const mongoose = require('mongoose');
     const Share = mongoose.models.Share;
@@ -230,8 +252,7 @@ async function listShares(req, res, next) {
       shares = await ShareModel.findBySharedWith(userId);
     } else {
       // Partages créés par l'utilisateur
-      const fileShares = await ShareModel.findByFileOrFolder(null, null);
-      shares = fileShares.filter(s => s.created_by_id === userId);
+      shares = await ShareModel.findByCreator(userId, { type });
     }
 
     res.status(200).json({ data: shares });
@@ -252,7 +273,6 @@ async function deactivateShare(req, res, next) {
     }
 
     // Vérifier que c'est le créateur du partage
-    const mongoose = require('mongoose');
     if (share.created_by_id.toString() !== userId && share.created_by_id !== userId) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }

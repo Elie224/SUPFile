@@ -9,6 +9,7 @@ const { sanitizePaginationSort } = require('../middlewares/security');
 const FolderModel = require('../models/folderModel');
 const ShareModel = require('../models/shareModel');
 const UserModel = require('../models/userModel');
+const { normalizePublicShareToken, normalizeSharePasswordForCompare } = require('../utils/shareSecurity');
 const config = require('../config');
 const { AppError } = require('../middlewares/errorHandler');
 const logger = require('../utils/logger');
@@ -20,7 +21,20 @@ const mongoose = require('mongoose');
 async function assertPublicShareAccessOrReturn(res, { fileId, token, password }) {
   if (!token) return { ok: false, responded: false };
 
-  const share = await ShareModel.findByToken(token);
+  const normalizedToken = normalizePublicShareToken(token);
+  if (!normalizedToken) {
+    return { ok: false, responded: true, response: res.status(403).json({ error: { message: 'Access denied' } }) };
+  }
+
+  if (password !== undefined && password !== null) {
+    const normalizedPassword = normalizeSharePasswordForCompare(password);
+    if (!normalizedPassword) {
+      return { ok: false, responded: true, response: res.status(401).json({ error: { message: 'Invalid password' }, requires_password: true }) };
+    }
+    password = normalizedPassword;
+  }
+
+  const share = await ShareModel.findByToken(normalizedToken);
   if (!share) {
     return { ok: false, responded: true, response: res.status(403).json({ error: { message: 'Access denied' } }) };
   }
