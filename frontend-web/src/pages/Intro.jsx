@@ -7,7 +7,7 @@ import Logo from '../components/Logo';
 const PAGES = [
   {
     id: 1,
-    icon: '🚀',
+    icon: '1',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     title: 'Bienvenue sur SUPFile',
     subtitle: 'Votre espace de stockage cloud professionnel',
@@ -16,7 +16,7 @@ const PAGES = [
   },
   {
     id: 2,
-    icon: '📁',
+    icon: '2',
     gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
     title: 'Organisation intelligente',
     subtitle: 'Gérez vos fichiers comme un pro',
@@ -25,7 +25,7 @@ const PAGES = [
   },
   {
     id: 3,
-    icon: '👁️',
+    icon: '3',
     gradient: 'linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)',
     title: 'Prévisualisation instantanée',
     subtitle: 'Visualisez sans télécharger',
@@ -34,7 +34,7 @@ const PAGES = [
   },
   {
     id: 4,
-    icon: '🔗',
+    icon: '4',
     gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     title: 'Partage sécurisé',
     subtitle: 'Collaborez en toute confiance',
@@ -43,7 +43,7 @@ const PAGES = [
   },
   {
     id: 5,
-    icon: '📊',
+    icon: '5',
     gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     title: 'Tableau de bord complet',
     subtitle: 'Gardez le contrôle total',
@@ -442,14 +442,14 @@ export default function Intro() {
               onClick={() => setTheme('light')}
               className="btn-hover"
             >
-              ☀️ Clair
+              Clair
             </button>
             <button
               style={styles.themeBtn(theme === 'dark')}
               onClick={() => setTheme('dark')}
               className="btn-hover"
             >
-              🌙 Sombre
+              Sombre
             </button>
           </div>
           <div style={styles.authBtns} className="intro-auth-btns-wrapper">
@@ -545,7 +545,7 @@ export default function Intro() {
                   color: theme === 'dark' ? '#94a3b8' : '#64748b',
                 }}
               >
-                ✕
+                X
               </button>
             </div>
             <div style={{ fontSize: '18px', fontWeight: '700', color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>
@@ -561,14 +561,14 @@ export default function Intro() {
                   onClick={() => { setTheme('light'); }}
                   className="btn-hover"
                 >
-                  ☀️ Clair
+                  Clair
                 </button>
                 <button
                   style={styles.themeBtn(theme === 'dark')}
                   onClick={() => { setTheme('dark'); }}
                   className="btn-hover"
                 >
-                  🌙 Sombre
+                  Sombre
                 </button>
               </div>
             </div>
@@ -602,7 +602,7 @@ export default function Intro() {
         <div style={styles.pageContainer} className="page-content" key={currentPage}>
           {/* Page indicator */}
           <div style={styles.pageNumber}>
-            📄 Page {currentPage + 1} sur {PAGES.length}
+            Page {currentPage + 1} sur {PAGES.length}
           </div>
 
           {/* Icon */}
@@ -621,7 +621,7 @@ export default function Intro() {
           <div style={styles.highlights} className="intro-highlights-wrapper">
             {page.highlights.map((item, idx) => (
               <div key={idx} style={styles.highlightItem} className="intro-highlight-item">
-                <span>✓</span> {item}
+                {item}
               </div>
             ))}
           </div>
@@ -655,7 +655,7 @@ export default function Intro() {
                 onClick={goNext}
                 className="btn-hover intro-nav-btn"
               >
-                {isLast ? '🚀 Commencer' : 'Suivant →'}
+                {isLast ? 'Commencer' : 'Suivant →'}
               </button>
             </div>
           </div>
