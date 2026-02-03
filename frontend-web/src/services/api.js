@@ -60,6 +60,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(networkError);
     }
     if (error.response?.status === 401) {
+      // Prevent infinite refresh loops (e.g. if /auth/refresh itself returns 401)
+      const requestUrl = (error.config?.url || '').toString();
+      const isAuthRefreshRequest = requestUrl.includes('/auth/refresh');
+      const alreadyRetried = !!error.config?._retry;
+
       const code = error.response?.data?.error?.code;
       const msg = error.response?.data?.error?.message;
       const setDeletedMsgAndRedirect = (message) => {
@@ -68,6 +73,13 @@ apiClient.interceptors.response.use(
         sessionStorage.setItem('deleted_account_message', message || 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.');
         window.location.href = '/login';
       };
+
+      // If refresh endpoint is unauthorized or we already retried once, force logout.
+      if (isAuthRefreshRequest || alreadyRetried) {
+        setDeletedMsgAndRedirect(null);
+        return Promise.reject(error);
+      }
+
       // Compte supprimé : ne pas tenter refresh, déconnecter et afficher le message approprié
       if (code === 'USER_DELETED') {
         setDeletedMsgAndRedirect(msg || 'Votre compte a été supprimé.');
@@ -82,6 +94,7 @@ apiClient.interceptors.response.use(
           localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', refresh_token);
           
+          error.config._retry = true;
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return apiClient.request(error.config);
         } catch (refreshError) {
@@ -92,9 +105,11 @@ apiClient.interceptors.response.use(
           } else {
             setDeletedMsgAndRedirect(null);
           }
+          return Promise.reject(refreshError);
         }
       } else {
         setDeletedMsgAndRedirect(null);
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);
