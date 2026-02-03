@@ -124,8 +124,14 @@ class _ShareScreenState extends State<ShareScreen> {
       if (response.statusCode == 201) {
         final data = response.data['data'];
         setState(() {
-          _shareToken = data['token'];
-          _shareUrl = data['share_url'] ?? '${AppConstants.apiBaseUrl}/share/$_shareToken';
+          // Backend renvoie `public_token` (pas `token`).
+          _shareToken = (data is Map) ? (data['public_token'] ?? data['token'])?.toString() : null;
+          final urlFromApi = (data is Map) ? data['share_url']?.toString() : null;
+          _shareUrl = (urlFromApi != null && urlFromApi.trim().isNotEmpty)
+              ? urlFromApi
+              : (_shareToken != null && _shareToken!.isNotEmpty)
+                  ? '${AppConstants.apiBaseUrl}/share/$_shareToken'
+                  : null;
           _isLoading = false;
         });
       }

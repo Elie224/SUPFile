@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -806,6 +807,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const Divider(),
+
+          if (kDebugMode) ...[
+            ListTile(
+              leading: const Icon(Icons.bug_report),
+              title: const Text('Debug réseau'),
+              subtitle: Text(() {
+                final cfg = _apiService.debugNetworkConfig();
+                return 'build=${cfg['buildMarker']}\n'
+                    'baseUrl=${cfg['baseUrl']}\n'
+                    'connect=${cfg['connectTimeoutSec']}s  '
+                    'receive=${cfg['receiveTimeoutSec']}s  '
+                    'send=${cfg['sendTimeoutSec']}s';
+              }()),
+              isThreeLine: true,
+            ),
+            const Divider(),
+          ],
 
           // Déconnexion
           ListTile(

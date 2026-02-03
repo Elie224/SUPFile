@@ -10,12 +10,29 @@ import '../utils/performance_cache.dart';
 
 class ApiService {
   late Dio _dio;
+
+  /// Marker used to confirm which build is running on-device.
+  /// Update this when diagnosing production issues.
+  static const String buildMarker = '2026-02-03-zip-timeout-debug';
+
+  Map<String, dynamic> debugNetworkConfig() {
+    final opts = _dio.options;
+    return {
+      'buildMarker': buildMarker,
+      'baseUrl': opts.baseUrl,
+      'connectTimeoutSec': opts.connectTimeout?.inSeconds,
+      'receiveTimeoutSec': opts.receiveTimeout?.inSeconds,
+      'sendTimeoutSec': opts.sendTimeout?.inSeconds,
+    };
+  }
   
   ApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15), // Réduit pour réponses plus rapides
-      receiveTimeout: const Duration(seconds: 15),
+      // 15s est trop agressif sur mobile (cold start serveur, ZIP, etc.).
+      // On garde un timeout raisonnable par défaut et on override au besoin.
+      receiveTimeout: const Duration(seconds: 90),
       sendTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
@@ -27,6 +44,8 @@ class ApiService {
       // Réutiliser les connexions HTTP
       persistentConnection: true,
     ));
+
+    SecureLogger.info('ApiService initialized', data: debugNetworkConfig());
     
     // Note: le cache HTTP (ETag/304) peut provoquer des statuts 304 que l'UI
     // interprète comme des erreurs. L'app utilise déjà PerformanceCache + OfflineStorage,
@@ -65,6 +84,17 @@ class ApiService {
         
         // Logging sécurisé (sans données sensibles)
         SecureLogger.apiRequest(options.method, options.path, headers: options.headers);
+
+        // Extra debug: capture effective timeouts per request.
+        SecureLogger.info(
+          'API request timeouts',
+          data: {
+            'path': options.path,
+            'connectTimeoutSec': options.connectTimeout?.inSeconds,
+            'receiveTimeoutSec': options.receiveTimeout?.inSeconds,
+            'sendTimeoutSec': options.sendTimeout?.inSeconds,
+          },
+        );
         
         return handler.next(options);
       },
@@ -438,7 +468,7 @@ class ApiService {
     return Dio(BaseOptions(
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 90),
       validateStatus: (status) => status != null && status < 500,
     ));
   }
@@ -580,7 +610,7 @@ class ApiService {
     final publicDio = Dio(BaseOptions(
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 90),
       validateStatus: (status) => status != null && status < 500,
     ));
     return publicDio.get('/share/$token', queryParameters: queryParams);
