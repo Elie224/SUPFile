@@ -1,4 +1,6 @@
-backend/zip-smoke-*.zip# Dependencies
+backend/zip-smoke-*.zip
+
+# Dependencies
 node_modules/
 *.egg-info/
 __pycache__/

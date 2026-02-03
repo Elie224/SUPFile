@@ -16,7 +16,6 @@ export default function Settings() {
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [theme, setTheme] = useState('light');
   
   // Mot de passe
   const [currentPassword, setCurrentPassword] = useState('');
@@ -57,9 +56,6 @@ export default function Settings() {
       setDisplayName(userData.display_name || '');
       setAvatarUrl(userData.avatar_url || '');
       setTwoFactorEnabled(userData.two_factor_enabled || false);
-      // Préférences
-      const prefs = userData.preferences || {};
-      setTheme(prefs.theme || 'light');
       // Forcer le français (langue principale du projet)
       setLang('fr');
       setQuotaUsed(stats.quota?.used || 0);
@@ -101,8 +97,6 @@ export default function Settings() {
         setDisplayName(storedUser.display_name || '');
         setAvatarUrl(storedUser.avatar_url || '');
         setTwoFactorEnabled(!!storedUser.two_factor_enabled);
-        const prefs = storedUser.preferences || {};
-        setTheme(prefs.theme || 'light');
         setAccountCreated('');
         setLastLogin('Jamais');
         showMessage('', 'Données en cache (hors ligne). Activer la 2FA nécessite une connexion.');
@@ -216,38 +210,6 @@ export default function Settings() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err) {
-      showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Sauvegarder les préférences (thème, etc.)
-  const handleSavePreferences = async () => {
-    setSaving(true);
-    setMessage({ type: '', text: '' });
-    try {
-      const currentUser = user || {};
-      const prefs = currentUser.preferences || {};
-      const newPreferences = { ...prefs, theme };
-
-      const response = await userService.updatePreferences(newPreferences);
-
-      // Appliquer immédiatement le thème
-      const appliedTheme = theme || 'light';
-      document.documentElement.setAttribute('data-theme', appliedTheme);
-      localStorage.setItem('theme', appliedTheme);
-
-      // Mettre à jour le store utilisateur
-      if (setUser) {
-        setUser({
-          ...currentUser,
-          preferences: response.data?.data?.preferences || newPreferences,
-        });
-      }
-
-      showMessage('success', 'Préférences mises à jour avec succès');
     } catch (err) {
       showMessage('error', 'Erreur: ' + (err.response?.data?.error?.message || err.message));
     } finally {
@@ -575,88 +537,6 @@ export default function Settings() {
             {saving ? t('saving') : t('saveChanges')}
           </button>
         </form>
-      </section>
-
-      {/* Préférences d'interface */}
-      <section style={{ marginBottom: 32, padding: 24, backgroundColor: 'var(--bg-color)', borderRadius: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ marginBottom: 20, fontSize: '1.5em', color: 'var(--text-color)' }}>🎨 {t('interfacePreferences') || 'Préférences d’interface'}</h2>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: 'var(--text-secondary)' }}>
-            {t('theme') || 'Thème'}
-          </label>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setTheme('light');
-                // Appliquer immédiatement le thème
-                document.documentElement.setAttribute('data-theme', 'light');
-                localStorage.setItem('theme', 'light');
-              }}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: theme === 'light' ? '2px solid #60a5fa' : '1px solid var(--border-color)',
-                backgroundColor: theme === 'light' ? 'rgba(96, 165, 250, 0.2)' : 'var(--bg-tertiary)',
-                color: theme === 'light' ? '#60a5fa' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                minWidth: 120,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                fontWeight: theme === 'light' ? 600 : 400,
-              }}
-            >
-              <span>🌞</span>
-              <span>{t('lightTheme') || 'Clair'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTheme('dark');
-                // Appliquer immédiatement le thème
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-              }}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: theme === 'dark' ? '2px solid #60a5fa' : '1px solid var(--border-color)',
-                backgroundColor: theme === 'dark' ? 'rgba(96, 165, 250, 0.2)' : 'var(--bg-tertiary)',
-                color: theme === 'dark' ? '#60a5fa' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                minWidth: 120,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                fontWeight: theme === 'dark' ? 600 : 400,
-              }}
-            >
-              <span>🌙</span>
-              <span>{t('darkTheme') || 'Sombre'}</span>
-            </button>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleSavePreferences}
-          disabled={saving}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: 8,
-            cursor: saving ? 'not-allowed' : 'pointer',
-            fontSize: '1em',
-            fontWeight: 'bold',
-            opacity: saving ? 0.6 : 1,
-          }}
-        >
-          {saving ? t('saving') : (t('savePreferences') || 'Enregistrer les préférences')}
-        </button>
       </section>
 
       {/* Section dédiée 2FA - visible entre Préférences et Sécurité */}
