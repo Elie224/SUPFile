@@ -212,16 +212,24 @@ const UserModel = {
 
     const user = await User.findOne({
       email_verification_token: hashedToken,
-      email_verification_expires: { $gt: new Date() },
     }).lean();
 
     if (!user) return null;
 
+    const expiresAt = user.email_verification_expires ? new Date(user.email_verification_expires) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+      return null;
+    }
+
     await User.findByIdAndUpdate(user._id, {
-      email_verified: true,
-      email_verified_at: new Date(),
-      email_verification_token: undefined,
-      email_verification_expires: undefined,
+      $set: {
+        email_verified: true,
+        email_verified_at: new Date(),
+      },
+      $unset: {
+        email_verification_token: 1,
+        email_verification_expires: 1,
+      },
     });
 
     return {
@@ -270,12 +278,14 @@ const UserModel = {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
     // Token valide uniquement si non expiré : après 15 minutes, plus aucun accès
-    const user = await User.findOne({
-      reset_password_token: hashedToken,
-      reset_password_expires: { $gt: new Date() },
-    }).lean();
+    const user = await User.findOne({ reset_password_token: hashedToken }).lean();
 
     if (!user) return null;
+
+    const expiresAt = user.reset_password_expires ? new Date(user.reset_password_expires) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+      return null;
+    }
 
     return {
       id: user._id.toString(),
@@ -292,12 +302,14 @@ const UserModel = {
   async resetPassword(token, newPasswordHash) {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    const user = await User.findOne({
-      reset_password_token: hashedToken,
-      reset_password_expires: { $gt: new Date() },
-    });
+    const user = await User.findOne({ reset_password_token: hashedToken });
 
     if (!user) return false;
+
+    const expiresAt = user.reset_password_expires ? new Date(user.reset_password_expires) : null;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+      return false;
+    }
 
     user.password_hash = newPasswordHash;
     user.reset_password_token = undefined;
