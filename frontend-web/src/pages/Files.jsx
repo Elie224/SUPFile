@@ -1791,7 +1791,10 @@ export default function Files() {
                                     return;
                                   }
                                   const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
-                                  window.location.href = `${apiUrl}/api/folders/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                  const url = `${apiUrl}/api/folders/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                  toast.info('Génération du ZIP… le téléchargement peut prendre un moment selon la taille du dossier.');
+                                  // Ouvrir dans un nouvel onglet pour éviter de quitter l'app (sinon l'onglet semble "charger" en boucle).
+                                  window.open(url, '_blank', 'noopener');
                                 } catch (err) {
                                   console.error('Folder ZIP download failed:', err);
                                   toast.error(typeof err?.message === 'string' ? err.message : ((typeof t === 'function' ? t('downloadError') : null) || 'Erreur lors du téléchargement'));

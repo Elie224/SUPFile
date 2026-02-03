@@ -384,8 +384,9 @@ async function downloadFolderZip(req, res, next) {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'no-store');
 
-    // Niveau de compression plus rapide pour réduire la latence (surtout en prod).
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    // Compression légère: réduit fortement le CPU (important sur Fly 1 CPU) et accélère le démarrage du flux.
+    // La plupart des gros fichiers (mp4, jpg, pdf) sont déjà compressés, donc level élevé ralentit sans gain.
+    const archive = archiver('zip', { zlib: { level: 1 } });
 
     // Si le client coupe la connexion, on arrête de générer le zip.
     res.on('close', () => {
@@ -402,6 +403,14 @@ async function downloadFolderZip(req, res, next) {
         res.status(500).json({ error: { message: 'ZIP generation failed' } });
       }
       next(err);
+    });
+
+    archive.on('warning', (warn) => {
+      // Archiver peut émettre des warnings (ex: fichier manquant) : ne pas casser le zip.
+      // Les fichiers manquants sont déjà ignorés dans addFolderToArchive, donc on log et on continue.
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('ZIP warning:', warn);
+      }
     });
 
     archive.pipe(res);
