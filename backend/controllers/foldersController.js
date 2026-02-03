@@ -20,7 +20,8 @@ function sanitizeZipEntryName(name) {
   return cleaned || 'unnamed';
 }
 
-async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visited, stats }) {
+async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visited, stats, shouldAbort }) {
+  if (typeof shouldAbort === 'function' && shouldAbort()) return;
   const folderKey = String(folderId);
   if (visited.has(folderKey)) {
     // Cycle détecté : éviter boucle infinie
@@ -38,6 +39,7 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
 
   const files = await FileModel.findByFolder(folderId, false);
   for (const file of files) {
+    if (typeof shouldAbort === 'function' && shouldAbort()) return;
     if (stats.filesAdded >= stats.maxFiles) {
       stats.abortedByLimit = true;
       break;
@@ -50,23 +52,44 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
 
     const entryName = path.posix.join(zipPrefix, sanitizeZipEntryName(file.name));
     const diskPath = path.resolve(file.file_path);
+    // Éviter un fs.access() par fichier (très coûteux sur de gros dossiers/volumes).
+    // Archiver gère déjà les fichiers manquants via un warning (ENOENT) sans casser le zip.
     try {
-      await fsp.access(diskPath, fs.constants.R_OK);
       archive.file(diskPath, { name: entryName });
       stats.filesAdded += 1;
     } catch {
-      // Fichier manquant sur disque : ignorer (évite 500 pour un seul fichier perdu)
       continue;
     }
   }
 
-  const subfolders = await FolderModel.findByOwner(ownerId, folderId, false);
-  for (const sub of subfolders) {
-    if (stats.abortedByLimit) break;
-    const subPrefix = path.posix.join(zipPrefix, sanitizeZipEntryName(sub.name));
-    // Ajoute une entrée dossier vide pour qu'il apparaisse dans le zip
-    archive.append('', { name: `${subPrefix}/` });
-    await addFolderToArchive({ archive, ownerId, folderId: sub.id, zipPrefix: subPrefix, visited, stats });
+  // FolderModel.findByOwner() est paginé (limit max 100). Pour le ZIP, on page pour ne rien rater.
+  const pageSize = 100;
+  let skip = 0;
+  while (!stats.abortedByLimit) {
+    if (typeof shouldAbort === 'function' && shouldAbort()) return;
+
+    // Ne pas fetch plus de sous-dossiers que la limite globale.
+    const remainingFolders = Math.max(stats.maxFolders - stats.foldersVisited, 0);
+    if (remainingFolders === 0) {
+      stats.abortedByLimit = true;
+      break;
+    }
+
+    const limit = Math.min(pageSize, remainingFolders);
+    const subfolders = await FolderModel.findByOwner(ownerId, folderId, false, { skip, limit, sortBy: 'name', sortOrder: 'asc' });
+    if (!subfolders || subfolders.length === 0) break;
+
+    for (const sub of subfolders) {
+      if (typeof shouldAbort === 'function' && shouldAbort()) return;
+      if (stats.abortedByLimit) break;
+      const subPrefix = path.posix.join(zipPrefix, sanitizeZipEntryName(sub.name));
+      // Ajoute une entrée dossier vide pour qu'il apparaisse dans le zip
+      archive.append('', { name: `${subPrefix}/` });
+      await addFolderToArchive({ archive, ownerId, folderId: sub.id, zipPrefix: subPrefix, visited, stats, shouldAbort });
+    }
+
+    skip += subfolders.length;
+    if (subfolders.length < limit) break;
   }
 }
 
@@ -419,6 +442,15 @@ async function downloadFolderZip(req, res, next) {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'no-store');
 
+    // Éviter que Node coupe une réponse longue (grands dossiers).
+    try {
+      if (typeof req.setTimeout === 'function') req.setTimeout(0);
+      if (typeof res.setTimeout === 'function') res.setTimeout(0);
+      if (req.socket && typeof req.socket.setTimeout === 'function') req.socket.setTimeout(0);
+    } catch {
+      // ignore
+    }
+
     // Compression légère: réduit fortement le CPU (important sur Fly 1 CPU) et accélère le démarrage du flux.
     // La plupart des gros fichiers (mp4, jpg, pdf) sont déjà compressés, donc level élevé ralentit sans gain.
     const archive = archiver('zip', { zlib: { level: 1 } });
@@ -430,6 +462,17 @@ async function downloadFolderZip(req, res, next) {
       userId,
       zipBaseName,
       shared: folderOwnerId !== userOwnerId,
+    });
+
+    // Log de fin (installer tôt pour ne pas rater les zips rapides)
+    res.on('finish', () => {
+      console.log('[ZIP] finish', {
+        requestId,
+        folderId: id,
+        userId,
+        elapsedMs: Date.now() - startedAt,
+        ...stats,
+      });
     });
 
     // Si le client coupe la connexion, on arrête de générer le zip.
@@ -503,7 +546,8 @@ async function downloadFolderZip(req, res, next) {
     // Mettre tout le contenu sous un dossier racine dans le zip
     archive.append('', { name: `${zipBaseName}/` });
     const visited = new Set();
-    await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName, visited, stats });
+    const shouldAbort = () => aborted || res.writableEnded || res.destroyed;
+    await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName, visited, stats, shouldAbort });
 
     if (stats.abortedByLimit) {
       archive.append(
@@ -512,15 +556,6 @@ async function downloadFolderZip(req, res, next) {
       );
     }
 
-    res.on('finish', () => {
-      console.log('[ZIP] finish', {
-        requestId,
-        folderId: id,
-        userId,
-        elapsedMs: Date.now() - startedAt,
-        ...stats,
-      });
-    });
     await archive.finalize();
   } catch (err) {
     // Si une erreur survient après envoi des headers, Express ne peut pas renvoyer un JSON propre.

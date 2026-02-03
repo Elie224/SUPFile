@@ -13,7 +13,11 @@
 // - Does NOT print tokens/passwords.
 
 const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
+const { pipeline } = require('stream/promises');
+const { Readable } = require('stream');
+const { Agent } = require('undici');
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -38,6 +42,14 @@ async function main() {
   const email = requireEnv('SUPFILE_EMAIL');
   const password = requireEnv('SUPFILE_PASSWORD');
 
+  // Undici (Node fetch) a des timeouts par défaut ~5min; pour des gros ZIP ça peut terminer.
+  // On garde des limites raisonnables mais plus hautes.
+  const dispatcher = new Agent({
+    connectTimeout: 30_000,
+    headersTimeout: 60_000,
+    bodyTimeout: 20 * 60_000, // 20 minutes
+  });
+
   console.log(`[zip-smoke] Base URL: ${baseUrl}`);
 
   // 1) Login
@@ -47,6 +59,7 @@ async function main() {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
+    dispatcher,
     body: JSON.stringify({ email, password }),
   });
 
@@ -72,6 +85,7 @@ async function main() {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
+    dispatcher,
     body: JSON.stringify({ name: folderName, parent_id: null }),
   });
 
@@ -97,6 +111,7 @@ async function main() {
       // Avoid automatic content-type negotiation edge cases
       Accept: 'application/zip, application/octet-stream;q=0.9, */*;q=0.8',
     },
+    dispatcher,
   });
 
   if (!zipRes.ok) {
@@ -107,25 +122,32 @@ async function main() {
   const contentType = zipRes.headers.get('content-type') || '';
   const contentDisposition = zipRes.headers.get('content-disposition') || '';
 
-  const arrayBuf = await zipRes.arrayBuffer();
-  const buf = Buffer.from(arrayBuf);
+  // Save artifact (streaming, évite d'allouer tout le ZIP en mémoire)
+  const outPath = path.join(process.cwd(), `zip-smoke-${folderId}.zip`);
+  if (!zipRes.body) {
+    throw new Error('[zip-smoke] ZIP response has no body');
+  }
+  await pipeline(Readable.fromWeb(zipRes.body), fs.createWriteStream(outPath));
 
-  const magic = buf.slice(0, 4);
-  const isZip = magic.length === 4 && magic[0] === 0x50 && magic[1] === 0x4b; // PK
-
-  console.log(`[zip-smoke] ZIP HTTP 200, bytes=${buf.length}`);
-  console.log(`[zip-smoke] content-type: ${contentType}`);
-  console.log(`[zip-smoke] content-disposition: ${contentDisposition}`);
-  console.log(`[zip-smoke] magic: ${magic.toString('hex')} (PK => zip)`);
-
-  if (!isZip) {
-    const head = buf.slice(0, 200).toString('utf8');
-    throw new Error(`[zip-smoke] Response is not a ZIP (no PK header). First bytes: ${head}`);
+  const st = await fsp.stat(outPath);
+  const fh = await fsp.open(outPath, 'r');
+  try {
+    const magic = Buffer.alloc(4);
+    await fh.read(magic, 0, 4, 0);
+    const isZip = magic[0] === 0x50 && magic[1] === 0x4b; // PK
+    console.log(`[zip-smoke] ZIP HTTP 200, bytes=${st.size}`);
+    console.log(`[zip-smoke] content-type: ${contentType}`);
+    console.log(`[zip-smoke] content-disposition: ${contentDisposition}`);
+    console.log(`[zip-smoke] magic: ${magic.toString('hex')} (PK => zip)`);
+    if (!isZip) {
+      const head = Buffer.alloc(200);
+      await fh.read(head, 0, 200, 0);
+      throw new Error(`[zip-smoke] Response is not a ZIP (no PK header). First bytes: ${head.toString('utf8')}`);
+    }
+  } finally {
+    await fh.close();
   }
 
-  // Save artifact (optional but useful)
-  const outPath = path.join(process.cwd(), `zip-smoke-${folderId}.zip`);
-  fs.writeFileSync(outPath, buf);
   console.log(`[zip-smoke] Saved: ${outPath}`);
 
   console.log('[zip-smoke] ✅ ZIP download looks OK');
