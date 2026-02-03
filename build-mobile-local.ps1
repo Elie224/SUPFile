@@ -1,7 +1,7 @@
 # Script pour construire l'APK mobile avec une URL API personnalisée
 
 param(
-    [string]$ApiUrl = "http://192.168.1.100:5000"
+    [string]$ApiUrl = "https://supfile.fly.dev"
 )
 
 Write-Host "===================================" -ForegroundColor Cyan

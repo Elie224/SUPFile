@@ -745,20 +745,20 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.55),
+                    color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.touch_app, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      const Expanded(
+                      Icon(Icons.touch_app, color: Colors.white, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
                         child: Text(
                           'Touchez pour ouvrir en plein écran',
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                      Icon(Icons.fullscreen, color: Colors.white, size: 18),
                     ],
                   ),
                 ),
