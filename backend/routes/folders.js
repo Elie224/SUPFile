@@ -19,6 +19,10 @@ router.post('/', validate(createFolderSchema), foldersController.createFolder);
 // Lister les dossiers supprimés (corbeille) - DOIT être avant les autres routes /:id
 router.get('/trash', foldersController.listTrash);
 
+// Télécharger un dossier complet en ZIP
+// DOIT être avant router.get('/:id', ...) sinon Express matchera /:id
+router.get('/:id/download', foldersController.downloadFolderZip);
+
 // Récupérer un dossier par ID
 router.get('/:id', foldersController.getFolder);
 

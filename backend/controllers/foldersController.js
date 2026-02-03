@@ -2,8 +2,51 @@ const FolderModel = require('../models/folderModel');
 const FileModel = require('../models/fileModel');
 const ShareModel = require('../models/shareModel');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsp = fs.promises;
+const archiver = require('archiver');
 const { calculateRealQuotaUsed, syncQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
+
+function sanitizeZipEntryName(name) {
+  const raw = (name ?? '').toString().trim();
+  if (!raw) return 'unnamed';
+  // Empêcher la traversée de répertoires et les noms invalides
+  const cleaned = raw
+    .replace(/[\\/]+/g, '_')
+    .replace(/\.+/g, '.')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .trim();
+  return cleaned || 'unnamed';
+}
+
+async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix }) {
+  const files = await FileModel.findByFolder(folderId, false);
+  for (const file of files) {
+    // Ne zipper que les fichiers du propriétaire du dossier (sécurité).
+    if (file.owner_id && file.owner_id.toString && file.owner_id.toString() !== ownerId.toString()) {
+      continue;
+    }
+    if (!file.file_path) continue;
+
+    const entryName = path.posix.join(zipPrefix, sanitizeZipEntryName(file.name));
+    const diskPath = path.resolve(file.file_path);
+    try {
+      await fsp.access(diskPath, fs.constants.R_OK);
+      archive.file(diskPath, { name: entryName });
+    } catch {
+      // Fichier manquant sur disque : ignorer (évite 500 pour un seul fichier perdu)
+      continue;
+    }
+  }
+
+  const subfolders = await FolderModel.findByOwner(ownerId, folderId, false);
+  for (const sub of subfolders) {
+    const subPrefix = path.posix.join(zipPrefix, sanitizeZipEntryName(sub.name));
+    // Ajoute une entrée dossier vide pour qu'il apparaisse dans le zip
+    archive.append('', { name: `${subPrefix}/` });
+    await addFolderToArchive({ archive, ownerId, folderId: sub.id, zipPrefix: subPrefix });
+  }
+}
 
 // Lister les dossiers (GET /api/folders?parent_id=xxx)
 async function listFolders(req, res, next) {
@@ -146,7 +189,7 @@ async function permanentDeleteFolder(userId, folderId) {
   for (const f of filesInFolder) {
     if (f.file_path) {
       try {
-        await fs.unlink(path.resolve(f.file_path));
+        await fsp.unlink(path.resolve(f.file_path));
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
           console.warn('Could not remove file from disk:', f.file_path, e?.message);
@@ -303,10 +346,68 @@ async function getFolder(req, res, next) {
   }
 }
 
+// Télécharger un dossier complet en ZIP (streaming)
+// GET /api/folders/:id/download
+async function downloadFolderZip(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const folder = await FolderModel.findById(id);
+    if (!folder) {
+      return res.status(404).json({ error: { message: 'Folder not found' } });
+    }
+
+    const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
+    const userOwnerId = userId?.toString ? userId.toString() : userId;
+
+    // Autoriser le propriétaire
+    let effectiveOwnerId = folderOwnerId;
+    if (folderOwnerId !== userOwnerId) {
+      // Autoriser lecture si dossier partagé avec moi (partage interne)
+      const internalShares = await ShareModel.findBySharedWith(userId);
+      const hasAccess = internalShares.some(
+        s => s.folder_id && s.folder_id.toString() === id
+      );
+      if (!hasAccess) {
+        return res.status(403).json({ error: { message: 'Access denied' } });
+      }
+      // Pour zipper, on parcourt le contenu du propriétaire réel du dossier
+      effectiveOwnerId = folderOwnerId;
+    }
+
+    const zipBaseName = sanitizeZipEntryName(folder.name);
+    const fileName = `${zipBaseName}.zip`;
+
+    res.status(200);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      // Si headers déjà envoyés, on ne peut plus répondre en JSON
+      if (!res.headersSent) {
+        res.status(500).json({ error: { message: 'ZIP generation failed' } });
+      }
+      next(err);
+    });
+
+    archive.pipe(res);
+    // Mettre tout le contenu sous un dossier racine dans le zip
+    await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName });
+    await archive.finalize();
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listFolders,
   createFolder,
   getFolder,
+  downloadFolderZip,
   updateFolder,
   deleteFolder,
   restoreFolder,
