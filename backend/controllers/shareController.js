@@ -2,8 +2,44 @@ const bcrypt = require('bcryptjs');
 const ShareModel = require('../models/shareModel');
 const FileModel = require('../models/fileModel');
 const FolderModel = require('../models/folderModel');
-const { AppError } = require('../middlewares/errorHandler');
 const { normalizePublicShareToken, normalizeSharePasswordForCompare } = require('../utils/shareSecurity');
+
+function normalizeOptionalId(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function parseAndValidateExpiry(expires_at) {
+  if (!expires_at) return null;
+
+  let expiresAtDate;
+
+  if (expires_at instanceof Date) {
+    expiresAtDate = expires_at;
+  } else if (typeof expires_at === 'string' && expires_at.trim() !== '') {
+    expiresAtDate = new Date(expires_at.trim());
+  } else {
+    expiresAtDate = new Date(expires_at);
+  }
+
+  if (Number.isNaN(expiresAtDate.getTime())) {
+    return { error: 'Invalid expiration date format' };
+  }
+
+  // Refuser les dates passées ou trop lointaines (anti-abus / cohérence)
+  const now = Date.now();
+  if (expiresAtDate.getTime() < now) {
+    return { error: 'Expiration date must be in the future' };
+  }
+  const maxFutureMs = 5 * 365 * 24 * 60 * 60 * 1000; // 5 ans
+  if (expiresAtDate.getTime() > now + maxFutureMs) {
+    return { error: 'Expiration date is too far in the future' };
+  }
+
+  return { value: expiresAtDate };
+}
 
 // Créer un partage public
 async function createPublicShare(req, res, next) {
@@ -12,9 +48,8 @@ async function createPublicShare(req, res, next) {
     const body = req.validatedBody || req.body;
     const { file_id, folder_id, password, expires_at } = body;
 
-    // Nettoyer les valeurs vides (vérifier que c'est une string avant trim)
-    const fileId = (file_id && typeof file_id === 'string' && file_id.trim() !== '') || (file_id && typeof file_id !== 'string') ? file_id : null;
-    const folderId = (folder_id && typeof folder_id === 'string' && folder_id.trim() !== '') || (folder_id && typeof folder_id !== 'string') ? folder_id : null;
+    const fileId = normalizeOptionalId(file_id);
+    const folderId = normalizeOptionalId(folder_id);
 
     if (!fileId && !folderId) {
       return res.status(400).json({ error: { message: 'Either file_id or folder_id is required' } });
@@ -51,38 +86,11 @@ async function createPublicShare(req, res, next) {
       passwordHash = await bcrypt.hash(password.trim(), 10);
     }
 
-    // Parser la date d'expiration
-    let expiresAtDate = null;
-    if (expires_at) {
-      // Si c'est déjà une Date, l'utiliser directement
-      if (expires_at instanceof Date) {
-        expiresAtDate = expires_at;
-      } 
-      // Si c'est une string, la parser
-      else if (typeof expires_at === 'string' && expires_at.trim() !== '') {
-        expiresAtDate = new Date(expires_at.trim());
-        if (isNaN(expiresAtDate.getTime())) {
-          return res.status(400).json({ error: { message: 'Invalid expiration date format' } });
-        }
-      }
-      // Sinon, essayer de créer une Date
-      else {
-        expiresAtDate = new Date(expires_at);
-        if (isNaN(expiresAtDate.getTime())) {
-          return res.status(400).json({ error: { message: 'Invalid expiration date format' } });
-        }
-      }
-
-      // Refuser les dates passées ou trop lointaines (anti-abus / cohérence)
-      const now = Date.now();
-      if (expiresAtDate.getTime() < now) {
-        return res.status(400).json({ error: { message: 'Expiration date must be in the future' } });
-      }
-      const maxFutureMs = 5 * 365 * 24 * 60 * 60 * 1000; // 5 ans
-      if (expiresAtDate.getTime() > now + maxFutureMs) {
-        return res.status(400).json({ error: { message: 'Expiration date is too far in the future' } });
-      }
+    const expiry = parseAndValidateExpiry(expires_at);
+    if (expiry?.error) {
+      return res.status(400).json({ error: { message: expiry.error } });
     }
+    const expiresAtDate = expiry?.value || null;
 
     const share = await ShareModel.createPublicShare({
       fileId: fileId,
