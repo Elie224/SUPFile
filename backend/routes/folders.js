@@ -8,6 +8,9 @@ const { validateObjectId } = require('../middlewares/security');
 // Lister les dossiers (GET /api/folders?parent_id=xxx) - avant validateObjectId
 router.get('/', authMiddleware, foldersController.listFolders);
 
+// Lister tous les dossiers de l'utilisateur (flat list)
+router.get('/all', authMiddleware, foldersController.listAllFolders);
+
 router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
 
 // Créer un dossier

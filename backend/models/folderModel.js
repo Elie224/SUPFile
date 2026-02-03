@@ -90,6 +90,24 @@ const FolderModel = {
     }
   },
 
+  // Retourne tous les dossiers d'un utilisateur (non paginé par parent).
+  // Utile pour construire un sélecteur complet côté client (déplacement).
+  async findAllByOwner(ownerId, includeDeleted = false) {
+    try {
+      const ownerObjectId = typeof ownerId === 'string' ? new mongoose.Types.ObjectId(ownerId) : ownerId;
+      const query = { owner_id: ownerObjectId };
+      if (!includeDeleted) {
+        query.is_deleted = false;
+      }
+
+      const folders = await Folder.find(query).sort({ name: 1 }).lean();
+      return folders.map(f => this.toDTO(f));
+    } catch (err) {
+      console.error('Error in findAllByOwner (folders):', err);
+      throw err;
+    }
+  },
+
   async countByOwner(ownerId, parentId = null, includeDeleted = false) {
     try {
       // Convertir ownerId en ObjectId si nécessaire

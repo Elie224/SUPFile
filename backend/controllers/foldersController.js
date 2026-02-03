@@ -143,6 +143,18 @@ async function listFolders(req, res, next) {
   }
 }
 
+// Lister tous les dossiers de l'utilisateur (flat list)
+// GET /api/folders/all
+async function listAllFolders(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const folders = await FolderModel.findAllByOwner(userId, false);
+    res.status(200).json({ data: folders });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Créer un dossier
 async function createFolder(req, res, next) {
   try {
@@ -590,6 +602,7 @@ async function downloadFolderZip(req, res, next) {
 
 module.exports = {
   listFolders,
+  listAllFolders,
   createFolder,
   getFolder,
   downloadFolderZip,

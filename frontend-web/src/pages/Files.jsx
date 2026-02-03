@@ -821,18 +821,67 @@ export default function Files() {
   const loadAvailableFolders = async () => {
     try {
       setLoadingFolders(true);
-      const response = await folderService.list(null);
-      const allFolders = response.data.data?.items || [];
-      
-      // Filtrer pour exclure le dossier actuel et ses enfants si on déplace un dossier
-      const filteredFolders = allFolders.filter(folder => {
-        if (itemToMove && itemToMove.type === 'folder') {
-          // Ne pas permettre de déplacer un dossier dans lui-même ou ses enfants
-          return folder.id !== itemToMove.id;
+      const response = await folderService.listAll();
+      const allFolders = Array.isArray(response?.data?.data) ? response.data.data : [];
+
+      // Construire un mapping id -> folder
+      const byId = new Map(allFolders.map(f => [String(f.id), f]));
+      const memoPath = new Map();
+
+      const getPathLabel = (folderId) => {
+        const key = String(folderId);
+        if (memoPath.has(key)) return memoPath.get(key);
+        const folder = byId.get(key);
+        if (!folder) return '';
+
+        const visited = new Set();
+        const parts = [];
+        let cur = folder;
+        while (cur && !visited.has(String(cur.id))) {
+          visited.add(String(cur.id));
+          parts.push(cur.name);
+          const parentId = cur.parent_id;
+          if (!parentId) break;
+          cur = byId.get(String(parentId));
         }
-        return true;
-      });
-      
+        parts.reverse();
+        const label = parts.join(' / ');
+        memoPath.set(key, label);
+        return label;
+      };
+
+      // Si on déplace un dossier, exclure lui-même et ses descendants (évite les boucles)
+      let forbiddenIds = new Set();
+      if (itemToMove && itemToMove.type === 'folder') {
+        const moveId = String(itemToMove.id);
+        const childrenByParent = new Map();
+        for (const f of allFolders) {
+          const pid = f.parent_id ? String(f.parent_id) : null;
+          if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+          childrenByParent.get(pid).push(String(f.id));
+        }
+        const stack = [moveId];
+        forbiddenIds.add(moveId);
+        while (stack.length > 0) {
+          const curId = stack.pop();
+          const kids = childrenByParent.get(curId) || [];
+          for (const kid of kids) {
+            if (!forbiddenIds.has(kid)) {
+              forbiddenIds.add(kid);
+              stack.push(kid);
+            }
+          }
+        }
+      }
+
+      const filteredFolders = allFolders
+        .filter(f => !forbiddenIds.has(String(f.id)))
+        .map(f => ({
+          ...f,
+          label: getPathLabel(f.id) || f.name,
+        }))
+        .sort((a, b) => (a.label || '').localeCompare((b.label || ''), undefined, { sensitivity: 'base' }));
+
       setAvailableFolders(filteredFolders);
     } catch (err) {
       console.error('Failed to load folders:', err);
@@ -1943,7 +1992,7 @@ export default function Files() {
                     <option value="">{t('root')}</option>
                     {availableFolders.map(folder => (
                       <option key={folder.id} value={folder.id}>
-                        {folder.name}
+                        {folder.label || folder.name}
                       </option>
                     ))}
                   </select>

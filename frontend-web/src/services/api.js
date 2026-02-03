@@ -270,6 +270,7 @@ export const folderService = {
   listTrash: () => apiClient.get('/folders/trash'),
   list: (parentId = null) =>
     apiClient.get('/folders', { params: { parent_id: parentId || null } }),
+  listAll: () => apiClient.get('/folders/all'),
 };
 
 // Services partage
