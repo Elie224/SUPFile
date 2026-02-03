@@ -195,12 +195,18 @@ export const fileService = {
     return uploadClient.post('/files/upload', formData, config);
   },
   initChunkedUpload: ({ name, size, mimeType, folderId }) => {
-    return apiClient.post('/files/upload/init', {
-      name,
-      size,
-      mime_type: mimeType,
-      folder_id: folderId,
-    });
+    // L'initialisation peut être lente selon le backend/stockage.
+    // On augmente le timeout par requête pour éviter un blocage à 99% côté UI.
+    return apiClient.post(
+      '/files/upload/init',
+      {
+        name,
+        size,
+        mime_type: mimeType,
+        folder_id: folderId,
+      },
+      { timeout: 120000 },
+    );
   },
   uploadChunk: ({ uploadId, chunkIndex, totalChunks, chunk, signal }, onProgress = null) => {
     const formData = new FormData();
@@ -225,13 +231,18 @@ export const fileService = {
     return uploadClient.post('/files/upload/chunk', formData, config);
   },
   completeChunkedUpload: ({ uploadId, totalChunks }) => {
-    return apiClient.post('/files/upload/complete', {
-      upload_id: uploadId,
-      total_chunks: totalChunks,
-    });
+    // L'assemblage serveur peut durer (gros fichiers). Timeout long.
+    return apiClient.post(
+      '/files/upload/complete',
+      {
+        upload_id: uploadId,
+        total_chunks: totalChunks,
+      },
+      { timeout: 10 * 60 * 1000 },
+    );
   },
   getChunkedUploadStatus: (uploadId) =>
-    apiClient.get('/files/upload/status', { params: { upload_id: uploadId } }),
+    apiClient.get('/files/upload/status', { params: { upload_id: uploadId }, timeout: 120000 }),
   download: (fileId) => apiClient.get(`/files/${fileId}/download`),
   downloadBlob: (fileId) => apiClient.get(`/files/${fileId}/download`, { responseType: 'blob' }),
   delete: (fileId) => apiClient.delete(`/files/${fileId}`),

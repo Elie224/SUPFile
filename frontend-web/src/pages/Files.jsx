@@ -187,6 +187,7 @@ export default function Files() {
       },
     };
     uploadControllersRef.current[fileName] = controller;
+    updateTask(fileName, { canPause: true });
     return controller;
   };
 
@@ -329,6 +330,16 @@ export default function Files() {
       if (controller.paused) {
         await controller.waitIfPaused();
       }
+
+      // Tous les chunks sont envoyés : il reste la finalisation serveur (assemblage + écriture).
+      // On garde 99% mais on change le statut pour éviter l'impression de "bloqué".
+      updateTask(file.name, {
+        progress: 99,
+        status: 'finalizing',
+        speedBps: 0,
+        remainingSeconds: 0,
+        paused: false,
+      });
 
       const completeResponse = await fileService.completeChunkedUpload({
         uploadId,
@@ -1325,10 +1336,12 @@ export default function Files() {
             {Object.keys(uploadTasks).map(fileName => {
               const task = uploadTasks[fileName] || {};
               const progress = task.progress ?? 0;
-              const isComplete = progress === 100;
+              const isComplete = task.status === 'complete' || progress === 100;
               const isError = progress === -1;
               const isPaused = task.status === 'paused';
               const isUploading = task.status === 'uploading';
+              const isFinalizing = task.status === 'finalizing';
+              const canPause = !!task.canPause;
               
               return (
                 <div key={fileName} className="mb-3">
@@ -1338,7 +1351,7 @@ export default function Files() {
                       {fileName}
                     </span>
                     <div className="d-flex align-items-center gap-2">
-                      {!isError && !isComplete && (
+                      {!isError && !isComplete && !isFinalizing && canPause && (
                         <button
                           className="btn btn-sm btn-outline-secondary"
                           onClick={() => (isPaused ? resumeUpload(fileName) : pauseUpload(fileName))}
@@ -1348,11 +1361,19 @@ export default function Files() {
                         </button>
                       )}
                       <span className={`small fw-semibold ${isError ? 'text-danger' : isComplete ? 'text-success' : isPaused ? 'text-warning' : 'text-primary'}`}>
-                        {isError ? 'Erreur' : isComplete ? 'Terminé' : isPaused ? 'En pause' : `${progress}%`}
+                        {isError
+                          ? 'Erreur'
+                          : isComplete
+                            ? 'Terminé'
+                            : isFinalizing
+                              ? 'Finalisation…'
+                              : isPaused
+                                ? 'En pause'
+                                : `${progress}%`}
                       </span>
                     </div>
                   </div>
-                  {!isError && !isComplete && (
+                  {!isError && !isComplete && !isFinalizing && (
                     <div className="d-flex justify-content-between align-items-center mb-1">
                       <span className="small text-muted">
                         Temps restant : {formatTime(task.remainingSeconds)}
@@ -1367,7 +1388,7 @@ export default function Files() {
                   {!isError && (
                     <div className="progress" style={{ height: '24px' }}>
                       <div 
-                        className={`progress-bar ${isComplete ? 'bg-success' : isPaused ? 'bg-warning' : 'bg-primary'}`}
+                        className={`progress-bar ${isComplete ? 'bg-success' : isFinalizing ? 'bg-info progress-bar-striped progress-bar-animated' : isPaused ? 'bg-warning' : 'bg-primary'}`}
                         role="progressbar" 
                         style={{ width: `${Math.max(progress, 0)}%` }}
                       >
