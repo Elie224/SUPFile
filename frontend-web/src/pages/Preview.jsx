@@ -60,12 +60,26 @@ export default function Preview() {
           updated_at: fileMeta.updated_at,
         });
         
+        const lowerMime = (mimeType || '').toLowerCase();
+        const isTextLike =
+          lowerMime.startsWith('text/') ||
+          lowerMime.includes('markdown') ||
+          lowerMime === 'application/json' ||
+          lowerMime.endsWith('+json') ||
+          lowerMime === 'application/xml' ||
+          lowerMime.endsWith('+xml') ||
+          lowerMime === 'application/yaml' ||
+          lowerMime === 'application/x-yaml' ||
+          lowerMime === 'text/yaml' ||
+          lowerMime === 'application/javascript' ||
+          lowerMime === 'application/x-javascript';
+
         // Déterminer le type de prévisualisation
         if (mimeType.startsWith('image/')) {
           setPreviewType('image');
         } else if (mimeType === 'application/pdf') {
           setPreviewType('pdf');
-        } else if (mimeType.startsWith('text/') || mimeType.includes('markdown')) {
+        } else if (isTextLike) {
           setPreviewType('text');
         } else if (mimeType.startsWith('video/')) {
           setPreviewType('video');
@@ -88,6 +102,20 @@ export default function Preview() {
           folder_id: fileInfo.folder_id,
           updated_at: fileInfo.updated_at,
         });
+
+        const lowerMime = (mimeType || '').toLowerCase();
+        const isTextLike =
+          lowerMime.startsWith('text/') ||
+          lowerMime.includes('markdown') ||
+          lowerMime === 'application/json' ||
+          lowerMime.endsWith('+json') ||
+          lowerMime === 'application/xml' ||
+          lowerMime.endsWith('+xml') ||
+          lowerMime === 'application/yaml' ||
+          lowerMime === 'application/x-yaml' ||
+          lowerMime === 'text/yaml' ||
+          lowerMime === 'application/javascript' ||
+          lowerMime === 'application/x-javascript';
         
         // Déterminer le type de prévisualisation basé sur le MIME type
         if (mimeType.startsWith('image/')) {
@@ -120,7 +148,7 @@ export default function Preview() {
         } else if (mimeType === 'application/pdf') {
           setPreviewType('pdf');
           setGalleryImages([]);
-        } else if (mimeType.startsWith('text/') || mimeType.includes('markdown')) {
+        } else if (isTextLike) {
           setPreviewType('text');
           setGalleryImages([]);
         } else if (mimeType.startsWith('video/')) {
@@ -210,9 +238,18 @@ export default function Preview() {
   const currentImage = hasGallery ? galleryImages[currentIndex] : null;
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="page-container" style={{ padding: 'clamp(12px, 3vw, 24px)' }}>
+      <div
+        style={{
+          marginBottom: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => navigate(-1)}

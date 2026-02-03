@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -47,22 +46,9 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
   Future<Uint8List?> _getPreviewBytes(FileItem image, {required String size}) {
     final key = '${image.id}:$size';
     return _previewFutures.putIfAbsent(key, () async {
-      final res = await _apiService.previewFile(image.id, size: size);
+      final res = await _apiService.previewFileBytes(image.id, size: size);
       if (res.statusCode != 200 || res.data == null) return null;
-
-      final body = res.data;
-      if (body is! Map) return null;
-      final data = body['data'];
-      if (data is! Map) return null;
-
-      final content = data['content']?.toString();
-      if (content == null || content.isEmpty) return null;
-
-      try {
-        return base64Decode(content);
-      } catch (_) {
-        return null;
-      }
+      return Uint8List.fromList(res.data!);
     });
   }
 

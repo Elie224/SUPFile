@@ -269,7 +269,9 @@ export default function Admin() {
               border: '1px solid var(--border-color)',
               borderRadius: '8px',
               fontSize: '14px',
-              minWidth: '250px',
+              width: '100%',
+              maxWidth: '360px',
+              minWidth: '0',
               backgroundColor: 'var(--bg-color)',
               color: 'var(--text-color)'
             }}

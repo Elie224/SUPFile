@@ -91,7 +91,7 @@ module.exports = {
     // Autoriser toutes les méthodes HTTP nécessaires
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     // Autoriser tous les headers de requête (y compris Authorization, Content-Type, etc.)
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Range'],
     // Exposer les headers de réponse nécessaires pour les téléchargements
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges'],
     // S'assurer que les réponses OPTIONS ont le bon code de statut

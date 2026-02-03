@@ -14,6 +14,7 @@ import '../screens/search/search_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/share/share_screen.dart';
 import '../screens/share/public_share_screen.dart';
+import '../screens/share/public_preview_screen.dart';
 import '../screens/share/manage_shares_screen.dart';
 import '../screens/trash/trash_screen.dart';
 import '../screens/admin/admin_screen.dart';
@@ -131,6 +132,32 @@ class AppRouter {
           builder: (context, state) {
             final token = state.pathParameters['token']!;
             return PublicShareScreen(token: token);
+          },
+        ),
+        GoRoute(
+          path: '/share/:token/preview/:id',
+          builder: (context, state) {
+            final token = state.pathParameters['token']!;
+            final fileId = state.pathParameters['id']!;
+            final extra = state.extra;
+            Map<String, dynamic>? fileJson;
+            String? password;
+            if (extra is Map) {
+              final maybeFile = extra['file'];
+              if (maybeFile is Map) {
+                fileJson = Map<String, dynamic>.from(maybeFile);
+              }
+              final maybePassword = extra['password'];
+              if (maybePassword is String && maybePassword.trim().isNotEmpty) {
+                password = maybePassword.trim();
+              }
+            }
+            return PublicPreviewScreen(
+              shareToken: token,
+              fileId: fileId,
+              fileJson: fileJson,
+              password: password,
+            );
           },
         ),
       ],

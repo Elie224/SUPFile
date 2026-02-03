@@ -16,6 +16,42 @@ const { successResponse, errorResponse } = require('../utils/response');
 const { calculateRealQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
 const mongoose = require('mongoose');
 
+async function assertPublicShareAccessOrReturn(res, { fileId, token, password }) {
+  if (!token) return { ok: false, responded: false };
+
+  const share = await ShareModel.findByToken(token);
+  if (!share) {
+    return { ok: false, responded: true, response: res.status(403).json({ error: { message: 'Access denied' } }) };
+  }
+
+  const shareFileId = share.file_id?.toString ? share.file_id.toString() : share.file_id;
+  const normalizedFileId = fileId?.toString ? fileId.toString() : fileId;
+
+  if (String(shareFileId) !== String(normalizedFileId)) {
+    return { ok: false, responded: true, response: res.status(403).json({ error: { message: 'Access denied' } }) };
+  }
+
+  if (share.expires_at && new Date(share.expires_at) < new Date()) {
+    return { ok: false, responded: true, response: res.status(410).json({ error: { message: 'Share expired' } }) };
+  }
+  if (share.is_active === false) {
+    return { ok: false, responded: true, response: res.status(403).json({ error: { message: 'Share deactivated' } }) };
+  }
+
+  if (share.password_hash) {
+    if (!password) {
+      return { ok: false, responded: true, response: res.status(401).json({ error: { message: 'Password required' }, requires_password: true }) };
+    }
+    const bcrypt = require('bcryptjs');
+    const isValid = await bcrypt.compare(password, share.password_hash);
+    if (!isValid) {
+      return { ok: false, responded: true, response: res.status(401).json({ error: { message: 'Invalid password' }, requires_password: true }) };
+    }
+  }
+
+  return { ok: true, responded: false };
+}
+
 // Configuration multer pour l'upload
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -634,35 +670,9 @@ async function downloadFile(req, res, next) {
     
     // Si pas propriétaire, vérifier le partage public
     if (!hasAccess && token) {
-      const ShareModel = require('../models/shareModel');
-      const share = await ShareModel.findByToken(token);
-      
-      if (share) {
-        const shareFileId = share.file_id?.toString ? share.file_id.toString() : share.file_id;
-        const fileId = id?.toString ? id.toString() : id;
-        
-        if (shareFileId === fileId) {
-          // Vérifier si le partage est expiré ou désactivé
-          if (share.expires_at && new Date(share.expires_at) < new Date()) {
-            return res.status(410).json({ error: { message: 'Share expired' } });
-          }
-          if (share.is_active === false) {
-            return res.status(403).json({ error: { message: 'Share deactivated' } });
-          }
-          // Vérifier le mot de passe si requis
-          if (share.password_hash) {
-            if (!password) {
-              return res.status(401).json({ error: { message: 'Password required' } });
-            }
-            const bcrypt = require('bcryptjs');
-            const isValid = await bcrypt.compare(password, share.password_hash);
-            if (!isValid) {
-              return res.status(401).json({ error: { message: 'Invalid password' } });
-            }
-          }
-          hasAccess = true;
-        }
-      }
+      const shareAccess = await assertPublicShareAccessOrReturn(res, { fileId: id, token, password });
+      if (shareAccess.responded) return shareAccess.response;
+      if (shareAccess.ok) hasAccess = true;
     }
     
     if (!hasAccess) {
@@ -722,27 +732,56 @@ async function getFile(req, res, next) {
 // Prévisualiser un fichier
 async function previewFile(req, res, next) {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { id } = req.params;
+    const { token, password } = req.query;
 
     const file = await FileModel.findById(id);
     if (!file) {
       return res.status(404).json({ error: { message: 'File not found' } });
     }
 
-    // Comparer les ObjectId correctement
-    const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
-    const userOwnerId = userId?.toString ? userId.toString() : userId;
-    
-    if (fileOwnerId !== userOwnerId) {
+    // Vérifier accès (propriétaire OU partage public)
+    let hasAccess = false;
+    if (userId) {
+      const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
+      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      if (String(fileOwnerId) === String(userOwnerId)) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess && token) {
+      const shareAccess = await assertPublicShareAccessOrReturn(res, { fileId: id, token, password });
+      if (shareAccess.responded) return shareAccess.response;
+      if (shareAccess.ok) hasAccess = true;
+    }
+
+    if (!hasAccess) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 
-    // Pour les images, PDF, texte - servir directement
-    if (file.mime_type?.startsWith('image/') || 
-        file.mime_type === 'application/pdf' ||
-        file.mime_type?.startsWith('text/')) {
-      res.setHeader('Content-Type', file.mime_type);
+    const mime = (file.mime_type || '').toLowerCase();
+    const isTextLike =
+      mime.startsWith('text/') ||
+      mime === 'application/json' ||
+      mime.endsWith('+json') ||
+      mime === 'application/xml' ||
+      mime.endsWith('+xml') ||
+      mime === 'application/yaml' ||
+      mime === 'application/x-yaml' ||
+      mime === 'text/yaml' ||
+      mime === 'application/javascript' ||
+      mime === 'application/x-javascript';
+
+    // Pour les images, PDF, texte (y compris JSON/XML/YAML/JS) - servir directement
+    if (mime.startsWith('image/') || mime === 'application/pdf' || isTextLike) {
+      // Pour les contenus texte, ajouter un charset pour éviter les problèmes d'affichage
+      const contentType = isTextLike && !mime.includes('charset=')
+        ? `${file.mime_type}; charset=utf-8`
+        : file.mime_type;
+
+      res.setHeader('Content-Type', contentType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
       return res.sendFile(path.resolve(file.file_path));
     }
@@ -756,23 +795,32 @@ async function previewFile(req, res, next) {
 // Stream audio/vidéo
 async function streamFile(req, res, next) {
   try {
-    // Authentification requise (via header ou query param ?token=xxx)
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: { message: 'Authentication required' } });
-    }
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { id } = req.params;
+    const { token, password } = req.query;
 
     const file = await FileModel.findById(id);
     if (!file) {
       return res.status(404).json({ error: { message: 'File not found' } });
     }
 
-    // Comparer les ObjectId correctement
-    const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
-    const userOwnerId = userId?.toString ? userId.toString() : userId;
-    
-    if (fileOwnerId !== userOwnerId) {
+    // Vérifier accès (propriétaire OU partage public)
+    let hasAccess = false;
+    if (userId) {
+      const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
+      const userOwnerId = userId?.toString ? userId.toString() : userId;
+      if (String(fileOwnerId) === String(userOwnerId)) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess && token) {
+      const shareAccess = await assertPublicShareAccessOrReturn(res, { fileId: id, token, password });
+      if (shareAccess.responded) return shareAccess.response;
+      if (shareAccess.ok) hasAccess = true;
+    }
+
+    if (!hasAccess) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
 

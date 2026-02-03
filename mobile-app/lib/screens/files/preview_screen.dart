@@ -13,6 +13,7 @@ import '../../utils/secure_logger.dart';
 import '../../utils/secure_storage.dart';
 import '../../models/file.dart';
 import '../../widgets/app_back_button.dart';
+import '../../widgets/responsive_center.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String fileId;
@@ -119,41 +120,21 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_file == null) return;
 
     try {
-      // Le backend renvoie la prévisualisation via /preview (JSON + base64)
+      // Preview binaire (image/PDF/texte) via /preview
       if (_file!.isImage || _file!.isPdf || _file!.isText) {
-        final res = await _apiService.previewFile(_file!.id, size: 'large');
+        final res = await _apiService.previewFileBytes(_file!.id, size: 'large');
         final code = res.statusCode ?? 0;
-        if (code != 200) {
+        if (code != 200 || res.data == null) {
           throw Exception('Impossible de charger le preview (code: $code)');
         }
 
-        final data = (res.data is Map && (res.data as Map)['data'] is Map)
-            ? Map<String, dynamic>.from((res.data as Map)['data'] as Map)
-            : null;
-        if (data == null) {
-          throw Exception('Réponse preview invalide');
-        }
-
-        final content = data['content'];
-
-        Uint8List decoded;
-        if (content is String) {
-          try {
-            final b64 = content.contains(',') ? content.split(',').last : content;
-            decoded = base64Decode(b64);
-          } catch (_) {
-            decoded = Uint8List.fromList(utf8.encode(content));
-          }
-        } else {
-          decoded = Uint8List(0);
-        }
-
+        final bytes = Uint8List.fromList(res.data!);
         if (_file!.isImage) {
-          _imageBytes = decoded;
+          _imageBytes = bytes;
         } else if (_file!.isPdf) {
-          _pdfBytes = decoded;
+          _pdfBytes = bytes;
         } else if (_file!.isText) {
-          _textContent = utf8.decode(decoded, allowMalformed: true);
+          _textContent = utf8.decode(bytes, allowMalformed: true);
         }
 
         if (mounted) setState(() {});
@@ -337,13 +318,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
           leading: const AppBackButton(fallbackLocation: '/files'),
           title: const Text('Erreur'),
         ),
-        body: Center(
+        body: ResponsiveCenter(
+          maxWidth: 560,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text(_error ?? 'Fichier non trouvé'),
+              Text(
+                _error ?? 'Fichier non trouvé',
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -367,7 +352,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ],
       ),
-      body: _buildPreview(),
+      body: ResponsiveCenter(
+        maxWidth: 980,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: _buildPreview(),
+      ),
     );
   }
 

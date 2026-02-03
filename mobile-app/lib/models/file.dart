@@ -126,6 +126,11 @@ class FileItem {
       'xml',
       'yml',
       'yaml',
+      'js',
+      'mjs',
+      'ts',
+      'css',
+      'html',
     };
     if (textExt.contains(ext)) return true;
     return mimeType?.startsWith('text/') ?? false;

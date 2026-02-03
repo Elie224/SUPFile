@@ -400,14 +400,18 @@ class ApiService {
     return _dio.get('/files/$fileId', options: Options(headers: const {'Cache-Control': 'no-cache'}));
   }
   
-  /// Prévisualiser un fichier (image, PDF, texte). La réponse est du JSON avec `data.content` en base64.
-  Future<Response> previewFile(String fileId, {String? size}) {
-    return _dio.get(
+  /// Prévisualiser un fichier (image, PDF, texte) en bytes.
+  /// Backend: GET /api/files/:id/preview (réponse binaire inline)
+  Future<Response<List<int>>> previewFileBytes(String fileId, {String? size}) {
+    return _dio.get<List<int>>(
       '/files/$fileId/preview',
       queryParameters: {
         if (size != null && size.isNotEmpty) 'size': size,
       },
-      options: Options(headers: const {'Cache-Control': 'no-cache'}),
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
     );
   }
   
@@ -419,6 +423,77 @@ class ApiService {
   Future<Response<List<int>>> streamFileBytes(String fileId) {
     return _dio.get<List<int>>(
       '/files/$fileId/stream',
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  Dio _createPublicDio() {
+    return Dio(BaseOptions(
+      baseUrl: AppConstants.apiUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      validateStatus: (status) => status != null && status < 500,
+    ));
+  }
+
+  /// Téléchargement public via token de partage (sans authentification)
+  Future<Response<List<int>>> downloadPublicFileBytes(
+    String fileId, {
+    required String shareToken,
+    String? password,
+  }) {
+    final publicDio = _createPublicDio();
+    return publicDio.get<List<int>>(
+      '/files/$fileId/download',
+      queryParameters: {
+        'token': shareToken,
+        if (password != null && password.isNotEmpty) 'password': password,
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  /// Preview public via token de partage (sans authentification)
+  Future<Response<List<int>>> previewPublicFileBytes(
+    String fileId, {
+    required String shareToken,
+    String? password,
+    String? size,
+  }) {
+    final publicDio = _createPublicDio();
+    return publicDio.get<List<int>>(
+      '/files/$fileId/preview',
+      queryParameters: {
+        'token': shareToken,
+        if (password != null && password.isNotEmpty) 'password': password,
+        if (size != null && size.isNotEmpty) 'size': size,
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
+  }
+
+  /// Stream public via token de partage (sans authentification) - bytes
+  Future<Response<List<int>>> streamPublicFileBytes(
+    String fileId, {
+    required String shareToken,
+    String? password,
+  }) {
+    final publicDio = _createPublicDio();
+    return publicDio.get<List<int>>(
+      '/files/$fileId/stream',
+      queryParameters: {
+        'token': shareToken,
+        if (password != null && password.isNotEmpty) 'password': password,
+      },
       options: Options(
         responseType: ResponseType.bytes,
         headers: const {'Cache-Control': 'no-cache'},
@@ -502,6 +577,7 @@ class ApiService {
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
+      validateStatus: (status) => status != null && status < 500,
     ));
     return publicDio.get('/share/$token', queryParameters: queryParams);
   }

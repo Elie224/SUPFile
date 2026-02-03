@@ -12,6 +12,9 @@ router.get('/:id/download', optionalAuthMiddleware, validateObjectId, filesContr
 // Stream audio/vidéo (accepte token en query param pour lecture directe <video src="...?token=xxx">)
 router.get('/:id/stream', optionalAuthMiddleware, validateObjectId, filesController.streamFile);
 
+// Prévisualiser un fichier (supporte aussi les partages publics via ?token=...&password=...)
+router.get('/:id/preview', optionalAuthMiddleware, validateObjectId, filesController.previewFile);
+
 // Routes protégées (toutes les autres routes nécessitent une authentification)
 router.use(authMiddleware);
 router.use(validateObjectId); // Valider tous les ObjectIds dans les paramètres
@@ -39,9 +42,6 @@ router.get('/trash', filesController.listTrash);
 
 // Récupérer les métadonnées d'un fichier par ID
 router.get('/:id', filesController.getFile);
-
-// Prévisualiser un fichier
-router.get('/:id/preview', filesController.previewFile);
 
 // Mettre à jour un fichier (rename/move)
 router.patch('/:id', filesController.updateFile);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
@@ -22,6 +22,67 @@ export default function Share() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [passwordRequired, setPasswordRequired] = useState(false);
+  const pdfFrameRef = useRef(null);
+  const videoRef = useRef(null);
+
+  const resource = share?.resource;
+  const filePreviewParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (token) params.set('token', token);
+    if (password && password.trim() !== '') params.set('password', password.trim());
+    return params.toString();
+  }, [token, password]);
+
+  const buildPublicUrl = (basePath) => {
+    const qs = filePreviewParams;
+    return qs ? `${API_URL}${basePath}?${qs}` : `${API_URL}${basePath}`;
+  };
+
+  const openFullscreenOrTab = async (url, element) => {
+    try {
+      if (element) {
+        if (typeof element.requestFullscreen === 'function') {
+          await element.requestFullscreen();
+          return;
+        }
+        // iOS Safari vidéo
+        if (typeof element.webkitEnterFullscreen === 'function') {
+          element.webkitEnterFullscreen();
+          return;
+        }
+      }
+    } catch (_) {
+      // fallback ci-dessous
+    }
+    try {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (_) {
+      window.location.href = url;
+    }
+  };
+
+  const previewType = useMemo(() => {
+    const mime = (resource?.mime_type || '').toLowerCase();
+    if (!mime) return null;
+    if (mime.startsWith('image/')) return 'image';
+    if (mime === 'application/pdf') return 'pdf';
+    if (
+      mime.startsWith('text/') ||
+      mime.includes('markdown') ||
+      mime === 'application/json' ||
+      mime.endsWith('+json') ||
+      mime === 'application/xml' ||
+      mime.endsWith('+xml') ||
+      mime === 'application/yaml' ||
+      mime === 'application/x-yaml' ||
+      mime === 'text/yaml' ||
+      mime === 'application/javascript' ||
+      mime === 'application/x-javascript'
+    ) return 'text';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    return 'download';
+  }, [resource?.mime_type]);
 
   useEffect(() => {
     loadShare();
@@ -129,21 +190,27 @@ export default function Share() {
   };
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}>Chargement...</div>;
+    return (
+      <div className="container-fluid p-3 p-md-4" style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div className="text-center">Chargement...</div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
+      <div className="container-fluid p-3 p-md-4" style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div className="text-center">
         <h2>Erreur</h2>
         <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   if (passwordRequired) {
     return (
-      <div style={{ padding: 24, maxWidth: 400, margin: '0 auto' }}>
+      <div className="container-fluid p-3 p-md-4" style={{ maxWidth: 480, margin: '0 auto' }}>
         <h2>Partage protégé par mot de passe</h2>
         <div style={{ marginBottom: 16 }}>
           <input
@@ -166,13 +233,15 @@ export default function Share() {
   }
 
   if (!share || !share.resource) {
-    return <div style={{ padding: 24 }}>Ressource non trouvée</div>;
+    return (
+      <div className="container-fluid p-3 p-md-4" style={{ maxWidth: 720, margin: '0 auto' }}>
+        Ressource non trouvée
+      </div>
+    );
   }
 
-  const resource = share.resource;
-
   return (
-    <div style={{ padding: 24, maxWidth: 600, margin: '0 auto' }}>
+    <div className="container-fluid p-3 p-md-4" style={{ maxWidth: 720, margin: '0 auto' }}>
       <h1>Partage de fichier</h1>
       <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, marginBottom: 16 }}>
         <h2>{resource.name}</h2>
@@ -182,6 +251,61 @@ export default function Share() {
             <p>Type: {resource.mime_type}</p>
           </>
         )}
+
+        {resource.type === 'file' && (
+          <div style={{ marginTop: 16, background: '#fafafa', border: '1px solid #eee', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ padding: 12, borderBottom: '1px solid #eee', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>Prévisualisation</div>
+              {(previewType === 'pdf' || previewType === 'video') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = previewType === 'pdf'
+                      ? buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/preview`)
+                      : buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/stream`);
+                    const el = previewType === 'pdf' ? pdfFrameRef.current : videoRef.current;
+                    openFullscreenOrTab(url, el);
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: '1px solid #ddd',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: 13,
+                  }}
+                  title="Ouvrir en plein écran"
+                >
+                  Ouvrir en plein écran
+                </button>
+              )}
+            </div>
+            <div style={{ padding: 12 }}>
+              {previewType === 'image' && (
+                <PublicImagePreview url={buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/preview`)} />
+              )}
+              {previewType === 'pdf' && (
+                <div style={{ height: '75vh' }}>
+                  <PublicPdfPreview url={buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/preview`)} iframeRef={pdfFrameRef} />
+                </div>
+              )}
+              {previewType === 'text' && (
+                <PublicTextPreview url={buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/preview`)} />
+              )}
+              {previewType === 'video' && (
+                <PublicVideoPreview url={buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/stream`)} videoRef={videoRef} />
+              )}
+              {previewType === 'audio' && (
+                <PublicAudioPreview url={buildPublicUrl(`/api/files/${encodeURIComponent(String(resource.id))}/stream`)} />
+              )}
+              {previewType === 'download' && (
+                <div style={{ color: 'var(--text-secondary)' }}>Prévisualisation non disponible pour ce type de fichier.</div>
+              )}
+            </div>
+          </div>
+        )}
+
         {resource.type === 'file' && (
           <button
             onClick={handleDownload}
@@ -195,5 +319,109 @@ export default function Share() {
         )}
       </div>
     </div>
+  );
+}
+
+function PublicImagePreview({ url }) {
+  const [error, setError] = useState(null);
+  if (error) return <div style={{ color: 'red' }}>Erreur: {error}</div>;
+  return (
+    <img
+      src={url}
+      alt="Preview"
+      style={{ maxWidth: '100%', maxHeight: '75vh', display: 'block', margin: '0 auto', objectFit: 'contain' }}
+      onError={() => setError('Impossible de charger l\'image')}
+    />
+  );
+}
+
+function PublicPdfPreview({ url, iframeRef }) {
+  return (
+    <iframe
+      ref={iframeRef}
+      src={url}
+      style={{ width: '100%', height: '100%', border: 'none' }}
+      title="PDF Preview"
+      allow="fullscreen"
+      allowFullScreen
+    />
+  );
+}
+
+function PublicVideoPreview({ url, videoRef }) {
+  const [error, setError] = useState(null);
+  if (error) return <div style={{ color: 'red' }}>Erreur: {error}</div>;
+  return (
+    <video
+      ref={videoRef}
+      controls
+      preload="metadata"
+      style={{ width: '100%', maxHeight: '75vh' }}
+      src={url}
+      onError={() => setError('Impossible de charger la vidéo')}
+    >
+      Votre navigateur ne supporte pas la lecture vidéo.
+    </video>
+  );
+}
+
+function PublicAudioPreview({ url }) {
+  const [error, setError] = useState(null);
+  if (error) return <div style={{ color: 'red' }}>Erreur: {error}</div>;
+  return (
+    <audio
+      controls
+      preload="metadata"
+      style={{ width: '100%' }}
+      src={url}
+      onError={() => setError('Impossible de charger l\'audio')}
+    >
+      Votre navigateur ne supporte pas la lecture audio.
+    </audio>
+  );
+}
+
+function PublicTextPreview({ url }) {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(url);
+        if (!response.ok) {
+          const ct = response.headers.get('Content-Type') || '';
+          let msg = `Erreur (${response.status})`;
+          if (ct.includes('application/json')) {
+            try {
+              const data = await response.json();
+              msg = data?.error?.message || msg;
+            } catch (_) {}
+          }
+          throw new Error(msg);
+        }
+        const text = await response.text();
+        if (!cancelled) setContent(text);
+      } catch (e) {
+        if (!cancelled) setError(e?.message || 'Impossible de charger le texte');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  if (loading) return <div>Chargement du texte...</div>;
+  if (error) return <div style={{ color: 'red' }}>Erreur: {error}</div>;
+
+  return (
+    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 14, lineHeight: 1.6 }}>
+      {content}
+    </pre>
   );
 }
