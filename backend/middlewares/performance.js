@@ -10,14 +10,17 @@ function performanceMiddleware(req, res, next) {
   // Intercepter res.end pour mesurer le temps (éviter ERR_HTTP_HEADERS_SENT si express-session appelle end() après la route)
   const originalEnd = res.end.bind(res);
   res.end = function(...args) {
-    if (res.headersSent) {
-      return res; // Déjà envoyé (ex. express-session rappelle end), ne rien faire
-    }
     const duration = performance.now() - startTime;
     if (duration > 1000 && process.env.NODE_ENV !== 'production') {
       console.warn(`⚠️ Slow request: ${req.method} ${req.originalUrl} took ${duration.toFixed(2)}ms`);
     }
-    res.setHeader('X-Response-Time', `${duration.toFixed(2)}ms`);
+
+    // On ne doit jamais bloquer la fin de la réponse.
+    // Si les headers sont déjà envoyés (streaming, downloads, etc.), on ne peut plus ajouter d'en-tête.
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${duration.toFixed(2)}ms`);
+    }
+
     return originalEnd(...args);
   };
 
