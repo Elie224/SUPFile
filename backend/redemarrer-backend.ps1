@@ -67,6 +67,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "   2. Allez sur votre site Netlify" -ForegroundColor Yellow
     Write-Host "   3. Testez la connexion Google OAuth" -ForegroundColor Yellow
     Write-Host "   4. Testez la connexion GitHub OAuth" -ForegroundColor Yellow
+
+    exit 0
 } else {
     Write-Host ""
     Write-Host "[ERREUR] Le redeploiement a echoue" -ForegroundColor Red
@@ -74,6 +76,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "[*] Essayez manuellement:" -ForegroundColor Cyan
     Write-Host "   flyctl deploy --app $appName --dns-checks=false" -ForegroundColor Gray
+
+    exit 1
 }
 
 Write-Host ""
