@@ -6,6 +6,7 @@ const BlockedEmailModel = require('../models/blockedEmailModel');
 const { AppError } = require('../middlewares/errorHandler');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mailer');
 const config = require('../config');
+const { normalizeHexToken64, normalizeEmailForLookup } = require('../utils/authTokenSecurity');
 
 const SALT_ROUNDS = 10;
 
@@ -431,7 +432,7 @@ async function logout(req, res, next) {
  */
 async function forgotPassword(req, res, next) {
   try {
-    const { email } = req.body;
+    const email = normalizeEmailForLookup(req.body?.email);
 
     if (!email) {
       return res.status(400).json({ 
@@ -491,7 +492,7 @@ async function forgotPassword(req, res, next) {
  */
 async function verifyResetToken(req, res, next) {
   try {
-    const { token } = req.params;
+    const token = normalizeHexToken64(req.params?.token);
 
     if (!token) {
       return res.status(400).json({ 
@@ -533,6 +534,25 @@ async function resetPassword(req, res, next) {
       });
     }
 
+    const normalizedToken = normalizeHexToken64(token);
+    if (!normalizedToken) {
+      return res.status(400).json({ 
+        error: { message: 'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande de réinitialisation.' } 
+      });
+    }
+
+    if (typeof password !== 'string') {
+      return res.status(400).json({ 
+        error: { message: 'Le mot de passe doit être une chaîne de caractères' } 
+      });
+    }
+
+    if (password.length > 128) {
+      return res.status(400).json({ 
+        error: { message: 'Le mot de passe ne doit pas dépasser 128 caractères' } 
+      });
+    }
+
     // Validation du mot de passe
     if (password.length < 8) {
       return res.status(400).json({ 
@@ -553,7 +573,7 @@ async function resetPassword(req, res, next) {
     }
 
     // Vérifier le token
-    const user = await User.verifyResetToken(token);
+    const user = await User.verifyResetToken(normalizedToken);
     
     if (!user) {
       return res.status(400).json({ 
@@ -565,7 +585,7 @@ async function resetPassword(req, res, next) {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Mettre à jour le mot de passe
-    const success = await User.resetPassword(token, passwordHash);
+    const success = await User.resetPassword(normalizedToken, passwordHash);
 
     if (!success) {
       return res.status(400).json({ 
@@ -597,7 +617,8 @@ async function resetPassword(req, res, next) {
  */
 async function verifyEmail(req, res, next) {
   try {
-    const token = req.query.token || req.body?.token;
+    const rawToken = req.query.token || req.body?.token;
+    const token = normalizeHexToken64(rawToken);
     if (!token) {
       return res.status(400).json({ error: { message: 'Token manquant' } });
     }
@@ -625,7 +646,7 @@ async function verifyEmail(req, res, next) {
  */
 async function resendVerification(req, res, next) {
   try {
-    const { email } = req.body;
+    const email = normalizeEmailForLookup(req.body?.email);
     if (!email) {
       return res.status(400).json({ error: { message: 'Email requis' } });
     }

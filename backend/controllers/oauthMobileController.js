@@ -3,6 +3,21 @@ const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
 const config = require('../config');
 const axios = require('axios');
+const { normalizeEmailForLookup } = require('../utils/authTokenSecurity');
+
+function _capString(value, maxLen) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLen);
+}
+
+function _normalizeTokenString(value, maxLen) {
+  if (typeof value !== 'string') return null;
+  if (!value) return null;
+  if (value.length > maxLen) return null;
+  return value;
+}
 
 /**
  * Gérer le callback OAuth depuis l'application mobile (Google Sign-In natif)
@@ -10,11 +25,22 @@ const axios = require('axios');
  */
 async function handleGoogleMobileCallback(req, res, next) {
   try {
-    const { id_token, access_token, email, display_name, photo_url } = req.body;
+    const id_token = _normalizeTokenString(req.body?.id_token, 8192);
+    const access_token = _normalizeTokenString(req.body?.access_token, 4096);
+    const email = normalizeEmailForLookup(req.body?.email);
+    const display_name = _capString(req.body?.display_name, 120);
+    const photo_url = _capString(req.body?.photo_url, 2048);
 
     if (!id_token && !access_token) {
       return res.status(400).json({
         error: { message: 'id_token ou access_token requis' }
+      });
+    }
+
+    const googleClientId = config?.oauth?.google?.clientId;
+    if (!googleClientId || typeof googleClientId !== 'string') {
+      return res.status(500).json({
+        error: { message: 'Configuration OAuth Google manquante' }
       });
     }
 
@@ -24,37 +50,55 @@ async function handleGoogleMobileCallback(req, res, next) {
     try {
       if (id_token) {
         // Vérifier le ID token avec Google
-        const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${id_token}`);
+        const response = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+          params: { id_token },
+          timeout: 5000,
+          maxContentLength: 64 * 1024,
+          maxBodyLength: 64 * 1024,
+        });
         const tokenInfo = response.data;
         
         // Vérifier que le token est pour notre client ID
-        if (tokenInfo.aud !== config.oauth.google.clientId) {
+        if (!tokenInfo || tokenInfo.aud !== googleClientId) {
           return res.status(401).json({
             error: { message: 'Token Google invalide (client ID mismatch)' }
           });
         }
+
+        // Vérifier l'issuer si présent
+        if (tokenInfo.iss && tokenInfo.iss !== 'accounts.google.com' && tokenInfo.iss !== 'https://accounts.google.com') {
+          return res.status(401).json({
+            error: { message: 'Token Google invalide (issuer mismatch)' }
+          });
+        }
+
+        const normalizedEmail = normalizeEmailForLookup(tokenInfo.email) || email;
         
         payload = {
           sub: tokenInfo.sub,
-          email: tokenInfo.email || email,
-          name: tokenInfo.name || display_name,
-          picture: tokenInfo.picture || photo_url,
+          email: normalizedEmail,
+          name: _capString(tokenInfo.name, 120) || display_name,
+          picture: _capString(tokenInfo.picture, 2048) || photo_url,
         };
       } else if (access_token) {
         // Utiliser l'access_token pour obtenir les infos utilisateur
         const response = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo`, {
-          headers: { 'Authorization': `Bearer ${access_token}` }
+          headers: { 'Authorization': `Bearer ${access_token}` },
+          timeout: 5000,
+          maxContentLength: 64 * 1024,
+          maxBodyLength: 64 * 1024,
         });
         const userInfo = response.data;
+        const normalizedEmail = normalizeEmailForLookup(userInfo?.email) || email;
         payload = {
           sub: userInfo.id,
-          email: userInfo.email || email,
-          name: userInfo.name || display_name,
-          picture: userInfo.picture || photo_url,
+          email: normalizedEmail,
+          name: _capString(userInfo?.name, 120) || display_name,
+          picture: _capString(userInfo?.picture, 2048) || photo_url,
         };
       }
 
-      if (!payload || !payload.email) {
+      if (!payload || !payload.sub || !payload.email) {
         return res.status(400).json({
           error: { message: 'Token Google invalide ou email manquant' }
         });
@@ -68,8 +112,11 @@ async function handleGoogleMobileCallback(req, res, next) {
         user = await User.create({
           email: payload.email,
           passwordHash: null, // Pas de mot de passe pour OAuth
-          displayName: payload.name || display_name || payload.email.split('@')[0],
-          oauthProvider: 'google',
+          display_name: payload.name || display_name || payload.email.split('@')[0],
+          avatar_url: payload.picture || null,
+          oauth_provider: 'google',
+          oauth_id: payload.sub,
+          email_verified: true,
         });
 
         // Créer le dossier racine
