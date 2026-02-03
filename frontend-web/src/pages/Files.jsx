@@ -1783,6 +1783,38 @@ export default function Files() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              (async () => {
+                                try {
+                                  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+                                  if (!token) {
+                                    toast.warning(typeof t === 'function' ? t('mustBeConnected') : 'Vous devez être connecté.');
+                                    return;
+                                  }
+                                  const apiUrl = (typeof API_URL === 'string' && API_URL) ? API_URL : 'https://supfile.fly.dev';
+                                  window.location.href = `${apiUrl}/api/folders/${encodeURIComponent(String(itemId))}/download?access_token=${encodeURIComponent(token)}`;
+                                } catch (err) {
+                                  console.error('Folder ZIP download failed:', err);
+                                  toast.error(typeof err?.message === 'string' ? err.message : ((typeof t === 'function' ? t('downloadError') : null) || 'Erreur lors du téléchargement'));
+                                }
+                              })().catch(() => {});
+                            }}
+                            className="btn btn-outline-primary btn-sm"
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.9em',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                            }}
+                            title={(typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)'}
+                            aria-label={`${(typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)'} ${item?.name ?? ''}`}
+                          >
+                            <i className="bi bi-file-zip me-1" aria-hidden="true"></i>
+                            {(typeof t === 'function' ? t('downloadZip') : null) || 'Télécharger (ZIP)'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setShowShareModal({ id: itemId, name: item.name, type: 'folder' });
                               setShareLink('');
                             }}
