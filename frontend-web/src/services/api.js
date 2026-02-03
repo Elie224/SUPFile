@@ -4,6 +4,33 @@
 import axios from 'axios';
 import { API_URL } from '../config';
 
+function translateBackendMessageToFrench(message) {
+  if (typeof message !== 'string' || !message) return message;
+  const map = {
+    'Access denied': 'Accès refusé.',
+    'File not found': 'Fichier introuvable.',
+    'Folder not found': 'Dossier introuvable.',
+    'Parent folder not found': 'Dossier parent introuvable.',
+    'Invalid credentials': 'Identifiants incorrects.',
+    'Invalid password': 'Mot de passe invalide.',
+    'Password required': 'Mot de passe requis.',
+    'Share expired': 'Partage expiré.',
+    'Share deactivated': 'Partage désactivé.',
+    'Share created': 'Partage créé.',
+    'Internal Server Error': 'Erreur interne du serveur',
+  };
+
+  return map[message] || message;
+}
+
+function localizeAxiosErrorInPlace(error) {
+  const apiMessage = error?.response?.data?.error?.message;
+  if (typeof apiMessage === 'string') {
+    error.response.data.error.message = translateBackendMessageToFrench(apiMessage);
+  }
+  return error;
+}
+
 function readPersistedAuthState() {
   try {
     const raw = localStorage.getItem('auth-storage');
@@ -84,6 +111,7 @@ uploadClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    localizeAxiosErrorInPlace(error);
     // Détection mode hors ligne : message explicite pour l'utilisateur
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       const offlineError = new Error('Vous êtes hors ligne. Les données ne sont pas disponibles sans connexion Internet.');
@@ -151,6 +179,27 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
     }
+    return Promise.reject(error);
+  },
+);
+
+// Intercepteur équivalent pour les endpoints d'auth (traduction + offline/network)
+authClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    localizeAxiosErrorInPlace(error);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const offlineError = new Error('Vous êtes hors ligne. Les données ne sont pas disponibles sans connexion Internet.');
+      offlineError.isOffline = true;
+      return Promise.reject(offlineError);
+    }
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      const networkError = new Error('Connexion impossible. Vérifiez votre connexion Internet.');
+      networkError.isOffline = true;
+      return Promise.reject(networkError);
+    }
+
     return Promise.reject(error);
   },
 );

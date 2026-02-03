@@ -63,7 +63,7 @@ async function signup(req, res, next) {
       if (err.message && err.message.includes('MongoDB')) {
         return res.status(503).json({ 
           error: { 
-            message: 'Database connection not available. Please try again in a moment.' 
+            message: 'Connexion à la base de données indisponible. Veuillez réessayer dans un instant.' 
           } 
         });
       }
@@ -71,7 +71,7 @@ async function signup(req, res, next) {
     }
     
     if (existing) {
-      return res.status(409).json({ error: { message: 'Email already in use' } });
+      return res.status(409).json({ error: { message: 'Cette adresse e-mail est déjà utilisée.' } });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -93,7 +93,7 @@ async function signup(req, res, next) {
       if (err.message && err.message.includes('MongoDB')) {
         return res.status(503).json({ 
           error: { 
-            message: 'Database connection not available. Please try again in a moment.' 
+            message: 'Connexion à la base de données indisponible. Veuillez réessayer dans un instant.' 
           } 
         });
       }
@@ -111,7 +111,7 @@ async function signup(req, res, next) {
     // Créer le dossier racine pour l'utilisateur
     const FolderModel = require('../models/folderModel');
     try {
-      await FolderModel.create({ name: 'Root', ownerId: created.id, parentId: null });
+      await FolderModel.create({ name: 'Racine', ownerId: created.id, parentId: null });
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Failed to create root folder for user:', e.message || e);
@@ -121,7 +121,7 @@ async function signup(req, res, next) {
     // Ne pas renvoyer de tokens : l'utilisateur doit d'abord vérifier son email
     res.status(201).json({
       data: { email: created.email },
-      message: 'Account created. Please check your email to verify your address before signing in.',
+      message: 'Compte créé. Veuillez vérifier votre boîte e-mail et cliquer sur le lien de vérification avant de vous connecter.',
     });
   } catch (err) {
     console.error('Signup error:', err);
@@ -129,7 +129,7 @@ async function signup(req, res, next) {
     if (err.message && err.message.includes('MongoDB is not connected')) {
       return res.status(503).json({ 
         error: { 
-          message: 'Database connection not available. Please try again in a moment.' 
+          message: 'Connexion à la base de données indisponible. Veuillez réessayer dans un instant.' 
         } 
       });
     }
@@ -196,7 +196,7 @@ async function login(req, res, next) {
     if (!user.email_verified) {
       return res.status(403).json({
         error: {
-          message: 'Email not verified. Please check your inbox and click the verification link before signing in.',
+          message: 'E-mail non vérifié. Veuillez vérifier votre boîte de réception et cliquer sur le lien de vérification avant de vous connecter.',
           code: 'EMAIL_NOT_VERIFIED',
         },
       });
@@ -204,7 +204,7 @@ async function login(req, res, next) {
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
-      return res.status(401).json({ error: { message: 'Invalid credentials' } });
+      return res.status(401).json({ error: { message: 'Identifiants incorrects.' } });
     }
 
     // Vérifier si le 2FA est activé
@@ -255,7 +255,7 @@ async function login(req, res, next) {
       last_login_at: updatedUser.last_login_at || new Date(), // Utiliser la date mise à jour
     };
 
-    res.status(200).json({ data: { user: safeUser, access_token, refresh_token }, message: 'Login successful' });
+    res.status(200).json({ data: { user: safeUser, access_token, refresh_token }, message: 'Connexion réussie.' });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('Login error:', err);
@@ -263,7 +263,7 @@ async function login(req, res, next) {
     if (err.message && err.message.includes('MongoDB is not connected')) {
       return res.status(503).json({ 
         error: { 
-          message: 'Database connection not available. Please try again in a moment.' 
+          message: 'Connexion à la base de données indisponible. Veuillez réessayer dans un instant.' 
         } 
       });
     }
@@ -358,7 +358,7 @@ async function refresh(req, res, next) {
     const { refresh_token } = req.body;
 
     if (!refresh_token) {
-      return res.status(400).json({ error: { message: 'Refresh token is required' } });
+      return res.status(400).json({ error: { message: 'Le jeton de rafraîchissement est requis.' } });
     }
 
     // Vérifier le refresh token
@@ -366,13 +366,13 @@ async function refresh(req, res, next) {
     try {
       decoded = verifyToken(refresh_token, true);
     } catch (err) {
-      return res.status(401).json({ error: { message: 'Invalid or expired refresh token' } });
+      return res.status(401).json({ error: { message: 'Jeton de rafraîchissement invalide ou expiré.' } });
     }
 
     // Vérifier que la session existe et n'est pas révoquée
     const session = await Session.findByToken(refresh_token);
     if (!session || session.is_revoked) {
-      return res.status(401).json({ error: { message: 'Invalid or expired refresh token', code: 'SESSION_INVALID' } });
+      return res.status(401).json({ error: { message: 'Jeton de rafraîchissement invalide ou expiré.', code: 'SESSION_INVALID' } });
     }
 
     // Vérifier que l'utilisateur existe encore (n'a pas été supprimé)
@@ -401,7 +401,7 @@ async function refresh(req, res, next) {
         access_token: new_access_token, 
         refresh_token: new_refresh_token 
       }, 
-      message: 'Token refreshed successfully' 
+      message: 'Jeton rafraîchi avec succès.'
     });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
@@ -419,7 +419,7 @@ async function logout(req, res, next) {
       await Session.revokeByToken(refresh_token);
     }
 
-    res.status(200).json({ message: 'Logout successful' });
+    res.status(200).json({ message: 'Déconnexion réussie.' });
   } catch (err) {
     console.error('Logout error:', err);
     next(err);

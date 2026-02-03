@@ -35,7 +35,7 @@ Write-Host "[*] Methode 2: Redeploiement complet..." -ForegroundColor Yellow
 Write-Host "   (Cela peut prendre quelques minutes...)" -ForegroundColor Gray
 Write-Host ""
 
-$deployResult = flyctl deploy --app $appName 2>&1
+$deployResult = flyctl deploy --app $appName --dns-checks=false 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "[OK] Backend redeploye avec succes !" -ForegroundColor Green
@@ -73,7 +73,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "   Message: $deployResult" -ForegroundColor Gray
     Write-Host ""
     Write-Host "[*] Essayez manuellement:" -ForegroundColor Cyan
-    Write-Host "   flyctl deploy --app $appName" -ForegroundColor Gray
+    Write-Host "   flyctl deploy --app $appName --dns-checks=false" -ForegroundColor Gray
 }
 
 Write-Host ""

@@ -41,7 +41,7 @@ fly secrets set GITHUB_REDIRECT_URI="https://supfile.fly.dev/api/auth/github/cal
 
 ```bash
 cd backend
-fly deploy --app supfile
+flyctl deploy --app supfile --dns-checks=false
 ```
 
 ## 5. Vérifier

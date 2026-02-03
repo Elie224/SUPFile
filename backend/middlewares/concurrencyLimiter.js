@@ -15,7 +15,7 @@ function createConcurrencyLimiter({
   retryAfterSeconds = 10,
 } = {}) {
   if (!Number.isFinite(max) || max <= 0) {
-    throw new Error('createConcurrencyLimiter: `max` must be a positive number');
+    throw new Error('createConcurrencyLimiter: `max` doit être un nombre positif');
   }
 
   let active = 0;
@@ -25,7 +25,7 @@ function createConcurrencyLimiter({
       res.setHeader('Retry-After', String(retryAfterSeconds));
       return res.status(status).json({
         error: {
-          message: `Server busy: too many concurrent ${name} operations. Please retry shortly.`,
+          message: `Serveur occupé : trop d'opérations "${name}" en parallèle. Veuillez réessayer dans un instant.`,
           status,
           code: 'CONCURRENCY_LIMIT',
         },

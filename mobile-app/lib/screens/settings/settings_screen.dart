@@ -130,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
+                  labelText: 'E-mail',
                   prefixIcon: Icon(Icons.email),
                   border: OutlineInputBorder(),
                 ),

@@ -9,7 +9,7 @@ const generalLimiter = rateLimit({
   max: RATE_LIMIT_MAX,
   message: {
     error: {
-      message: 'Too many requests from this IP, please try again later.',
+      message: 'Trop de requêtes depuis cette adresse IP. Veuillez réessayer plus tard.',
       status: 429,
     },
   },
@@ -26,7 +26,7 @@ const authLimiter = rateLimit({
   max: AUTH_MAX,
   message: {
     error: {
-      message: `Too many login attempts from this IP, please try again after ${Math.round(AUTH_WINDOW_MS / 60000)} minutes.`,
+      message: `Trop de tentatives de connexion depuis cette adresse IP. Veuillez réessayer dans ${Math.round(AUTH_WINDOW_MS / 60000)} minute(s).`,
       status: 429,
     },
   },
@@ -41,7 +41,7 @@ const uploadLimiter = rateLimit({
   max: 50, // Limite de 50 uploads par IP par heure
   message: {
     error: {
-      message: 'Too many uploads from this IP, please try again later.',
+      message: 'Trop d\'uploads depuis cette adresse IP. Veuillez réessayer plus tard.',
       status: 429,
     },
   },
@@ -57,7 +57,7 @@ const chunkUploadLimiter = rateLimit({
   max: CHUNK_UPLOAD_MAX,
   message: {
     error: {
-      message: 'Too many chunk uploads from this IP, please try again later.',
+      message: 'Trop d\'uploads de chunks depuis cette adresse IP. Veuillez réessayer plus tard.',
       status: 429,
     },
   },
@@ -71,7 +71,7 @@ const shareLimiter = rateLimit({
   max: 20, // Limite de 20 partages créés par IP par heure
   message: {
     error: {
-      message: 'Too many shares created from this IP, please try again later.',
+      message: 'Trop de partages créés depuis cette adresse IP. Veuillez réessayer plus tard.',
       status: 429,
     },
   },

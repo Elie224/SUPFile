@@ -59,7 +59,7 @@ Write-Host "[*] Redeploiement pour forcer le rechargement des secrets..." -Foreg
 Write-Host "   (Cela peut prendre quelques minutes...)" -ForegroundColor Gray
 Write-Host ""
 
-$deployResult = flyctl deploy --app $appName 2>&1
+$deployResult = flyctl deploy --app $appName --dns-checks=false 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "[OK] Backend redeploye avec succes !" -ForegroundColor Green

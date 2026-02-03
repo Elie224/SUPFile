@@ -33,6 +33,14 @@ const translations = {
     passwordRequirements: 'Au moins 8 caractères, une majuscule et un chiffre',
     loginFailed: 'La connexion a échoué',
     signupFailed: 'L\'inscription a échoué',
+    emailVerifiedSuccess: 'E-mail vérifié. Vous pouvez vous connecter.',
+    resendVerificationSent: 'Un nouvel e-mail de vérification a été envoyé. Vérifiez votre boîte de réception.',
+    emailNotVerifiedHint: 'Votre compte n\'est pas encore vérifié. Cliquez sur le lien reçu par e-mail, ou renvoyez l\'e-mail ci-dessous.',
+    resendVerification: 'Renvoyer l\'e-mail de vérification',
+    sending: 'Envoi...',
+    oauthNotConfigured: 'OAuth n\'est pas configuré. Veuillez contacter l\'administrateur.',
+    oauthInitFailed: 'Échec de l\'initialisation de l\'authentification OAuth.',
+    oauthFailed: 'L\'authentification OAuth a échoué. Veuillez réessayer.',
     continueWith: 'Continuer avec',
     or: 'ou',
     
@@ -244,6 +252,14 @@ const translations = {
     passwordRequirements: 'At least 8 characters, one uppercase and one number',
     loginFailed: 'Login failed',
     signupFailed: 'Sign up failed',
+    emailVerifiedSuccess: 'Email verified. You can sign in.',
+    resendVerificationSent: 'A new verification email has been sent. Please check your inbox.',
+    emailNotVerifiedHint: 'Your account is not verified yet. Click the link you received by email, or resend it below.',
+    resendVerification: 'Resend verification email',
+    sending: 'Sending...',
+    oauthNotConfigured: 'OAuth is not configured. Please contact the administrator.',
+    oauthInitFailed: 'Failed to initiate OAuth authentication.',
+    oauthFailed: 'OAuth authentication failed. Please try again.',
     continueWith: 'Continue with',
     or: 'or',
     
@@ -462,7 +478,8 @@ export const t = (key, lang = null) => {
     }
   }
   
-  return value !== undefined ? value : key;
+  // Ne jamais afficher la clé brute (ex: "emailNotVerifiedHint") à l'écran.
+  return value !== undefined ? value : '';
 };
 
 // Hook React pour les traductions

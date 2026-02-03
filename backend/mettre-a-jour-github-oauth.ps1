@@ -54,7 +54,7 @@ Write-Host "[*] Redeploiement du backend..." -ForegroundColor Cyan
 Write-Host "   (Cela peut prendre quelques minutes...)" -ForegroundColor Yellow
 Write-Host ""
 
-$deployResult = flyctl deploy --app $appName 2>&1
+$deployResult = flyctl deploy --app $appName --dns-checks=false 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "[OK] Backend redeploye avec succes !" -ForegroundColor Green
@@ -68,7 +68,7 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     Write-Host ""
     Write-Host "[ATTENTION] Les secrets ont ete mis a jour, mais le redeploiement a echoue" -ForegroundColor Yellow
-    Write-Host "   Redeployez manuellement avec: flyctl deploy --app $appName" -ForegroundColor Cyan
+    Write-Host "   Redeployez manuellement avec: flyctl deploy --app $appName --dns-checks=false" -ForegroundColor Cyan
     Write-Host "   Message: $deployResult" -ForegroundColor Gray
 }
 

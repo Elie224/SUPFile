@@ -31,6 +31,9 @@
 ```powershell
 cd C:\Users\KOURO\OneDrive\Desktop\SUPFile\backend
 flyctl deploy
+
+# Si votre réseau bloque les requêtes DNS vers 8.8.8.8, utilisez plutôt :
+# flyctl deploy --dns-checks=false
 ```
 
 ### 2. Vérifier que l'API Fonctionne
@@ -80,6 +83,9 @@ flyctl secrets set --app backend-sparkling-sun-1539 SESSION_SECRET="[REDACTED]"
 ```powershell
 cd C:\Users\KOURO\OneDrive\Desktop\SUPFile\backend
 flyctl deploy
+
+# Si votre réseau bloque les requêtes DNS vers 8.8.8.8, utilisez plutôt :
+# flyctl deploy --dns-checks=false
 ```
 
 Une fois le déploiement terminé, testez l'API avec `curl https://backend-sparkling-sun-1539.fly.dev/health` ! 🚀

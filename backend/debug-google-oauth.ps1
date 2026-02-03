@@ -70,7 +70,7 @@ Start-Sleep -Seconds 10
 
 # Redéployer
 Write-Host "[*] Redeploiement..." -ForegroundColor Yellow
-flyctl deploy --app $appName 2>&1 | Out-Null
+flyctl deploy --app $appName --dns-checks=false 2>&1 | Out-Null
 
 Write-Host ""
 Write-Host "[OK] Redemarrage termine" -ForegroundColor Green

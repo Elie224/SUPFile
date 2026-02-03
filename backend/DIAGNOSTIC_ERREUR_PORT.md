@@ -101,7 +101,7 @@ cd C:\Users\KOURO\OneDrive\Desktop\SUPFile\backend
 Puis redéployez :
 
 ```powershell
-flyctl deploy
+flyctl deploy --dns-checks=false
 ```
 
 ### Si l'Application Ne Démarre Pas
@@ -125,6 +125,7 @@ flyctl deploy
 - [ ] Vérifier le statut : `flyctl status --app supfile`
 - [ ] Configurer les secrets si nécessaire : `.\verifier-et-copier-secrets-supfile.ps1`
 - [ ] Redéployer si nécessaire : `flyctl deploy`
+- [ ] (Si warning DNS) Redéployer avec : `flyctl deploy --dns-checks=false`
 
 ---
 

@@ -53,22 +53,22 @@ export default function Login() {
       if (errorParam === 'oauth_not_configured') {
         errorMessage = messageParam 
           ? decodeURIComponent(messageParam)
-          : (language === 'en' ? 'OAuth is not configured. Please contact the administrator.' : 'OAuth n\'est pas configuré. Veuillez contacter l\'administrateur.');
+          : (t('oauthNotConfigured') || 'OAuth n\'est pas configuré. Veuillez contacter l\'administrateur.');
       } else if (errorParam === 'oauth_init_failed') {
         errorMessage = messageParam 
           ? decodeURIComponent(messageParam)
-          : (language === 'en' ? 'Failed to initiate OAuth authentication.' : 'Échec de l\'initialisation de l\'authentification OAuth.');
+          : (t('oauthInitFailed') || 'Échec de l\'initialisation de l\'authentification OAuth.');
       } else if (errorParam === 'oauth_failed' || errorParam === 'oauth_callback_failed' || errorParam === 'no_tokens') {
         errorMessage = messageParam 
           ? decodeURIComponent(messageParam)
-          : (language === 'en' ? 'OAuth authentication failed. Please try again.' : 'L\'authentification OAuth a échoué. Veuillez réessayer.');
+          : (t('oauthFailed') || 'L\'authentification OAuth a échoué. Veuillez réessayer.');
       }
       
       if (errorMessage) {
         setError(errorMessage);
       }
     }
-  }, [searchParams, language]);
+  }, [searchParams, language, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -200,7 +200,7 @@ export default function Login() {
                     type="button"
                     onClick={handleResendVerification}
                     disabled={resendLoading}
-                    className="btn btn-outline-light btn-sm"
+                    className="btn btn-danger btn-sm"
                     style={{ fontSize: '12px' }}
                   >
                     {resendLoading ? (t('sending') || 'Envoi...') : (t('resendVerification') || 'Renvoyer l\'email de vérification')}

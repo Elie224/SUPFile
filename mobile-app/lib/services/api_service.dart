@@ -67,7 +67,7 @@ class ApiService {
           return handler.reject(DioException(
             requestOptions: options,
             type: DioExceptionType.connectionTimeout,
-            error: 'Rate limit exceeded. Please wait ${waitTime?.inSeconds ?? 0} seconds.',
+            error: 'Limite de requêtes atteinte. Veuillez patienter ${waitTime?.inSeconds ?? 0} seconde(s).',
           ));
         }
         
@@ -222,7 +222,7 @@ class ApiService {
       throw DioException(
         requestOptions: RequestOptions(path: '/auth/signup'),
         type: DioExceptionType.connectionTimeout,
-        error: 'Too many signup attempts. Please wait ${waitTime?.inSeconds ?? 0} seconds.',
+        error: 'Trop de tentatives d\'inscription. Veuillez patienter ${waitTime?.inSeconds ?? 0} seconde(s).',
       );
     }
     
@@ -271,7 +271,7 @@ class ApiService {
       throw DioException(
         requestOptions: RequestOptions(path: '/auth/login'),
         type: DioExceptionType.connectionTimeout,
-        error: 'Too many login attempts. Please wait ${waitTime?.inSeconds ?? 0} seconds.',
+        error: 'Trop de tentatives de connexion. Veuillez patienter ${waitTime?.inSeconds ?? 0} seconde(s).',
       );
     }
     

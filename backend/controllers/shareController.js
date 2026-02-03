@@ -25,17 +25,17 @@ function parseAndValidateExpiry(expires_at) {
   }
 
   if (Number.isNaN(expiresAtDate.getTime())) {
-    return { error: 'Invalid expiration date format' };
+    return { error: 'Format de date d\'expiration invalide' };
   }
 
   // Refuser les dates passées ou trop lointaines (anti-abus / cohérence)
   const now = Date.now();
   if (expiresAtDate.getTime() < now) {
-    return { error: 'Expiration date must be in the future' };
+    return { error: 'La date d\'expiration doit être dans le futur' };
   }
   const maxFutureMs = 5 * 365 * 24 * 60 * 60 * 1000; // 5 ans
   if (expiresAtDate.getTime() > now + maxFutureMs) {
-    return { error: 'Expiration date is too far in the future' };
+    return { error: 'La date d\'expiration est trop éloignée dans le futur' };
   }
 
   return { value: expiresAtDate };
@@ -52,31 +52,31 @@ async function createPublicShare(req, res, next) {
     const folderId = normalizeOptionalId(folder_id);
 
     if (!fileId && !folderId) {
-      return res.status(400).json({ error: { message: 'Either file_id or folder_id is required' } });
+      return res.status(400).json({ error: { message: 'Vous devez fournir file_id ou folder_id.' } });
     }
 
     // Vérifier la propriété
     if (fileId) {
       const file = await FileModel.findById(fileId);
       if (!file) {
-        return res.status(404).json({ error: { message: 'File not found' } });
+        return res.status(404).json({ error: { message: 'Fichier introuvable.' } });
       }
       const fileOwnerId = file.owner_id?.toString ? file.owner_id.toString() : file.owner_id;
       const userOwnerId = userId?.toString ? userId.toString() : userId;
       if (fileOwnerId !== userOwnerId) {
-        return res.status(403).json({ error: { message: 'Access denied' } });
+        return res.status(403).json({ error: { message: 'Accès refusé.' } });
       }
     }
 
     if (folderId) {
       const folder = await FolderModel.findById(folderId);
       if (!folder) {
-        return res.status(404).json({ error: { message: 'Folder not found' } });
+        return res.status(404).json({ error: { message: 'Dossier introuvable.' } });
       }
       const folderOwnerId = folder.owner_id?.toString ? folder.owner_id.toString() : folder.owner_id;
       const userOwnerId = userId?.toString ? userId.toString() : userId;
       if (folderOwnerId !== userOwnerId) {
-        return res.status(403).json({ error: { message: 'Access denied' } });
+        return res.status(403).json({ error: { message: 'Accès refusé.' } });
       }
     }
 
@@ -105,7 +105,7 @@ async function createPublicShare(req, res, next) {
         ...share,
         share_url: `${process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'}/share/${share.public_token}`,
       },
-      message: 'Share created',
+      message: 'Partage créé',
     });
   } catch (err) {
     next(err);
@@ -158,7 +158,7 @@ async function createInternalShare(req, res, next) {
       sharedWithUserId: shared_with_user_id,
     });
 
-    res.status(201).json({ data: share, message: 'Share created' });
+    res.status(201).json({ data: share, message: 'Partage créé' });
   } catch (err) {
     next(err);
   }
