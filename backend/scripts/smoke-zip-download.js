@@ -17,7 +17,19 @@ const fsp = fs.promises;
 const path = require('path');
 const { pipeline } = require('stream/promises');
 const { Readable } = require('stream');
-const { Agent } = require('undici');
+
+function getTimeoutSignal(ms) {
+  // Node 18+ expose AbortSignal.timeout(ms)
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(ms);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error('Timeout')), ms);
+  // éviter de garder l'event loop en vie
+  if (typeof timeout.unref === 'function') timeout.unref();
+  controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true });
+  return controller.signal;
+}
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -42,13 +54,9 @@ async function main() {
   const email = requireEnv('SUPFILE_EMAIL');
   const password = requireEnv('SUPFILE_PASSWORD');
 
-  // Undici (Node fetch) a des timeouts par défaut ~5min; pour des gros ZIP ça peut terminer.
-  // On garde des limites raisonnables mais plus hautes.
-  const dispatcher = new Agent({
-    connectTimeout: 30_000,
-    headersTimeout: 60_000,
-    bodyTimeout: 20 * 60_000, // 20 minutes
-  });
+
+  // Timeout global raisonnable pour chaque requête (évite les terminations sur ZIP lents)
+  const REQUEST_TIMEOUT_MS = 20 * 60_000; // 20 minutes
 
   console.log(`[zip-smoke] Base URL: ${baseUrl}`);
 
@@ -59,7 +67,7 @@ async function main() {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    dispatcher,
+    signal: getTimeoutSignal(REQUEST_TIMEOUT_MS),
     body: JSON.stringify({ email, password }),
   });
 
@@ -85,7 +93,7 @@ async function main() {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    dispatcher,
+    signal: getTimeoutSignal(REQUEST_TIMEOUT_MS),
     body: JSON.stringify({ name: folderName, parent_id: null }),
   });
 
@@ -111,7 +119,7 @@ async function main() {
       // Avoid automatic content-type negotiation edge cases
       Accept: 'application/zip, application/octet-stream;q=0.9, */*;q=0.8',
     },
-    dispatcher,
+    signal: getTimeoutSignal(REQUEST_TIMEOUT_MS),
   });
 
   if (!zipRes.ok) {
