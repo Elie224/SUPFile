@@ -4,6 +4,14 @@ const foldersController = require('../controllers/foldersController');
 const { authMiddleware, authHeaderOrQueryMiddleware } = require('../middlewares/authMiddleware');
 const { validate, createFolderSchema, renameSchema } = require('../middlewares/validation');
 const { validateObjectId } = require('../middlewares/security');
+const { createConcurrencyLimiter } = require('../middlewares/concurrencyLimiter');
+
+const zipDownloadLimiter = createConcurrencyLimiter({
+	max: parseInt(process.env.ZIP_CONCURRENCY_MAX, 10) || 2,
+	name: 'ZIP download',
+	status: 503,
+	retryAfterSeconds: parseInt(process.env.ZIP_RETRY_AFTER_SEC, 10) || 10,
+});
 
 // Lister les dossiers (GET /api/folders?parent_id=xxx) - avant validateObjectId
 router.get('/', authMiddleware, foldersController.listFolders);
@@ -21,7 +29,7 @@ router.get('/trash', authMiddleware, foldersController.listTrash);
 
 // Télécharger un dossier complet en ZIP
 // DOIT être avant router.get('/:id', ...) sinon Express matchera /:id
-router.get('/:id/download', authHeaderOrQueryMiddleware, foldersController.downloadFolderZip);
+router.get('/:id/download', authHeaderOrQueryMiddleware, zipDownloadLimiter, foldersController.downloadFolderZip);
 
 // Récupérer un dossier par ID
 router.get('/:id', authMiddleware, foldersController.getFolder);

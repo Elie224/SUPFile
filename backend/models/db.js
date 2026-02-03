@@ -21,12 +21,15 @@ if (process.env.NODE_ENV !== 'production') {
 
 mongoose.set('strictQuery', false);
 
+const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE, 10);
+const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE, 10);
+
 const options = {
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   connectTimeoutMS: 30000,
-  maxPoolSize: 50,
-  minPoolSize: 5,
+  maxPoolSize: Number.isFinite(maxPoolSize) ? maxPoolSize : 20,
+  minPoolSize: Number.isFinite(minPoolSize) ? minPoolSize : 0,
   maxIdleTimeMS: 30000,
   heartbeatFrequencyMS: 10000,
 };

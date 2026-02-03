@@ -52,6 +52,7 @@ const { generalLimiter, authLimiter, uploadLimiter, shareLimiter } = require('./
 const { sanitizeQuery, validateName } = require('./middlewares/security');
 const compressionMiddleware = require('./middlewares/compression');
 const { performanceMiddleware } = require('./middlewares/performance');
+const { requestTimeout } = require('./middlewares/requestTimeout');
 const { cacheMiddleware, invalidateUserCache } = require('./utils/cache');
 const logger = require('./utils/logger');
 const mongoose = require('mongoose');
@@ -154,6 +155,9 @@ app.use((req, res, next) => {
 // Compression HTTP - Réduit la taille des réponses (DOIT être avant les routes)
 app.use(compressionMiddleware);
 
+// Timeouts best-effort - protège contre requêtes lentes/bloquées (hors streaming)
+app.use(requestTimeout({ defaultTimeoutMs: 120000 }));
+
 // Performance monitoring - Mesure les temps de réponse
 app.use(performanceMiddleware);
 
@@ -211,8 +215,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Body parser middleware - ne pas parser pour multipart/form-data (géré par multer)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true, parameterLimit: 10000 }));
+const bodyLimit = process.env.JSON_BODY_LIMIT || '50mb';
+app.use(express.json({ limit: bodyLimit }));
+app.use(express.urlencoded({ limit: bodyLimit, extended: true, parameterLimit: 10000 }));
 
 // Servir les fichiers statiques avec les bons en-têtes CORS
 app.use('/public', express.static(path.join(__dirname, 'public'), {
@@ -487,6 +492,17 @@ if (process.env.NODE_ENV === 'test') {
       process.exit(1);
     }
   });
+
+  // Server-level timeouts (best-effort hardening under load)
+  // Keep permissive to avoid breaking large uploads/downloads.
+  try {
+    server.keepAliveTimeout = parseInt(process.env.KEEP_ALIVE_TIMEOUT_MS, 10) || 65000;
+    server.headersTimeout = parseInt(process.env.HEADERS_TIMEOUT_MS, 10) || 66000;
+    server.requestTimeout = parseInt(process.env.SERVER_REQUEST_TIMEOUT_MS, 10) || 0; // 0 = no hard cap
+  } catch {
+    // ignore
+  }
+
   server.on('error', (err) => {
     console.error('✗ Server error:', err.message);
     if (err.code === 'EADDRINUSE') console.error('✗ Port', PORT, 'already in use');
