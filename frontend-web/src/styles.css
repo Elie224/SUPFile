@@ -33,10 +33,43 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Box sizing cohérent */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* Optimiser le scroll sur mobile */
 body {
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
+}
+
+/* Media: éviter les débordements sur mobile */
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
+}
+
+/* Texte/URLs longs: éviter de casser la mise en page */
+.text-break,
+.text-truncate,
+code,
+pre {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 575.98px) {
+  /* Dropdown utilisateur: ne pas dépasser l'écran */
+  .user-menu-dropdown {
+    width: min(320px, calc(100vw - 24px)) !important;
+    min-width: 0 !important;
+  }
 }
 
 /* ============================================

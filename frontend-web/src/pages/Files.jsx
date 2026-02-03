@@ -1194,24 +1194,24 @@ export default function Files() {
       )}
 
       {editingItem && (
-        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 4, backgroundColor: 'var(--bg-secondary)' }}>
+        <div style={{ marginBottom: 16, padding: 16, border: '1px solid var(--border-color)', borderRadius: 4, backgroundColor: 'var(--bg-secondary)', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <input
             type="text"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
             placeholder={t('renameItem')}
             onKeyPress={(e) => e.key === 'Enter' && renameItem()}
-            style={{ padding: 8, width: 300, marginRight: 8 }}
+            style={{ padding: 8, width: '100%', maxWidth: 420 }}
             autoFocus
           />
-          <button onClick={renameItem} style={{ padding: '8px 16px', marginRight: 8 }}>{t('rename')}</button>
+          <button onClick={renameItem} style={{ padding: '8px 16px' }}>{t('rename')}</button>
           <button onClick={() => { setEditingItem(null); setEditName(''); }}>{t('cancel')}</button>
         </div>
       )}
 
       {showShareModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-color)', padding: 24, borderRadius: 8, maxWidth: 500, width: '90%', maxHeight: '90vh', overflow: 'auto' }}>
+        <div className="modal-container">
+          <div className="modal-content" style={{ maxWidth: 700 }}>
             <h2>{t('shareModal')} {showShareModal.name}</h2>
             {!shareLink ? (
               <>
@@ -1953,26 +1953,8 @@ export default function Files() {
 
       {/* Modal de déplacement */}
       {itemToMove && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-color)',
-            padding: 24,
-            borderRadius: 12,
-            maxWidth: 500,
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-          }}>
+        <div className="modal-container">
+          <div className="modal-content">
             <h2 style={{ marginTop: 0, marginBottom: 16, color: 'var(--text-color)' }}>
               <i className="bi bi-arrow-left-right me-2"></i>
               {t('move')} "{itemToMove.name}"
@@ -2037,26 +2019,8 @@ export default function Files() {
 
       {/* Modal de confirmation de suppression */}
       {itemToDelete && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-color)',
-            padding: 24,
-            borderRadius: 12,
-            maxWidth: 500,
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-          }}>
+        <div className="modal-container">
+          <div className="modal-content">
             <h2 style={{ marginTop: 0, marginBottom: 16, color: 'var(--text-color)' }}>
               ⚠️ {t('deleteConfirm')}
             </h2>
