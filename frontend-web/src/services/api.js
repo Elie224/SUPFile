@@ -4,6 +4,35 @@
 import axios from 'axios';
 import { API_URL } from '../config';
 
+function readPersistedAuthState() {
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state && typeof parsed.state === 'object' ? parsed.state : null;
+  } catch {
+    return null;
+  }
+}
+
+function getAuthTokens() {
+  let accessToken = localStorage.getItem('access_token');
+  let refreshToken = localStorage.getItem('refresh_token');
+
+  // Fallback: Zustand persist peut contenir des tokens même si localStorage access_token a été effacé.
+  if (!accessToken || !refreshToken) {
+    const state = readPersistedAuthState();
+    accessToken = accessToken || state?.accessToken || null;
+    refreshToken = refreshToken || state?.refreshToken || null;
+
+    // Réécrire localStorage pour que les intercepteurs et fetch() restent cohérents.
+    if (accessToken) localStorage.setItem('access_token', accessToken);
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+  }
+
+  return { accessToken, refreshToken };
+}
+
 // API_URL est maintenant importé depuis config.js avec la valeur par défaut pour la production
 
 // Créer une instance axios avec configuration par défaut
@@ -22,10 +51,9 @@ const uploadClient = axios.create({
 
 // Intercepteur pour ajouter le JWT à chaque requête
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const { accessToken } = getAuthTokens();
+  if (!config.headers) config.headers = {};
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   // Ne pas logger l'URL ni l'absence de token en production (éviter fuite d'infos)
   return config;
 }, (error) => {
@@ -34,10 +62,9 @@ apiClient.interceptors.request.use((config) => {
 
 // Intercepteur pour les uploads - ajouter le token mais laisser Content-Type géré par le navigateur
 uploadClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const { accessToken } = getAuthTokens();
+  if (!config.headers) config.headers = {};
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   // Ne pas définir Content-Type - laisser le navigateur le faire pour FormData
   return config;
 }, (error) => {
@@ -70,6 +97,8 @@ apiClient.interceptors.response.use(
       const setDeletedMsgAndRedirect = (message) => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        // Purger aussi le store persisté sinon ProtectedRoute peut croire qu'on est encore connecté.
+        localStorage.removeItem('auth-storage');
         sessionStorage.setItem('deleted_account_message', message || 'Veuillez vous inscrire et vous connecter pour accéder à Supfile, votre espace de stockage.');
         window.location.href = '/login';
       };
@@ -86,7 +115,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
       // Token expiré - essayer de rafraîchir
-      const refreshToken = localStorage.getItem('refresh_token');
+      const { refreshToken } = getAuthTokens();
       if (refreshToken) {
         try {
           const response = await authService.refresh(refreshToken);

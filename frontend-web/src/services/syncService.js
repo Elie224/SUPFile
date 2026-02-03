@@ -7,6 +7,22 @@ import offlineDB from './offlineDB';
 import { fileService, folderService } from './api';
 import { API_URL } from '../config';
 
+function getAccessTokenForFetch() {
+  const direct = localStorage.getItem('access_token');
+  if (direct) return direct;
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const token = parsed?.state?.accessToken;
+    if (token) {
+      localStorage.setItem('access_token', token);
+      return token;
+    }
+  } catch (_) {}
+  return null;
+}
+
 const SYNC_COOLDOWN_MS = 8000; // Éviter les rafales de GET /api/folders
 const CHUNK_UPLOAD_THRESHOLD = 20 * 1024 * 1024; // 20 MB
 const CHUNK_MAX_RETRIES = 3;
@@ -82,7 +98,8 @@ class SyncService {
           // Télécharger le contenu du fichier si pas trop gros (< 10 MB)
           if (file.size && file.size < 10 * 1024 * 1024) {
             try {
-              const token = localStorage.getItem('access_token');
+              const token = getAccessTokenForFetch();
+              if (!token) return;
               const response = await fetch(`${API_URL}/api/files/${file.id}/download`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
