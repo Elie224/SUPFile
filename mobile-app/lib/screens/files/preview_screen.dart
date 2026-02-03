@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
@@ -340,6 +340,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
         leading: const AppBackButton(fallbackLocation: '/files'),
         title: Text(_file!.name),
         actions: [
+          if (_canOpenFullscreen)
+            IconButton(
+              icon: const Icon(Icons.fullscreen),
+              onPressed: _openFullscreen,
+              tooltip: 'Plein écran',
+            ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: _showTechnicalDetails,
@@ -358,6 +364,44 @@ class _PreviewScreenState extends State<PreviewScreen> {
         child: _buildPreview(),
       ),
     );
+  }
+
+  bool get _canOpenFullscreen {
+    if (_file == null) return false;
+    if (_file!.isImage) return _imageBytes != null && _imageBytes!.isNotEmpty;
+    if (_file!.isPdf) return _pdfBytes != null && _pdfBytes!.isNotEmpty;
+    if (_file!.isVideo) return _videoController != null && _videoController!.value.isInitialized;
+    return false;
+  }
+
+  void _openFullscreen() {
+    if (_file == null) return;
+
+    if (_file!.isImage && _imageBytes != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FullscreenImageScreen(bytes: _imageBytes!, title: _file!.name),
+        ),
+      );
+      return;
+    }
+
+    if (_file!.isPdf && _pdfBytes != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FullscreenPdfScreen(bytes: _pdfBytes!, title: _file!.name),
+        ),
+      );
+      return;
+    }
+
+    if (_file!.isVideo && _videoController != null && _videoController!.value.isInitialized) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FullscreenVideoScreen(controller: _videoController!, title: _file!.name),
+        ),
+      );
+    }
   }
 
   Widget _buildPreview() {
@@ -498,7 +542,25 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_pdfBytes == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return SfPdfViewer.memory(_pdfBytes!);
+    return Stack(
+      children: [
+        SfPdfViewer.memory(_pdfBytes!),
+        // Petit rappel accessible (en plus du bouton AppBar)
+        Positioned(
+          right: 8,
+          top: 8,
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(999),
+            child: IconButton(
+              icon: const Icon(Icons.fullscreen, color: Colors.white),
+              onPressed: _canOpenFullscreen ? _openFullscreen : null,
+              tooltip: 'Plein écran',
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildTextPreview() {
@@ -535,6 +597,178 @@ class _PreviewScreenState extends State<PreviewScreen> {
             onPressed: _downloadFile,
             icon: const Icon(Icons.download),
             label: const Text('Télécharger'),
+          ),
+        ],
+      ),
+    );
+  }
+
+}
+
+class _FullscreenBase extends StatefulWidget {
+  final String title;
+  final Widget child;
+
+  const _FullscreenBase({required this.title, required this.child});
+
+  @override
+  State<_FullscreenBase> createState() => _FullscreenBaseState();
+}
+
+class _FullscreenBaseState extends State<_FullscreenBase> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(child: widget.child),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Fermer',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FullscreenImageScreen extends StatelessWidget {
+  final Uint8List bytes;
+  final String title;
+
+  const FullscreenImageScreen({super.key, required this.bytes, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return _FullscreenBase(
+      title: title,
+      child: Center(
+        child: InteractiveViewer(
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FullscreenPdfScreen extends StatelessWidget {
+  final Uint8List bytes;
+  final String title;
+
+  const FullscreenPdfScreen({super.key, required this.bytes, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return _FullscreenBase(
+      title: title,
+      child: SfPdfViewer.memory(bytes),
+    );
+  }
+}
+
+class FullscreenVideoScreen extends StatefulWidget {
+  final VideoPlayerController controller;
+  final String title;
+
+  const FullscreenVideoScreen({super.key, required this.controller, required this.title});
+
+  @override
+  State<FullscreenVideoScreen> createState() => _FullscreenVideoScreenState();
+}
+
+class _FullscreenVideoScreenState extends State<FullscreenVideoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: AspectRatio(
+              aspectRatio: controller.value.aspectRatio,
+              child: VideoPlayer(controller),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Fermer',
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (controller.value.isPlaying) {
+                        controller.pause();
+                      } else {
+                        controller.play();
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.replay, color: Colors.white, size: 36),
+                  onPressed: () {
+                    setState(() {
+                      controller.seekTo(Duration.zero);
+                      controller.play();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
