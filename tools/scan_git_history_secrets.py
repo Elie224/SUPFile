@@ -50,6 +50,7 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 # Values that look like placeholders rather than secrets
 PLACEHOLDER_HINTS = (
     "change_me",
+    "changeme",
     "your_",
     "votre",
     "<",

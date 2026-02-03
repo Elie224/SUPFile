@@ -1,0 +1,17 @@
+# git-filter-repo --replace-text rules
+# Format: either literal==>replacement or regex:<pattern>==>replacement
+# Goal: redact secrets from *history* without needing the exact values.
+
+# MongoDB URIs (skip docker-compose templates like mongodb://${...} by excluding '$' right after //)
+regex:mongodb\+srv://(?!\$)[^\s'\"]+==>mongodb+srv://[REDACTED]
+regex:mongodb://(?!\$)[^\s'\"]+==>mongodb://[REDACTED]
+
+# Credentialed mongodb:// URIs (avoid docker-compose templates like mongodb://${USER}:...)
+regex:mongodb://(?!\$\{)[^\s'\"]+:[^\s'\"]+@[^\s'\"]+==>mongodb://[REDACTED]
+
+# Common secret env assignments (quoted)
+regex:\b(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|SMTP_PASS|GITHUB_CLIENT_SECRET|GOOGLE_CLIENT_SECRET|DB_URI|DB_URL|MONGO_URI|MONGODB_URI|DATABASE_URL)\b\s*[:=]\s*"[^"]+"==>\1="[REDACTED]"
+regex:\b(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|SMTP_PASS|GITHUB_CLIENT_SECRET|GOOGLE_CLIENT_SECRET|DB_URI|DB_URL|MONGO_URI|MONGODB_URI|DATABASE_URL)\b\s*[:=]\s*'[^']+'==>\1='[REDACTED]'
+
+# Common secret env assignments (unquoted)
+regex:\b(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|SMTP_PASS|GITHUB_CLIENT_SECRET|GOOGLE_CLIENT_SECRET|DB_URI|DB_URL|MONGO_URI|MONGODB_URI|DATABASE_URL)\b\s*[:=]\s*(?!\$\{)[^\s'\"]+==>\1=[REDACTED]
