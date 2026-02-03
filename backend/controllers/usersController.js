@@ -91,15 +91,33 @@ async function updateProfile(req, res, next) {
 
     const updates = {};
     if (email) {
+      if (typeof email !== 'string') {
+        return res.status(400).json({ error: { message: 'Invalid email format' } });
+      }
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail.length < 3 || normalizedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ error: { message: 'Invalid email format' } });
+      }
       // Vérifier que l'email n'est pas déjà utilisé
-      const existing = await UserModel.findByEmail(email);
+      const existing = await UserModel.findByEmail(normalizedEmail);
       if (existing && existing.id !== userId) {
         return res.status(409).json({ error: { message: 'Email already in use' } });
       }
-      updates.email = email;
+      updates.email = normalizedEmail;
     }
     if (display_name !== undefined) {
-      updates.display_name = display_name;
+      if (display_name === null || display_name === '') {
+        updates.display_name = null;
+      } else {
+        if (typeof display_name !== 'string') {
+          return res.status(400).json({ error: { message: 'Invalid display_name format' } });
+        }
+        const trimmed = display_name.trim();
+        if (trimmed.length > 100) {
+          return res.status(400).json({ error: { message: 'display_name too long' } });
+        }
+        updates.display_name = trimmed;
+      }
     }
 
     // Mettre à jour dans MongoDB
@@ -214,11 +232,67 @@ async function updatePreferences(req, res, next) {
     const userId = req.user.id;
     const { preferences } = req.body;
 
-    if (!preferences || typeof preferences !== 'object') {
+    if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
       return res.status(400).json({ error: { message: 'Preferences object is required' } });
     }
 
-    await UserModel.updatePreferences(userId, preferences);
+    const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+    const updates = {};
+
+    if (hasOwn(preferences, 'theme')) {
+      const theme = preferences.theme;
+      if (typeof theme !== 'string') {
+        return res.status(400).json({ error: { message: 'Invalid theme value' } });
+      }
+      const normalized = theme.trim().toLowerCase();
+      if (!['light', 'dark'].includes(normalized)) {
+        return res.status(400).json({ error: { message: 'Invalid theme value' } });
+      }
+      updates.theme = normalized;
+    }
+
+    if (hasOwn(preferences, 'language')) {
+      const language = preferences.language;
+      if (typeof language !== 'string') {
+        return res.status(400).json({ error: { message: 'Invalid language value' } });
+      }
+      const normalized = language.trim();
+      // Format BCP47 simplifié (ex: "en", "fr", "fr-FR")
+      if (normalized.length > 10 || !/^[a-z]{2}(-[A-Z]{2})?$/.test(normalized)) {
+        return res.status(400).json({ error: { message: 'Invalid language value' } });
+      }
+      updates.language = normalized;
+    }
+
+    if (hasOwn(preferences, 'notifications_enabled')) {
+      const value = preferences.notifications_enabled;
+      if (typeof value === 'boolean') {
+        updates.notifications_enabled = value;
+      } else if (value === 'true' || value === 'false') {
+        updates.notifications_enabled = value === 'true';
+      } else {
+        return res.status(400).json({ error: { message: 'Invalid notifications_enabled value' } });
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: { message: 'No supported preferences provided' } });
+    }
+
+    // Stocker uniquement les clés supportées pour éviter le stockage arbitraire
+    // et préserver les valeurs existantes pour les clés non modifiées.
+    const currentUser = await UserModel.findById(userId);
+    const currentPrefs = (currentUser && currentUser.preferences && typeof currentUser.preferences === 'object' && !Array.isArray(currentUser.preferences))
+      ? currentUser.preferences
+      : {};
+    const nextPreferences = {
+      theme: typeof currentPrefs.theme === 'string' ? currentPrefs.theme : 'light',
+      language: typeof currentPrefs.language === 'string' ? currentPrefs.language : 'en',
+      notifications_enabled: typeof currentPrefs.notifications_enabled === 'boolean' ? currentPrefs.notifications_enabled : true,
+      ...updates,
+    };
+
+    await UserModel.updatePreferences(userId, nextPreferences);
 
     const user = await UserModel.findById(userId);
     res.status(200).json({

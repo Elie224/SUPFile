@@ -41,13 +41,16 @@ const initiateOAuth = (provider) => {
     const redirect = req.query.redirect;
     if (redirect && typeof redirect === 'string') {
       const r = redirect.trim();
-      if (r.startsWith('/') && !r.startsWith('//') && !r.includes(':')) {
+      if (r.length <= 2048 && r.startsWith('/') && !r.startsWith('//') && !r.includes(':')) {
         req.session.oauthRedirect = r;
       }
     }
 
     try {
-      passport.authenticate(provider, { scope: provider === 'google' ? ['profile', 'email'] : ['user:email'] })(req, res, next);
+      passport.authenticate(provider, {
+        scope: provider === 'google' ? ['profile', 'email'] : ['user:email'],
+        state: true,
+      })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);
       const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
@@ -112,12 +115,20 @@ const handleOAuthCallback = (provider) => {
         // Vérifier si c'est un callback mobile (deep link) - valider le schéma strict
         const requestedRedirectUri = req.query.redirect_uri || req.body?.redirect_uri;
         const allowedMobileScheme = /^supfile:\/\/oauth\/(google|github)\/callback(\?.*)?$/i;
-        
-        if (requestedRedirectUri && typeof requestedRedirectUri === 'string' && allowedMobileScheme.test(requestedRedirectUri.trim())) {
-          // C'est un callback mobile - rediriger vers le deep link avec les tokens
-          const redirectUrl = `${requestedRedirectUri}?token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}`;
-          console.log(`OAuth ${provider} success (mobile): User ${user.email} authenticated`);
-          return res.redirect(redirectUrl);
+
+        if (requestedRedirectUri && typeof requestedRedirectUri === 'string') {
+          const trimmed = requestedRedirectUri.trim();
+          if (allowedMobileScheme.test(trimmed)) {
+            const match = trimmed.match(/^supfile:\/\/oauth\/(google|github)\/callback/i);
+            const targetProvider = match?.[1]?.toLowerCase?.();
+            if (targetProvider && targetProvider === provider) {
+              const deepLinkUrl = new URL(trimmed);
+              deepLinkUrl.searchParams.set('token', access_token);
+              deepLinkUrl.searchParams.set('refresh_token', refresh_token);
+              console.log(`OAuth ${provider} success (mobile): User ${user.email} authenticated`);
+              return res.redirect(deepLinkUrl.toString());
+            }
+          }
         }
         
         // Sinon, rediriger vers le frontend web avec les tokens dans l'URL

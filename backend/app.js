@@ -197,9 +197,6 @@ app.use(generalLimiter);
 // Valeur par défaut: garde le dernier paramètre, empêche les tableaux inattendus.
 app.use(hpp());
 
-// Nettoyage des requêtes contre les injections NoSQL
-app.use(sanitizeQuery);
-
 // Session middleware pour OAuth (doit être avant Passport)
 // En production, aucun fallback : ensureProductionSecrets() a déjà vérifié SESSION_SECRET ou JWT_SECRET
 const sessionSecret = process.env.SESSION_SECRET || config.jwt.secret;
@@ -241,6 +238,9 @@ app.use(passport.session());
 const bodyLimit = process.env.JSON_BODY_LIMIT || '50mb';
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ limit: bodyLimit, extended: true, parameterLimit: 10000 }));
+
+// Nettoyage des requêtes contre les injections NoSQL (après parsing du body)
+app.use(sanitizeQuery);
 
 // Servir les fichiers statiques avec les bons en-têtes CORS
 app.use('/public', express.static(path.join(__dirname, 'public'), {
