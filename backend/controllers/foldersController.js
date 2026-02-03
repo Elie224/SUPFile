@@ -2,6 +2,7 @@ const FolderModel = require('../models/folderModel');
 const FileModel = require('../models/fileModel');
 const ShareModel = require('../models/shareModel');
 const path = require('path');
+const crypto = require('crypto');
 const fs = require('fs');
 const fsp = fs.promises;
 const archiver = require('archiver');
@@ -29,7 +30,7 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
   visited.add(folderKey);
 
   // Limiter la charge (éviter que de très gros dossiers fassent "tourner" indéfiniment)
-  if (stats.foldersVisited > stats.maxFolders) {
+  if (stats.foldersVisited >= stats.maxFolders) {
     stats.abortedByLimit = true;
     return;
   }
@@ -37,7 +38,7 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
 
   const files = await FileModel.findByFolder(folderId, false);
   for (const file of files) {
-    if (stats.filesAdded > stats.maxFiles) {
+    if (stats.filesAdded >= stats.maxFiles) {
       stats.abortedByLimit = true;
       break;
     }
@@ -374,6 +375,10 @@ async function downloadFolderZip(req, res, next) {
     const userId = req.user.id;
     const { id } = req.params;
 
+    const requestId = req.headers['x-request-id'] || crypto.randomUUID();
+    const startedAt = Date.now();
+    let aborted = false;
+
     const folder = await FolderModel.findById(id);
     if (!folder) {
       return res.status(404).json({ error: { message: 'Folder not found' } });
@@ -418,13 +423,18 @@ async function downloadFolderZip(req, res, next) {
     // La plupart des gros fichiers (mp4, jpg, pdf) sont déjà compressés, donc level élevé ralentit sans gain.
     const archive = archiver('zip', { zlib: { level: 1 } });
 
-    // Logs de diagnostic (ne contiennent pas de token)
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[ZIP] start', { userId, folderId: id, zipBaseName });
-    }
+    // Logs de diagnostic (sans token). Toujours actifs pour diagnostiquer la prod.
+    console.log('[ZIP] start', {
+      requestId,
+      folderId: id,
+      userId,
+      zipBaseName,
+      shared: folderOwnerId !== userOwnerId,
+    });
 
     // Si le client coupe la connexion, on arrête de générer le zip.
-    res.on('close', () => {
+    req.on('aborted', () => {
+      aborted = true;
       try {
         archive.abort();
       } catch {
@@ -432,20 +442,55 @@ async function downloadFolderZip(req, res, next) {
       }
     });
 
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        aborted = true;
+      }
+      try {
+        archive.abort();
+      } catch {
+        // ignore
+      }
+
+      if (aborted) {
+        console.warn('[ZIP] client_aborted', {
+          requestId,
+          folderId: id,
+          userId,
+          elapsedMs: Date.now() - startedAt,
+        });
+      }
+    });
+
     archive.on('error', (err) => {
+      console.error('[ZIP] error', {
+        requestId,
+        folderId: id,
+        userId,
+        message: err?.message,
+      });
+
       // Si headers déjà envoyés, on ne peut plus répondre en JSON
       if (!res.headersSent) {
-        res.status(500).json({ error: { message: 'ZIP generation failed' } });
+        return res.status(500).json({ error: { message: 'ZIP generation failed' } });
       }
-      next(err);
+
+      try {
+        res.destroy(err);
+      } catch {
+        // ignore
+      }
     });
 
     archive.on('warning', (warn) => {
       // Archiver peut émettre des warnings (ex: fichier manquant) : ne pas casser le zip.
       // Les fichiers manquants sont déjà ignorés dans addFolderToArchive, donc on log et on continue.
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('ZIP warning:', warn);
-      }
+      console.warn('[ZIP] warning', {
+        requestId,
+        folderId: id,
+        userId,
+        message: warn?.message,
+      });
     });
 
     archive.pipe(res);
@@ -468,12 +513,30 @@ async function downloadFolderZip(req, res, next) {
     }
 
     res.on('finish', () => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[ZIP] finish', { userId, folderId: id, ...stats });
-      }
+      console.log('[ZIP] finish', {
+        requestId,
+        folderId: id,
+        userId,
+        elapsedMs: Date.now() - startedAt,
+        ...stats,
+      });
     });
     await archive.finalize();
   } catch (err) {
+    // Si une erreur survient après envoi des headers, Express ne peut pas renvoyer un JSON propre.
+    if (res.headersSent) {
+      console.error('[ZIP] uncaught_after_headers', {
+        folderId: req.params?.id,
+        userId: req.user?.id,
+        message: err?.message,
+      });
+      try {
+        res.destroy(err);
+      } catch {
+        // ignore
+      }
+      return;
+    }
     next(err);
   }
 }

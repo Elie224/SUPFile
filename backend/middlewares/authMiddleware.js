@@ -79,6 +79,13 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
     const token = getTokenFromHeaderOrQuery(req);
 
     if (!token) {
+      console.warn('[DL-AUTH] missing_token', {
+        path: req.originalUrl?.split('?')?.[0],
+        folderId: req.params?.id,
+        hasAuthHeader: Boolean(req.headers.authorization),
+        hasAccessTokenQuery: Boolean(req.query?.access_token),
+        hasTokenQuery: Boolean(req.query?.token),
+      });
       return res.status(401).json({
         error: 'No token provided',
         message: 'Please provide a JWT token in Authorization header or access_token query param',
@@ -116,12 +123,21 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
+      console.warn('[DL-AUTH] token_expired', {
+        path: req.originalUrl?.split('?')?.[0],
+        folderId: req.params?.id,
+      });
       return res.status(401).json({
         error: 'Token expired',
         message: 'Your session has expired. Please refresh your token.',
       });
     }
 
+    console.warn('[DL-AUTH] invalid_token', {
+      path: req.originalUrl?.split('?')?.[0],
+      folderId: req.params?.id,
+      name: err?.name,
+    });
     return res.status(403).json({
       error: 'Invalid token',
       message: 'The token provided is invalid or malformed.',
