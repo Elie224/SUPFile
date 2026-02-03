@@ -19,9 +19,28 @@ function sanitizeZipEntryName(name) {
   return cleaned || 'unnamed';
 }
 
-async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix }) {
+async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visited, stats }) {
+  const folderKey = String(folderId);
+  if (visited.has(folderKey)) {
+    // Cycle détecté : éviter boucle infinie
+    stats.skippedCycles += 1;
+    return;
+  }
+  visited.add(folderKey);
+
+  // Limiter la charge (éviter que de très gros dossiers fassent "tourner" indéfiniment)
+  if (stats.foldersVisited > stats.maxFolders) {
+    stats.abortedByLimit = true;
+    return;
+  }
+  stats.foldersVisited += 1;
+
   const files = await FileModel.findByFolder(folderId, false);
   for (const file of files) {
+    if (stats.filesAdded > stats.maxFiles) {
+      stats.abortedByLimit = true;
+      break;
+    }
     // Ne zipper que les fichiers du propriétaire du dossier (sécurité).
     if (file.owner_id && file.owner_id.toString && file.owner_id.toString() !== ownerId.toString()) {
       continue;
@@ -33,6 +52,7 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix }) {
     try {
       await fsp.access(diskPath, fs.constants.R_OK);
       archive.file(diskPath, { name: entryName });
+      stats.filesAdded += 1;
     } catch {
       // Fichier manquant sur disque : ignorer (évite 500 pour un seul fichier perdu)
       continue;
@@ -41,10 +61,11 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix }) {
 
   const subfolders = await FolderModel.findByOwner(ownerId, folderId, false);
   for (const sub of subfolders) {
+    if (stats.abortedByLimit) break;
     const subPrefix = path.posix.join(zipPrefix, sanitizeZipEntryName(sub.name));
     // Ajoute une entrée dossier vide pour qu'il apparaisse dans le zip
     archive.append('', { name: `${subPrefix}/` });
-    await addFolderToArchive({ archive, ownerId, folderId: sub.id, zipPrefix: subPrefix });
+    await addFolderToArchive({ archive, ownerId, folderId: sub.id, zipPrefix: subPrefix, visited, stats });
   }
 }
 
@@ -379,6 +400,15 @@ async function downloadFolderZip(req, res, next) {
     const zipBaseName = sanitizeZipEntryName(folder.name);
     const fileName = `${zipBaseName}.zip`;
 
+    const stats = {
+      maxFolders: 5000,
+      maxFiles: 20000,
+      foldersVisited: 0,
+      filesAdded: 0,
+      skippedCycles: 0,
+      abortedByLimit: false,
+    };
+
     res.status(200);
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -387,6 +417,11 @@ async function downloadFolderZip(req, res, next) {
     // Compression légère: réduit fortement le CPU (important sur Fly 1 CPU) et accélère le démarrage du flux.
     // La plupart des gros fichiers (mp4, jpg, pdf) sont déjà compressés, donc level élevé ralentit sans gain.
     const archive = archiver('zip', { zlib: { level: 1 } });
+
+    // Logs de diagnostic (ne contiennent pas de token)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[ZIP] start', { userId, folderId: id, zipBaseName });
+    }
 
     // Si le client coupe la connexion, on arrête de générer le zip.
     res.on('close', () => {
@@ -422,7 +457,21 @@ async function downloadFolderZip(req, res, next) {
 
     // Mettre tout le contenu sous un dossier racine dans le zip
     archive.append('', { name: `${zipBaseName}/` });
-    await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName });
+    const visited = new Set();
+    await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName, visited, stats });
+
+    if (stats.abortedByLimit) {
+      archive.append(
+        'ZIP partiel: trop d\'éléments dans ce dossier.\n',
+        { name: `${zipBaseName}/_ZIP_LIMIT.txt` },
+      );
+    }
+
+    res.on('finish', () => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[ZIP] finish', { userId, folderId: id, ...stats });
+      }
+    });
     await archive.finalize();
   } catch (err) {
     next(err);
