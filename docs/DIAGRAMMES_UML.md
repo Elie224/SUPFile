@@ -1,6 +1,12 @@
 # Diagrammes UML – SUPFile
 
-Ce document contient les diagrammes demandés pour la documentation technique : **cas d’utilisation** et **schéma relationnel / logique de la base de données**. Ils sont décrits en **Mermaid** (affichables sur GitHub, GitLab et dans de nombreux outils).
+Ce document contient les diagrammes demandés pour la documentation technique :
+- **Diagramme de cas d’utilisation**
+- **Diagramme de classes** (modèle métier + relations)
+- **Diagrammes de séquence** (scénarios clés)
+- **Schéma logique de la base de données** (collections MongoDB)
+
+Ils sont décrits en **Mermaid** (affichables sur GitHub, GitLab et dans de nombreux outils).
 
 ---
 
@@ -88,7 +94,163 @@ flowchart TB
 
 ---
 
-## 2. Schéma relationnel / logique de la base de données
+## 2. Diagramme de classes (Class Diagram)
+
+Le diagramme ci-dessous modélise le **cœur métier** (collections MongoDB) et les relations principales.
+
+```mermaid
+classDiagram
+    direction LR
+
+    class User {
+        +ObjectId _id
+        +string email
+        +string password_hash
+        +string oauth_provider
+        +string oauth_id
+        +boolean email_verified
+        +number quota_limit
+        +number quota_used
+        +boolean two_factor_enabled
+        +boolean is_admin
+        +date created_at
+        +date updated_at
+    }
+
+    class Folder {
+        +ObjectId _id
+        +string name
+        +ObjectId owner_id
+        +ObjectId parent_id
+        +boolean is_deleted
+        +date deleted_at
+        +date created_at
+        +date updated_at
+    }
+
+    class File {
+        +ObjectId _id
+        +string name
+        +string mime_type
+        +number size
+        +ObjectId folder_id
+        +ObjectId owner_id
+        +string file_path
+        +boolean is_deleted
+        +date deleted_at
+        +date created_at
+        +date updated_at
+    }
+
+    class Share {
+        +ObjectId _id
+        +ObjectId file_id
+        +ObjectId folder_id
+        +ObjectId created_by_id
+        +string share_type
+        +string public_token
+        +boolean requires_password
+        +string password_hash
+        +date expires_at
+        +ObjectId shared_with_user_id
+        +boolean is_active
+        +number access_count
+        +date created_at
+        +date updated_at
+    }
+
+    class Session {
+        +ObjectId _id
+        +ObjectId user_id
+        +string refresh_token
+        +string user_agent
+        +string ip_address
+        +string device_name
+        +boolean is_revoked
+        +date expires_at
+        +date created_at
+        +date updated_at
+    }
+
+    User "1" --> "0..*" Folder : owns
+    User "1" --> "0..*" File : owns
+    User "1" --> "0..*" Share : creates
+    User "1" --> "0..*" Session : sessions
+
+    Folder "0..1" --> "0..*" Folder : parent_of
+    Folder "1" --> "0..*" File : contains
+
+    Share "0..1" --> File : targets
+    Share "0..1" --> Folder : targets
+
+    note for File "Les binaires ne sont pas en BDD :\nles fichiers sont sur le FS (volume uploads)."
+```
+
+---
+
+## 3. Diagrammes de séquence (Sequence Diagram)
+
+### 3.1 Inscription email / mot de passe (signup)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client Web/Mobile
+    participant API as Backend API (Express)
+    participant Auth as Validation/Auth Controller
+    participant Users as UserModel (Mongoose)
+    participant DB as MongoDB
+
+    Client->>API: POST /api/auth/signup (email, password)
+    API->>Auth: Valider + normaliser les entrées
+    Auth->>Users: findByEmail(email)
+    Users->>DB: findOne(users)
+    DB-->>Users: null
+    Auth->>Users: create(user)
+    Users->>DB: insertOne(users)
+    DB-->>Users: user
+    Auth-->>API: JWT + refresh token (session)
+    API-->>Client: 201 + tokens + profil
+```
+
+### 3.2 Téléchargement d’un dossier en ZIP (streaming)
+
+Endpoint : `GET /api/folders/:id/download` (cf. route `backend/routes/folders.js`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client Web
+    participant API as Backend API (Express)
+    participant Auth as authHeaderOrQueryMiddleware
+    participant Lim as ZIP concurrency limiter
+    participant Ctrl as foldersController.downloadFolderZip
+    participant Folders as FolderModel
+    participant Files as FileModel
+    participant FS as Filesystem (uploads)
+    participant Zip as Archiver/ZIP stream
+
+    Client->>API: GET /api/folders/:id/download
+    API->>Auth: Extraire/valider access_token (Header ou query)
+    Auth-->>API: userId OK
+    API->>Lim: Acquire slot (max concurrent ZIP)
+    Lim-->>API: Allowed or 429 Retry-After
+    API->>Ctrl: downloadFolderZip(req,res)
+    Ctrl->>Folders: Vérifier ownership + métadonnées dossier
+    Ctrl->>Folders: Lister sous-dossiers (pagination)
+    Ctrl->>Files: Lister fichiers (pagination)
+    Ctrl->>Zip: Initialiser archive + headers streaming
+    loop pour chaque fichier
+        Ctrl->>FS: ReadStream(file_path)
+        FS-->>Zip: bytes
+    end
+    Zip-->>Client: flux ZIP (chunked)
+    Ctrl-->>Lim: Release slot (fin/abort)
+```
+
+---
+
+## 4. Schéma relationnel / logique de la base de données
 
 Le projet utilise **MongoDB** ; la structure logique est décrite sous forme de **schéma relationnel** (entités et relations) équivalent aux collections MongoDB.
 
@@ -204,7 +366,7 @@ Les fichiers binaires ne sont **pas** stockés dans MongoDB ; ils sont sur le sy
 
 ---
 
-## 3. Architecture de l’API (endpoints principaux)
+## 5. Architecture de l’API (endpoints principaux)
 
 Pour le détail des routes et paramètres, voir **`docs/API.md`**. Résumé des groupes d’endpoints :
 
@@ -237,4 +399,4 @@ Pour le détail des routes et paramètres, voir **`docs/API.md`**. Résumé des 
 
 ---
 
-Document créé : Décembre 2025
+Document mis à jour : Février 2026
