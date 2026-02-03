@@ -378,6 +378,9 @@ class ApiService {
       '/files/$fileId/download',
       options: Options(
         responseType: ResponseType.bytes,
+        // Les téléchargements peuvent dépasser les timeouts courts (ZIP, gros fichiers,
+        // cold start serveur, etc.). On augmente donc le receiveTimeout uniquement ici.
+        receiveTimeout: const Duration(minutes: 5),
         headers: const {'Cache-Control': 'no-cache'},
       ),
     );
@@ -390,6 +393,7 @@ class ApiService {
       '/folders/$folderId/download',
       options: Options(
         responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(minutes: 5),
         headers: const {'Cache-Control': 'no-cache'},
       ),
     );

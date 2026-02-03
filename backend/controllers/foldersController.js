@@ -384,7 +384,17 @@ async function downloadFolderZip(req, res, next) {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'no-store');
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    // Niveau de compression plus rapide pour réduire la latence (surtout en prod).
+    const archive = archiver('zip', { zlib: { level: 6 } });
+
+    // Si le client coupe la connexion, on arrête de générer le zip.
+    res.on('close', () => {
+      try {
+        archive.abort();
+      } catch {
+        // ignore
+      }
+    });
 
     archive.on('error', (err) => {
       // Si headers déjà envoyés, on ne peut plus répondre en JSON
@@ -395,7 +405,14 @@ async function downloadFolderZip(req, res, next) {
     });
 
     archive.pipe(res);
+
+    // Forcer l'envoi des headers dès que possible.
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
     // Mettre tout le contenu sous un dossier racine dans le zip
+    archive.append('', { name: `${zipBaseName}/` });
     await addFolderToArchive({ archive, ownerId: effectiveOwnerId, folderId: id, zipPrefix: zipBaseName });
     await archive.finalize();
   } catch (err) {
