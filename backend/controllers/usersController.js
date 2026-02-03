@@ -5,6 +5,7 @@ const { sanitizeSearchInput } = require('../middlewares/security');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const { resolvePathInUploadDir } = require('../utils/pathSafety');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
 
@@ -141,7 +142,12 @@ async function uploadAvatar(req, res, next) {
       const user = await UserModel.findById(userId);
       if (user.avatar_url) {
         try {
-          await fs.unlink(path.resolve(user.avatar_url));
+          const fileName = path.basename(String(user.avatar_url));
+          const diskPath = path.join(path.resolve(config.upload.uploadDir), 'avatars', fileName);
+          const safePath = resolvePathInUploadDir(diskPath);
+          if (safePath) {
+            await fs.unlink(safePath);
+          }
         } catch (e) {
           // Ignorer si le fichier n'existe pas
         }

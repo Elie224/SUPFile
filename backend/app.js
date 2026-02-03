@@ -43,6 +43,7 @@ function loadRestOfApp() {
   ensureProductionSecrets();
 
   const helmet = require('helmet');
+  const hpp = require('hpp');
   const path = require('path');
   const fs = require('fs').promises;
   const session = require('express-session');
@@ -192,14 +193,36 @@ app.use(helmet({
 // Rate limiting global
 app.use(generalLimiter);
 
+// Protection contre HTTP Parameter Pollution (ex: ?id=1&id[$ne]=2)
+// Valeur par défaut: garde le dernier paramètre, empêche les tableaux inattendus.
+app.use(hpp());
+
 // Nettoyage des requêtes contre les injections NoSQL
 app.use(sanitizeQuery);
 
 // Session middleware pour OAuth (doit être avant Passport)
 // En production, aucun fallback : ensureProductionSecrets() a déjà vérifié SESSION_SECRET ou JWT_SECRET
 const sessionSecret = process.env.SESSION_SECRET || config.jwt.secret;
+
+let sessionStore;
+if (process.env.NODE_ENV === 'production') {
+  try {
+    const MongoStore = require('connect-mongo');
+    const mongoUrl = process.env.MONGO_URI || config.database.mongoUri;
+    if (mongoUrl) {
+      sessionStore = MongoStore.create({
+        mongoUrl,
+        touchAfter: 24 * 3600,
+      });
+    }
+  } catch {
+    // connect-mongo not installed or not usable; fallback to MemoryStore
+  }
+}
+
 app.use(session({
   secret: process.env.NODE_ENV === 'production' ? sessionSecret : (sessionSecret || 'supfile-session-secret-change-in-production'),
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: {

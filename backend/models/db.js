@@ -20,6 +20,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 mongoose.set('strictQuery', false);
+// Defensive hardening: strip query operator injection like { "$gt": ... } when it leaks into filters.
+// Mongoose 6.10+ / 7+ supports this option.
+try {
+  mongoose.set('sanitizeFilter', true);
+} catch {
+  // ignore if not supported
+}
 
 const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE, 10);
 const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE, 10);

@@ -1,5 +1,6 @@
 const multer = require('multer');
 const path = require('path');
+const { resolvePathInUploadDir } = require('../utils/pathSafety');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const { v4: uuidv4 } = require('uuid');
@@ -680,10 +681,14 @@ async function downloadFile(req, res, next) {
     }
 
     // Vérifier que le fichier existe physiquement et récupérer la taille réelle
+    const safePath = resolvePathInUploadDir(file.file_path);
+    if (!safePath) {
+      return res.status(400).json({ error: { message: 'Invalid file path' } });
+    }
+
     let stat;
     try {
-      const filePath = path.resolve(file.file_path);
-      stat = await fs.stat(filePath);
+      stat = await fs.stat(safePath);
     } catch {
       return res.status(404).json({ error: { message: 'File not found on disk' } });
     }
@@ -698,7 +703,7 @@ async function downloadFile(req, res, next) {
     res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
     res.setHeader('Content-Length', realSize);
 
-    res.sendFile(path.resolve(file.file_path));
+    res.sendFile(safePath);
   } catch (err) {
     next(err);
   }
@@ -776,6 +781,11 @@ async function previewFile(req, res, next) {
 
     // Pour les images, PDF, texte (y compris JSON/XML/YAML/JS) - servir directement
     if (mime.startsWith('image/') || mime === 'application/pdf' || isTextLike) {
+      const safePath = resolvePathInUploadDir(file.file_path);
+      if (!safePath) {
+        return res.status(400).json({ error: { message: 'Invalid file path' } });
+      }
+
       // Pour les contenus texte, ajouter un charset pour éviter les problèmes d'affichage
       const contentType = isTextLike && !mime.includes('charset=')
         ? `${file.mime_type}; charset=utf-8`
@@ -783,7 +793,7 @@ async function previewFile(req, res, next) {
 
       res.setHeader('Content-Type', contentType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
-      return res.sendFile(path.resolve(file.file_path));
+      return res.sendFile(safePath);
     }
 
     return res.status(400).json({ error: { message: 'Preview not available for this file type' } });
@@ -828,8 +838,10 @@ async function streamFile(req, res, next) {
       return res.status(400).json({ error: { message: 'Streaming only available for audio/video files' } });
     }
 
-    // Résoudre le chemin absolu du fichier
-    const filePath = path.resolve(file.file_path);
+    const filePath = resolvePathInUploadDir(file.file_path);
+    if (!filePath) {
+      return res.status(400).json({ error: { message: 'Invalid file path' } });
+    }
     
     // Vérifier que le fichier existe sur le disque
     let stat;
@@ -975,7 +987,10 @@ async function deleteFile(req, res, next) {
       // Déjà en corbeille : suppression définitive (fichier physique + document)
       if (file.file_path) {
         try {
-          await fs.unlink(path.resolve(file.file_path));
+          const safePath = resolvePathInUploadDir(file.file_path);
+          if (safePath) {
+            await fs.unlink(safePath);
+          }
         } catch (unlinkErr) {
           if (process.env.NODE_ENV !== 'production') {
             logger.logWarn('Could not remove file from disk', { path: file.file_path, err: unlinkErr?.message });

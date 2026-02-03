@@ -7,6 +7,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const archiver = require('archiver');
 const { calculateRealQuotaUsed, syncQuotaUsed, updateQuotaAfterOperation } = require('../utils/quota');
+const { resolvePathInUploadDir } = require('../utils/pathSafety');
 
 function sanitizeZipEntryName(name) {
   const raw = (name ?? '').toString().trim();
@@ -59,7 +60,8 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
     if (!file.file_path) continue;
 
     const entryName = path.posix.join(zipPrefix, sanitizeZipEntryName(file.name));
-    const diskPath = path.resolve(file.file_path);
+    const diskPath = resolvePathInUploadDir(file.file_path);
+    if (!diskPath) continue;
     // Éviter un fs.access() par fichier (très coûteux sur de gros dossiers/volumes).
     // Archiver gère déjà les fichiers manquants via un warning (ENOENT) sans casser le zip.
     try {
@@ -258,7 +260,10 @@ async function permanentDeleteFolder(userId, folderId) {
   for (const f of filesInFolder) {
     if (f.file_path) {
       try {
-        await fsp.unlink(path.resolve(f.file_path));
+        const diskPath = resolvePathInUploadDir(f.file_path);
+        if (diskPath) {
+          await fsp.unlink(diskPath);
+        }
       } catch (e) {
         if (process.env.NODE_ENV !== 'production') {
           console.warn('Could not remove file from disk:', f.file_path, e?.message);
