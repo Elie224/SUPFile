@@ -422,52 +422,6 @@ export default function Layout({ children }) {
                   {/* Options du menu */}
                   <div className="p-1">
                     <button
-                      className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
-style={{ 
-                          textDecoration: 'none',
-                          color: 'var(--text-color)',
-                          padding: '10px 16px',
-                          fontSize: '14px',
-                          border: 'none',
-                          borderRadius: '8px'
-                        }}
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          navigate('/settings');
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      <i className="bi bi-gear"></i>
-                      {t('settings') || 'Paramètres'}
-                    </button>
-                    
-                    {user.is_admin && (
-                      <button
-                        className="btn btn-link text-start w-100 d-flex align-items-center gap-2"
-                        style={{ 
-                          textDecoration: 'none',
-                          color: 'var(--text-color)',
-                          padding: '10px 16px',
-                          fontSize: '14px',
-                          border: 'none',
-                          borderRadius: '8px'
-                        }}
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          navigate('/admin');
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-hover)'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        <i className="bi bi-shield-check"></i>
-                        ⚙️ Administration
-                      </button>
-                    )}
-
-                    <div className="dropdown-divider my-1"></div>
-
-                    <button
                       className="btn btn-link text-start w-100 d-flex align-items-center gap-2 text-danger"
                       style={{ 
                         textDecoration: 'none',
