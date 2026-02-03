@@ -73,7 +73,7 @@ Créer un nouveau projet Google Cloud et configurer l'authentification OAuth pou
      - C'est le nom qui apparaîtra aux utilisateurs lors de la connexion
    - **User support email** : 
      - Sélectionnez votre email dans le menu déroulant
-     - Exemple : `<SUPER_ADMIN_EMAIL>`
+   - Exemple : `<SUPER_ADMIN_EMAIL>`
    - **App logo** : (Optionnel)
      - Vous pouvez ajouter un logo plus tard, laissez vide pour l'instant
    - **App domain** : (Optionnel)
@@ -85,7 +85,7 @@ Créer un nouveau projet Google Cloud et configurer l'authentification OAuth pou
      - Entrez : `onrender.com`
      - ⚠️ Entrez seulement `onrender.com` (sans `https://` ni `www.`)
    - **Developer contact information** : 
-     - Entrez votre email : `<SUPER_ADMIN_EMAIL>`
+   - Entrez votre email : `<SUPER_ADMIN_EMAIL>`
 2. Cliquez sur **"SAVE AND CONTINUE"** (Enregistrer et continuer) en bas
 
 ### 3.4 Configurer les scopes (Portées)

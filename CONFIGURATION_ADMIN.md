@@ -1,6 +1,6 @@
 # Configuration de l'Administrateur
 
-## Définir <SUPER_ADMIN_EMAIL> comme administrateur
+## Définir l'admin principal comme administrateur
 
 ### Méthode 1 : Via MongoDB directement
 

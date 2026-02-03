@@ -64,7 +64,7 @@ Puisque l'application est déjà déployée sur Render avec MongoDB Atlas, voici
    use supfile  // ou le nom de votre base de données
    
    db.users.updateOne(
-     { email: "<SUPER_ADMIN_EMAIL>" },
+   { email: "<SUPER_ADMIN_EMAIL>" },
      { $set: { is_admin: true } }
    )
    ```
@@ -88,7 +88,7 @@ Si Render fournit un shell pour votre service :
    const mongoose = require('mongoose');
    mongoose.connect(process.env.MONGO_URI).then(() => {
      mongoose.connection.db.collection('users').updateOne(
-       { email: '<SUPER_ADMIN_EMAIL>' },
+      { email: '<SUPER_ADMIN_EMAIL>' },
        { \$set: { is_admin: true } }
      ).then(() => {
        console.log('✅ Admin configuré');
@@ -135,7 +135,7 @@ Après modification, l'utilisateur devrait ressembler à :
 ```json
 {
   "_id": ObjectId("..."),
-  "email": "<SUPER_ADMIN_EMAIL>",
+   "email": "<SUPER_ADMIN_EMAIL>",
   "display_name": "...",
   "is_admin": true,  // ← Doit être true
   "is_active": true,

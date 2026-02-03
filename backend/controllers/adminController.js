@@ -8,8 +8,13 @@ require('../models/folderModel');
 require('../models/shareModel');
 const BlockedEmailModel = require('../models/blockedEmailModel');
 
-// Email de l'admin principal qui ne peut pas être dégradé par les autres
-const SUPER_ADMIN_EMAIL = '<SUPER_ADMIN_EMAIL>';
+function getSuperAdminEmail() {
+  return (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
+}
+
+function normalizeEmail(email) {
+  return (email || '').toString().trim().toLowerCase();
+}
 
 // Statistiques générales
 async function getStats(req, res, next) {
@@ -174,6 +179,13 @@ async function updateUser(req, res, next) {
     const userId = req.params.id;
     const { display_name, quota_limit, is_active, is_admin } = req.body;
 
+    const superAdminEmail = getSuperAdminEmail();
+    if (!superAdminEmail && is_admin !== undefined) {
+      return res.status(503).json({
+        error: { message: 'SUPER_ADMIN_EMAIL not configured. Refusing admin role changes.' }
+      });
+    }
+
     const User = mongoose.models.User || mongoose.model('User');
 
     // Récupérer d'abord l'utilisateur cible pour appliquer les règles de sécurité
@@ -186,10 +198,10 @@ async function updateUser(req, res, next) {
     }
 
     // Empêcher toute modification de l'admin principal par un autre utilisateur
-    if (
-      targetUser.email === SUPER_ADMIN_EMAIL &&
-      req.user?.email !== SUPER_ADMIN_EMAIL
-    ) {
+    const targetIsSuperAdmin = superAdminEmail && normalizeEmail(targetUser.email) === superAdminEmail;
+    const requesterIsSuperAdmin = superAdminEmail && normalizeEmail(req.user?.email) === superAdminEmail;
+
+    if (targetIsSuperAdmin && !requesterIsSuperAdmin) {
       return res.status(403).json({
         error: { message: "Vous n'avez ce privilège" }
       });
@@ -223,11 +235,18 @@ async function updateUser(req, res, next) {
   }
 }
 
-// Supprimer un utilisateur — réservé au seul admin principal (<SUPER_ADMIN_EMAIL>)
+// Supprimer un utilisateur — réservé au seul admin principal (configuré via SUPER_ADMIN_EMAIL)
 // body: { blockEmail?: boolean } - si true, bloque l'email ; si false, l'utilisateur peut recréer un compte
 async function deleteUser(req, res, next) {
   try {
-    if (req.user?.email !== SUPER_ADMIN_EMAIL) {
+    const superAdminEmail = getSuperAdminEmail();
+    if (!superAdminEmail) {
+      return res.status(503).json({
+        error: { message: 'SUPER_ADMIN_EMAIL not configured. Cannot perform destructive admin operations.' }
+      });
+    }
+
+    if (normalizeEmail(req.user?.email) !== superAdminEmail) {
       return res.status(403).json({
         error: { message: 'Seul l\'administrateur principal peut supprimer des utilisateurs.' }
       });
@@ -253,7 +272,7 @@ async function deleteUser(req, res, next) {
     }
 
     // Interdire la suppression de l'admin principal pour tout le monde
-    if (targetUser.email === SUPER_ADMIN_EMAIL) {
+    if (normalizeEmail(targetUser.email) === superAdminEmail) {
       return res.status(403).json({
         error: { message: 'Vous ne pouvez pas supprimer le compte de l’admin principal.' }
       });

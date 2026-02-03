@@ -1,6 +1,8 @@
 /**
- * Script pour définir <SUPER_ADMIN_EMAIL> comme administrateur
- * Usage: node backend/scripts/setAdmin.js
+ * Script pour définir un utilisateur comme administrateur.
+ * Usage:
+ *   SUPER_ADMIN_EMAIL="admin@example.com" node backend/scripts/setAdmin.js
+ *   node backend/scripts/setAdmin.js admin@example.com
  */
 
 const mongoose = require('mongoose');
@@ -23,7 +25,14 @@ async function setAdmin() {
       throw new Error('Le modèle User n\'a pas été trouvé. Vérifiez que le schéma est correctement chargé.');
     }
 
-    const adminEmail = '<SUPER_ADMIN_EMAIL>';
+    const adminEmail = (process.env.SUPER_ADMIN_EMAIL || process.argv[2] || '').trim();
+    if (!adminEmail) {
+      console.log('❌ Email admin manquant.');
+      console.log('   Usage:');
+      console.log('     SUPER_ADMIN_EMAIL="admin@example.com" node backend/scripts/setAdmin.js');
+      console.log('     node backend/scripts/setAdmin.js admin@example.com');
+      process.exit(1);
+    }
 
     // Trouver l'utilisateur
     const user = await User.findOne({ email: adminEmail });
