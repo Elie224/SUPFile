@@ -10,15 +10,15 @@ Write-Host ""
 
 # Test URLs
 $apiUrls = @(
-    "https://supfile.fly.dev/api",
-    "http://localhost:5000/api",
-    "http://127.0.0.1:5000/api"
+    "https://supfile.fly.dev",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000"
 )
 
 foreach ($url in $apiUrls) {
     Write-Host "Testing: $url"
     try {
-        $response = Invoke-WebRequest -Uri "$url/auth/health" -Method GET -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "$url/health" -Method GET -TimeoutSec 5 -ErrorAction Stop
         Write-Host "OK: $url is accessible (Status: $($response.StatusCode))"
         Write-Host "  Response: $($response.Content)"
     } catch {

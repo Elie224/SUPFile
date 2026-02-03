@@ -20,7 +20,7 @@ Le rendu se fait sous la forme d’une **archive ZIP** contenant :
 | Exigence | Emplacement |
 |----------|--------------|
 | **Procédure d’installation et pré-requis** | `docs/INSTALLATION.md` |
-| **Guide de déploiement** | `docs/INSTALLATION.md` (Docker) ; `DEPLOIEMENT_RENDER.md` (exemple Render) à la racine |
+| **Guide de déploiement** | `docs/INSTALLATION.md` (Docker) ; `docs/archive/DEPLOIEMENT_RENDER.md` (exemple Render) |
 | **Justification des choix technologiques** | `docs/ARCHITECTURE.md` (sections 10 et 11) |
 | **Diagrammes UML** | |
 | – Cas d’utilisation | `docs/DIAGRAMMES_UML.md` (section 1) |

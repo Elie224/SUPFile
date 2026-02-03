@@ -243,7 +243,7 @@ Voir la documentation complète dans `docs/API.md` (à créer).
 - ✓ **JWT** : Tokens expirables (1h) avec refresh tokens (7j)
 - ✓ **CORS** : Configuré pour les domaines autorisés
 - ✓ **Validation** : Tous les inputs validés côté serveur
-- ✓ **Rate limiting** : À implémenter pour les endpoints sensibles
+- ✓ **Rate limiting** : Appliqué sur les endpoints sensibles (auth, reset, etc.)
 
 ### Secrets à ne JAMAIS commiter
 
@@ -261,9 +261,13 @@ Voir la documentation complète dans `docs/API.md` (à créer).
 Voir le dossier `docs/` pour :
 - `ARCHITECTURE.md` - Diagrammes UML et architecture détaillée
 - `API.md` - Spécification complète de l'API
-- `DATABASE.md` - Schéma BDD et migrations
+- `DATABASE.md` - Modèles/collections MongoDB (vue logique + références)
 - `INSTALLATION.md` - Guide d'installation avancé
 - `CONTRIBUTING.md` - Guide de contribution
+
+Documents historiques / brouillons (déplacements, diagnostics, corrections) : voir `docs/archive/`.
+
+Scripts utiles (Windows/Linux) : voir `scripts/`.
 
 ---
 
@@ -284,8 +288,8 @@ npm run dev
 
 # Mobile (nouveau terminal)
 cd mobile-app
-npm install
-npm start
+flutter pub get
+flutter run
 ```
 
 ### Logs et débogage
@@ -298,7 +302,7 @@ docker compose logs -f frontend
 
 # Accéder au shell d'un conteneur
 docker exec -it supfile-backend sh
-docker exec -it supfile-db psql -U supfile_user -d supfile
+docker compose exec db mongosh
 ```
 
 ### Tests
@@ -308,13 +312,14 @@ docker exec -it supfile-db psql -U supfile_user -d supfile
 cd backend
 npm test
 
-# Tests frontend
+# Lint frontend
 cd frontend-web
-npm test
+npm run lint
 
-# Tests mobile
+# Tests/analyse mobile
 cd mobile-app
-npm test
+flutter analyze
+flutter test
 ```
 
 ---

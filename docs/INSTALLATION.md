@@ -244,7 +244,7 @@ npm test
 - **VPS (DigitalOcean, OVH, etc.)** : installer Docker, utiliser `docker compose` avec un reverse proxy (Nginx) et Let’s Encrypt pour le HTTPS.
 - **MongoDB Atlas** : pour la base de données, utiliser une URI du type `mongodb+srv://[REDACTED] dans `MONGO_URI`.
 
-Voir aussi `DEPLOIEMENT_RENDER.md` à la racine du projet pour un exemple avec Render.
+Voir aussi `docs/archive/DEPLOIEMENT_RENDER.md` (anciennement à la racine) pour un exemple avec Render.
 
 ---
 

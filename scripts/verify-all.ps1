@@ -41,7 +41,7 @@ function New-Directory([string]$path) {
 }
 
 function Test-ApiHealth([string]$baseUrl, [switch]$IsOptional) {
-  $healthUrl = "$baseUrl/auth/health"
+  $healthUrl = "$baseUrl/health"
   Write-Host "Testing: $healthUrl" -ForegroundColor Yellow
 
   try {
@@ -116,11 +116,11 @@ if (-not $SkipApiConnectivity) {
   try {
     Write-Section "API Connectivity"
     # Fly.io est le backend attendu en prod
-    Test-ApiHealth "https://supfile.fly.dev/api"
+    Test-ApiHealth "https://supfile.fly.dev"
 
     # Local est optionnel (utile si backend lancé en local)
-    Test-ApiHealth "http://localhost:5000/api" -IsOptional
-    Test-ApiHealth "http://127.0.0.1:5000/api" -IsOptional
+    Test-ApiHealth "http://localhost:5000" -IsOptional
+    Test-ApiHealth "http://127.0.0.1:5000" -IsOptional
   } catch {
     $failedSteps.Add("API Connectivity")
     Write-Host "FAILED: API Connectivity" -ForegroundColor Red

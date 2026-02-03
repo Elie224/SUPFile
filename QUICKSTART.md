@@ -19,10 +19,18 @@ docker compose logs -f
 # 4. Accéder à l'application
 # Frontend Web  : http://localhost:3000
 # API Backend   : http://localhost:5000/health
-# Mobile (Expo) : http://localhost:19000
+# MongoDB       : mongodb://localhost:27017 (si besoin)
+```
+
+Sur Windows (PowerShell), l'équivalent de la copie :
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 ### Option 2 : En local (development)
+
+Astuce (Windows) : vous pouvez utiliser les scripts du dossier `scripts/`.
 
 **Backend :**
 ```bash
@@ -43,9 +51,14 @@ npm run dev
 **Mobile (nouveau terminal) :**
 ```bash
 cd mobile-app
-npm install
-npm start
-# Expo sur http://localhost:19000
+flutter pub get
+flutter run
+```
+
+Ou (Windows PowerShell) :
+
+```powershell
+.\scripts\DEMARRER_MOBILE.ps1
 ```
 
 ---
@@ -69,9 +82,11 @@ cp .env.example .env
 ```
 
 **Variables critiques :**
-- `POSTGRES_PASSWORD` - Mot de passe BDD (changez-le !)
+- `MONGO_INITDB_ROOT_PASSWORD` / `MONGO_URI` - Accès MongoDB (changez-le !)
 - `JWT_SECRET` - Clé JWT (changez-le !)
 - `JWT_REFRESH_SECRET` - Refresh token (changez-le !)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (si OAuth Google)
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (si OAuth GitHub)
 
 ---
 
@@ -87,7 +102,7 @@ docker compose ps
 curl http://localhost:5000/health
 
 # 3. Tester la BDD
-docker exec supfile-db psql -U supfile_user -d supfile -c "SELECT version();"
+docker compose exec db mongosh --eval "db.adminCommand('ping')"
 
 # 4. Vérifier logs
 docker compose logs -f
@@ -106,7 +121,7 @@ backend/
   ├─ models/             ← Modèles BDD
   ├─ middlewares/        ← Auth, validation
   ├─ utils/              ← Helper functions
-  ├─ migrations/         ← Schéma SQL
+  ├─ (MongoDB)           ← Schémas Mongoose dans models/
   └─ uploads/            ← Fichiers stockés (volume Docker)
 
 frontend-web/
@@ -116,9 +131,9 @@ frontend-web/
      └─ services/        ← Appels API
 
 mobile-app/
-  └─ src/
-     ├─ screens/         ← Écrans d'app
-     ├─ components/      ← Composants
+  └─ lib/
+     ├─ screens/         ← Écrans
+     ├─ widgets/         ← Widgets réutilisables
      └─ services/        ← Appels API
 ```
 
@@ -145,34 +160,28 @@ npm run build                    # Build prod
 npm run preview                  # Aperçu build
 
 # Mobile (local dev)
-npm start                        # Expo CLI
-npm run android                  # Build Android
-npm run ios                      # Build iOS
+flutter run                      # Lancer l'app
+flutter analyze                  # Analyse statique
+flutter test                     # Tests
 ```
 
 ---
 
 ## 🗄️ Base de données
 
-### Initialiser le schéma (première fois)
-
-Le schéma est créé automatiquement par le backend au démarrage (cf. `backend/migrations/`).
-
-Ou manuellement :
-```bash
-docker exec supfile-db psql -U supfile_user -d supfile < backend/migrations/001_initial_schema.sql
-```
+Le backend initialise les collections via Mongoose (pas de migrations SQL).
 
 ### Accéder à la BDD
 
 ```bash
-# Via psql
-docker exec -it supfile-db psql -U supfile_user -d supfile
+# Via mongosh
+docker compose exec db mongosh
 
 # Commandes utiles :
-\dt                    # Lister les tables
-SELECT * FROM users;   # Voir les utilisateurs
-\q                     # Quitter
+show dbs
+use supfile
+show collections
+db.users.findOne()
 ```
 
 ---
