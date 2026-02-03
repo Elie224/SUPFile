@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 allprojects {
     repositories {
         google()
@@ -17,6 +19,20 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Many Flutter/Android plugins still compile Java sources with `-source 8`/`-target 8`.
+// Newer JDKs emit warnings about these obsolete options and about bridge-method overrides.
+// This keeps CI/build output clean without changing plugin sources.
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(listOf("-Xlint:-options", "-Xlint:-overrides"))
+
+        // Keep release builds clean (some plugins emit benign javac warnings on new JDKs)
+        if (name.contains("release", ignoreCase = true)) {
+            options.compilerArgs.addAll(listOf("-nowarn", "-Xlint:none"))
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
