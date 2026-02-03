@@ -38,8 +38,16 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
   stats.foldersVisited += 1;
 
   const files = await FileModel.findByFolder(folderId, false);
+  let fileLoopCount = 0;
   for (const file of files) {
     if (typeof shouldAbort === 'function' && shouldAbort()) return;
+    fileLoopCount += 1;
+    // Important: sur de gros dossiers, cette boucle peut être très longue et bloquer l'event loop.
+    // On yield régulièrement pour permettre à Archiver/HTTP de flusher des chunks.
+    if (fileLoopCount % 200 === 0) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(resolve => setImmediate(resolve));
+    }
     if (stats.filesAdded >= stats.maxFiles) {
       stats.abortedByLimit = true;
       break;
@@ -67,6 +75,10 @@ async function addFolderToArchive({ archive, ownerId, folderId, zipPrefix, visit
   let skip = 0;
   while (!stats.abortedByLimit) {
     if (typeof shouldAbort === 'function' && shouldAbort()) return;
+
+    // Yield aussi entre pages pour éviter un long traitement sans flush.
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise(resolve => setImmediate(resolve));
 
     // Ne pas fetch plus de sous-dossiers que la limite globale.
     const remainingFolders = Math.max(stats.maxFolders - stats.foldersVisited, 0);
