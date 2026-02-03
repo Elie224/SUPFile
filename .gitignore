@@ -10,6 +10,14 @@ venv/
 .env.local
 .env.*.local
 
+# Backend env files
+backend/.env
+backend/.env.*
+
+# Android / Gradle local config
+local.properties
+**/local.properties
+
 # Build files
 dist/
 build/
