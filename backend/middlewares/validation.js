@@ -10,8 +10,8 @@ const signupSchema = Joi.object({
     .email()
     .required()
     .messages({
-      'string.email': 'Must be a valid email address',
-      'any.required': 'Email is required',
+      'string.email': 'L\'adresse e-mail doit être valide',
+      'any.required': 'L\'adresse e-mail est requise',
     }),
   password: Joi.string()
     .min(8)
@@ -20,16 +20,16 @@ const signupSchema = Joi.object({
     .pattern(/[A-Z]/)
     .pattern(/[0-9]/)
     .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.max': 'Password must not exceed 128 characters',
-      'string.pattern.base': 'Password must contain uppercase letter and number',
-      'any.required': 'Password is required',
+      'string.min': 'Le mot de passe doit contenir au moins 8 caractères',
+      'string.max': 'Le mot de passe ne doit pas dépasser 128 caractères',
+      'string.pattern.base': 'Le mot de passe doit contenir une majuscule et un chiffre',
+      'any.required': 'Le mot de passe est requis',
     }),
   passwordConfirm: Joi.string()
     .valid(Joi.ref('password'))
     .optional()
     .messages({
-      'any.only': 'Passwords do not match',
+      'any.only': 'Les mots de passe ne correspondent pas',
     }),
   first_name: Joi.string()
     .min(1)
@@ -37,7 +37,7 @@ const signupSchema = Joi.object({
     .optional()
     .trim()
     .messages({
-      'string.min': 'First name is required',
+      'string.min': 'Le prénom est requis',
     }),
   last_name: Joi.string()
     .min(1)
@@ -45,7 +45,7 @@ const signupSchema = Joi.object({
     .optional()
     .trim()
     .messages({
-      'string.min': 'Last name is required',
+      'string.min': 'Le nom est requis',
     }),
   country: Joi.string()
     .optional()
@@ -56,7 +56,7 @@ const signupSchema = Joi.object({
       return value ? value.trim() : value;
     }, 'valid country')
     .messages({
-      'any.invalid': 'Please select a valid country',
+      'any.invalid': 'Veuillez sélectionner un pays valide',
     }),
 }).unknown(true);
 
@@ -66,13 +66,13 @@ const loginSchema = Joi.object({
     .email()
     .required()
     .messages({
-      'string.email': 'Must be a valid email address',
-      'any.required': 'Email is required',
+      'string.email': 'L\'adresse e-mail doit être valide',
+      'any.required': 'L\'adresse e-mail est requise',
     }),
   password: Joi.string()
     .required()
     .messages({
-      'any.required': 'Password is required',
+      'any.required': 'Le mot de passe est requis',
     }),
 }).unknown(true);
 
@@ -83,8 +83,8 @@ const createFolderSchema = Joi.object({
     .required()
     .trim()
     .messages({
-      'string.max': 'Folder name must not exceed 255 characters',
-      'any.required': 'Folder name is required',
+      'string.max': 'Le nom du dossier ne doit pas dépasser 255 caractères',
+      'any.required': 'Le nom du dossier est requis',
     }),
   parent_id: Joi.string().allow(null, '').optional(),
 }).unknown(false);
@@ -96,8 +96,8 @@ const renameSchema = Joi.object({
     .required()
     .trim()
     .messages({
-      'string.max': 'Name must not exceed 255 characters',
-      'any.required': 'Name is required',
+      'string.max': 'Le nom ne doit pas dépasser 255 caractères',
+      'any.required': 'Le nom est requis',
     }),
 }).unknown(false);
 
@@ -106,22 +106,22 @@ const publicShareSchema = Joi.object({
   file_id: Joi.string().optional().allow(null, ''),
   folder_id: Joi.string().optional().allow(null, ''),
   password: Joi.string().min(6).max(128).optional().allow(null, '').messages({
-    'string.min': 'Password must be at least 6 characters',
-    'string.max': 'Password must not exceed 128 characters',
+    'string.min': 'Le mot de passe doit contenir au moins 6 caractères',
+    'string.max': 'Le mot de passe ne doit pas dépasser 128 caractères',
   }),
   expires_at: Joi.alternatives().try(
     Joi.date().iso(),
     Joi.string().isoDate(),
     Joi.string().allow('', null)
   ).optional().messages({
-    'date.base': 'Must be a valid date',
-    'alternatives.match': 'Must be a valid date string',
+    'date.base': 'La date doit être valide',
+    'alternatives.match': 'La date doit être une chaîne de date valide',
   }),
 })
   .or('file_id', 'folder_id')
   .unknown(true) // Permettre d'autres champs pour éviter les erreurs
   .messages({
-    'alternatives.match': 'Either file_id or folder_id must be provided',
+    'alternatives.match': 'file_id ou folder_id doit être fourni',
   });
 
 // Schéma pour changement de mot de passe
@@ -129,7 +129,7 @@ const changePasswordSchema = Joi.object({
   current_password: Joi.string()
     .required()
     .messages({
-      'any.required': 'Current password is required',
+      'any.required': 'Le mot de passe actuel est requis',
     }),
   new_password: Joi.string()
     .min(8)
@@ -138,9 +138,9 @@ const changePasswordSchema = Joi.object({
     .pattern(/[A-Z]/)
     .pattern(/[0-9]/)
     .messages({
-      'string.min': 'Password must be at least 8 characters',
-      'string.pattern.base': 'Password must contain uppercase letter and number',
-      'any.required': 'New password is required',
+      'string.min': 'Le mot de passe doit contenir au moins 8 caractères',
+      'string.pattern.base': 'Le mot de passe doit contenir une majuscule et un chiffre',
+      'any.required': 'Le nouveau mot de passe est requis',
     }),
 }).unknown(false);
 
@@ -160,7 +160,7 @@ function validate(schema) {
 
       return res.status(400).json({
         error: {
-          message: 'Validation failed',
+          message: 'Échec de validation',
           details: messages,
         },
       });

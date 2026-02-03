@@ -388,7 +388,7 @@ app.use((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-  res.status(404).json({ error: { message: 'Route not found', status: 404 } });
+  res.status(404).json({ error: { message: 'Route introuvable', status: 404 } });
 });
 
 /**

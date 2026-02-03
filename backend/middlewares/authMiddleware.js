@@ -16,7 +16,7 @@ async function authMiddleware(req, res, next) {
     if (!token) {
       return res.status(401).json({
         error: 'No token provided',
-        message: 'Please provide a JWT token in Authorization header',
+        message: 'Veuillez fournir un jeton JWT dans l’en-tête Authorization.',
       });
     }
 
@@ -26,7 +26,7 @@ async function authMiddleware(req, res, next) {
     if (!userId) {
       return res.status(401).json({
         error: 'Invalid token',
-        message: 'Token payload invalid.',
+        message: 'Le contenu du jeton est invalide.',
       });
     }
 
@@ -53,13 +53,13 @@ async function authMiddleware(req, res, next) {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({
         error: 'Token expired',
-        message: 'Your session has expired. Please refresh your token.',
+        message: 'Votre session a expiré. Veuillez vous reconnecter.',
       });
     }
 
     return res.status(403).json({
       error: 'Invalid token',
-      message: 'The token provided is invalid or malformed.',
+      message: 'Le jeton fourni est invalide ou mal formé.',
     });
   }
 }
@@ -88,7 +88,7 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
       });
       return res.status(401).json({
         error: 'No token provided',
-        message: 'Please provide a JWT token in Authorization header or access_token query param',
+        message: 'Veuillez fournir un jeton JWT dans l’en-tête Authorization ou via le paramètre access_token.',
       });
     }
 
@@ -98,7 +98,7 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
     if (!userId) {
       return res.status(401).json({
         error: 'Invalid token',
-        message: 'Token payload invalid.',
+        message: 'Le contenu du jeton est invalide.',
       });
     }
 
@@ -129,7 +129,7 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
       });
       return res.status(401).json({
         error: 'Token expired',
-        message: 'Your session has expired. Please refresh your token.',
+        message: 'Votre session a expiré. Veuillez vous reconnecter.',
       });
     }
 
@@ -140,7 +140,7 @@ async function authHeaderOrQueryMiddleware(req, res, next) {
     });
     return res.status(403).json({
       error: 'Invalid token',
-      message: 'The token provided is invalid or malformed.',
+      message: 'Le jeton fourni est invalide ou mal formé.',
     });
   }
 }

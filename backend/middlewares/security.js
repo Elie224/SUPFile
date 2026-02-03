@@ -20,7 +20,7 @@ function validateObjectId(req, res, next) {
         }
         return res.status(400).json({
           error: {
-            message: `Invalid ${param} format`,
+            message: `Format invalide pour ${param}`,
             status: 400,
           },
         });
@@ -33,7 +33,7 @@ function validateObjectId(req, res, next) {
     if (req.body.file_id && !mongoose.Types.ObjectId.isValid(req.body.file_id)) {
       return res.status(400).json({
         error: {
-          message: 'Invalid file_id format',
+          message: 'Format invalide pour file_id',
           status: 400,
         },
       });
@@ -41,7 +41,7 @@ function validateObjectId(req, res, next) {
     if (req.body.folder_id && !mongoose.Types.ObjectId.isValid(req.body.folder_id)) {
       return res.status(400).json({
         error: {
-          message: 'Invalid folder_id format',
+          message: 'Format invalide pour folder_id',
           status: 400,
         },
       });
@@ -49,7 +49,7 @@ function validateObjectId(req, res, next) {
     if (req.body.shared_with_user_id && !mongoose.Types.ObjectId.isValid(req.body.shared_with_user_id)) {
       return res.status(400).json({
         error: {
-          message: 'Invalid shared_with_user_id format',
+          message: 'Format invalide pour shared_with_user_id',
           status: 400,
         },
       });
@@ -87,7 +87,7 @@ function validateFilePath(req, res, next) {
     if (!sanitized) {
       return res.status(400).json({
         error: {
-          message: 'Invalid file path',
+          message: 'Chemin de fichier invalide',
           status: 400,
         },
       });
@@ -100,7 +100,7 @@ function validateFilePath(req, res, next) {
     if (!sanitized) {
       return res.status(400).json({
         error: {
-          message: 'Invalid file path',
+          message: 'Chemin de fichier invalide',
           status: 400,
         },
       });
@@ -256,7 +256,7 @@ function validateName(req, res, next) {
       }
       return res.status(400).json({
         error: {
-          message: 'Invalid file or folder name',
+          message: 'Nom de fichier ou de dossier invalide',
           status: 400,
         },
       });
