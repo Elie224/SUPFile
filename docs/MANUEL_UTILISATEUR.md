@@ -20,7 +20,11 @@ SUPFile est une plateforme de stockage cloud : vous pouvez y stocker des fichier
 1. Sur la page d’accueil, cliquez sur **« S’inscrire »** (ou **Sign up**).
 2. Saisissez votre **adresse e-mail** et un **mot de passe** (au moins 8 caractères, avec une majuscule et un chiffre).
 3. Validez l’inscription.
-4. Vous êtes connecté et redirigé vers le **tableau de bord**.
+4. Un e-mail de vérification vous est envoyé.
+5. Ouvrez l’e-mail et cliquez sur le lien **Vérifier mon e-mail**.
+6. Revenez sur SUPFile et connectez-vous : vous serez alors redirigé vers le **tableau de bord**.
+
+Si vous n’avez pas reçu l’e-mail, utilisez l’option **Renvoyer l’e-mail de vérification** depuis l’écran de connexion.
 
 Vous pouvez aussi vous connecter avec **Google** ou **GitHub** si l’administrateur a activé ces options.
 
@@ -76,7 +80,7 @@ Les éléments supprimés vont dans la **Corbeille** (voir ci-dessous).
 ### 4.5 Télécharger
 
 - **Fichier** : bouton **« Télécharger »** sur un fichier (ou dans le menu) pour le télécharger sur votre appareil.
-- **Dossier** : téléchargement en ZIP non disponible pour l’instant.
+- **Dossier** : bouton **« Télécharger (ZIP) »** pour télécharger le dossier complet sous forme d’archive ZIP.
 
 ---
 

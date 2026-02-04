@@ -6,7 +6,7 @@ Last Updated: Décembre 2025
 ## Base URL
 
 - **Development** : `http://localhost:5000/api`
-- **Production** : `https://api.supfile.com/api`
+- **Production (Fly.io)** : `https://supfile.fly.dev/api`
 
 ## Authentication
 
@@ -16,13 +16,14 @@ Tous les endpoints (sauf mention contraire) nécessitent un JWT valide :
 Authorization: Bearer <access_token>
 ```
 
-Le token est obtenu via `/api/auth/login` ou `/api/auth/signup`.
+Le token est obtenu via `/api/auth/login`.
+Si la 2FA est activée, l'appel à `/api/auth/login` renvoie `requires_2fa: true` puis les tokens sont délivrés après validation du code via `/api/auth/verify-2fa-login`.
 
 ### Token Format
 
 ```json
 {
-  "id": 1,
+  "id": "64f0c2e6c9a1b1b5b0e8c123",
   "email": "user@example.com",
   "iat": 1702200000,
   "exp": 1702203600
@@ -98,7 +99,10 @@ Créer un compte avec email/mot de passe.
 {
   "email": "user@example.com",
   "password": "SecurePassword123!",
-  "passwordConfirm": "SecurePassword123!"
+  "passwordConfirm": "SecurePassword123!",
+  "first_name": "John",
+  "last_name": "Doe",
+  "country": "FR"
 }
 ```
 
@@ -110,23 +114,19 @@ Créer un compte avec email/mot de passe.
 ```json
 {
   "data": {
-    "user": {
-      "id": 1,
-      "email": "user@example.com",
-      "display_name": null,
-      "avatar_url": null,
-      "created_at": "2025-12-09T10:00:00Z"
-    },
-    "access_token": "eyJ...",
-    "refresh_token": "eyJ..."
+    "email": "user@example.com"
   },
-  "message": "Account created successfully"
+  "message": "Compte créé. Veuillez vérifier votre boîte e-mail et cliquer sur le lien de vérification avant de vous connecter."
 }
 ```
 
+**Note** : l'API ne renvoie pas de tokens à l'inscription (vérification e-mail obligatoire avant connexion).
+
 **Erreurs possibles** :
-- 400 : Email déjà existant
+- 409 : Email déjà existant
 - 400 : Validation échouée
+- 403 : Email bloqué
+- 503 : Base de données indisponible
 
 ---
 
@@ -144,12 +144,12 @@ Connexion avec email/mot de passe.
 }
 ```
 
-**Réponse** (200) :
+**Réponse** (200) — cas standard (sans 2FA) :
 ```json
 {
   "data": {
     "user": {
-      "id": 1,
+      "id": "64f0c2e6c9a1b1b5b0e8c123",
       "email": "user@example.com",
       "display_name": "John Doe",
       "avatar_url": "https://...",
@@ -158,18 +158,35 @@ Connexion avec email/mot de passe.
       "preferences": {
         "theme": "light",
         "language": "en"
-      }
+      },
+      "is_admin": false,
+      "created_at": "2025-12-09T10:00:00Z",
+      "last_login_at": "2025-12-09T10:05:00Z"
     },
     "access_token": "eyJ...",
     "refresh_token": "eyJ..."
   },
-  "message": "Login successful"
+  "message": "Connexion réussie."
+}
+```
+
+**Réponse** (200) — si la 2FA est activée :
+```json
+{
+  "data": {
+    "requires_2fa": true,
+    "user_id": "64f0c2e6c9a1b1b5b0e8c123",
+    "email": "user@example.com"
+  },
+  "message": "Code 2FA requis"
 }
 ```
 
 **Erreurs possibles** :
 - 401 : Email ou mot de passe incorrect
-- 404 : Utilisateur non trouvé
+- 403 : E-mail non vérifié (`code: EMAIL_NOT_VERIFIED`)
+- 403 : Email bloqué
+- 503 : Base de données indisponible
 
 ---
 
@@ -193,35 +210,31 @@ Rafraîchir l'access token avec un refresh token.
     "access_token": "eyJ...",
     "refresh_token": "eyJ..."
   },
-  "message": "Token refreshed"
+  "message": "Jeton rafraîchi avec succès."
 }
 ```
 
 **Erreurs possibles** :
 - 401 : Refresh token invalide ou expiré
+- 400 : Refresh token manquant
 
 ---
 
-#### POST `/auth/oauth`
+#### POST `/auth/verify-2fa-login`
 
-Connexion via OAuth2 (Google, GitHub, etc.).
+Finaliser la connexion quand la 2FA est activée.
 
 **Authentification** : Non requise
 
 **Body** :
 ```json
 {
-  "provider": "google",
-  "code": "4/0AY0e..."
+  "userId": "64f0c2e6c9a1b1b5b0e8c123",
+  "token": "123456"
 }
 ```
 
-**Providers supportés** :
-- `google`
-- `github`
-- `microsoft` (optionnel)
-
-**Réponse** (200 ou 201) :
+**Réponse** (200) :
 ```json
 {
   "data": {
@@ -229,13 +242,28 @@ Connexion via OAuth2 (Google, GitHub, etc.).
     "access_token": "eyJ...",
     "refresh_token": "eyJ..."
   },
-  "message": "OAuth login successful"
+  "message": "Connexion 2FA réussie"
 }
 ```
 
-**Notes** :
-- Si c'est la première connexion → 201 (compte créé)
-- Si le compte existe → 200 (connexion)
+**Erreurs possibles** :
+- 400 : Champs manquants / utilisateur non trouvé / 2FA non activée
+- 401 : Code 2FA invalide
+
+---
+
+#### OAuth (Google / GitHub)
+
+L'OAuth se fait via des routes **de redirection** (pas de `POST /auth/oauth`).
+
+- **Web** :
+  - `GET /auth/google` puis callback `GET /auth/google/callback`
+  - `GET /auth/github` puis callback `GET /auth/github/callback`
+  - En succès, le backend redirige vers le frontend (ex. `/auth/callback?tokens=...`).
+
+- **Mobile** :
+  - Google : `POST /auth/google/callback` avec `id_token` ou `access_token`.
+  - GitHub : flux navigateur + deep link (le endpoint `POST /auth/github/callback` renvoie un message explicatif si utilisé).
 
 ---
 
@@ -243,9 +271,21 @@ Connexion via OAuth2 (Google, GitHub, etc.).
 
 Déconnexion et révocation du refresh token.
 
-**Authentification** : Requise
+**Authentification** : Non requise (le `refresh_token` est fourni dans le body)
 
-**Réponse** (204) : Pas de contenu
+**Body** :
+```json
+{
+  "refresh_token": "eyJ..."
+}
+```
+
+**Réponse** (200) :
+```json
+{
+  "message": "Déconnexion réussie."
+}
+```
 
 ---
 
@@ -261,11 +301,10 @@ Récupérer les infos du profil utilisateur actuel.
 ```json
 {
   "data": {
-    "id": 1,
+    "id": "64f0c2e6c9a1b1b5b0e8c123",
     "email": "user@example.com",
     "display_name": "John Doe",
     "avatar_url": "https://...",
-    "oauth_provider": null,
     "quota_used": 1000000,
     "quota_limit": 32212254720,
     "preferences": {
@@ -273,6 +312,8 @@ Récupérer les infos du profil utilisateur actuel.
       "language": "en",
       "notifications_enabled": true
     },
+    "is_admin": false,
+    "two_factor_enabled": false,
     "created_at": "2025-12-09T10:00:00Z",
     "last_login_at": "2025-12-09T15:30:00Z"
   }
@@ -313,8 +354,7 @@ Changer le mot de passe.
 ```json
 {
   "current_password": "OldPassword123!",
-  "new_password": "NewPassword456!",
-  "new_password_confirm": "NewPassword456!"
+  "new_password": "NewPassword456!"
 }
 ```
 
