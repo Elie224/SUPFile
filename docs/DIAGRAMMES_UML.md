@@ -200,22 +200,23 @@ Lecture rapide :
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Client Web/Mobile
-    participant API as Backend API (Express)
-    participant Auth as Validation/Auth Controller
-    participant Users as UserModel (Mongoose)
+    actor Client as Client
+    participant API as API (Express)
     participant DB as MongoDB
+    participant Mail as SMTP/Email
 
-    Client->>API: POST /api/auth/signup (email, password)
-    API->>Auth: Valider + normaliser les entrées
-    Auth->>Users: findByEmail(email)
-    Users->>DB: findOne(users)
-    DB-->>Users: null
-    Auth->>Users: create(user)
-    Users->>DB: insertOne(users)
-    DB-->>Users: user
-    Auth-->>API: Créer compte + déclencher email de vérification
-    API-->>Client: 201 + message (pas de tokens)
+    Client->>API: POST /api/auth/signup
+    API->>API: Valider email + mot de passe
+    API->>DB: Verifier unicite email
+    alt Email deja utilise
+        DB-->>API: user existe
+        API-->>Client: 409 Conflict
+    else Nouveau compte
+        DB-->>API: ok
+        API->>DB: Creer user (email_verified=false)
+        API->>Mail: Envoyer lien de verification
+        API-->>Client: 201 Created (message)
+    end
 ```
 
 ### 3.2 Téléchargement d’un dossier en ZIP (streaming)
@@ -225,32 +226,31 @@ Endpoint : `GET /api/folders/:id/download` (cf. route `backend/routes/folders.js
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Client Web
-    participant API as Backend API (Express)
-    participant Auth as authHeaderOrQueryMiddleware
-    participant Lim as ZIP concurrency limiter
-    participant Ctrl as foldersController.downloadFolderZip
-    participant Folders as FolderModel
-    participant Files as FileModel
+    actor Client as Client
+    participant API as API (Express)
+    participant DB as MongoDB
     participant FS as Filesystem (uploads)
-    participant Zip as Archiver/ZIP stream
+    participant ZIP as ZIP stream
 
-    Client->>API: GET /api/folders/:id/download
-    API->>Auth: Extraire/valider access_token (Header ou query)
-    Auth-->>API: userId OK
-    API->>Lim: Acquire slot (max concurrent ZIP)
-    Lim-->>API: Allowed ou 503 (retryAfterSeconds)
-    API->>Ctrl: downloadFolderZip(req,res)
-    Ctrl->>Folders: Vérifier ownership + métadonnées dossier
-    Ctrl->>Folders: Lister sous-dossiers (pagination)
-    Ctrl->>Files: Lister fichiers (pagination)
-    Ctrl->>Zip: Initialiser archive + headers streaming
-    loop pour chaque fichier
-        Ctrl->>FS: ReadStream(file_path)
-        FS-->>Zip: bytes
+    Client->>API: GET /api/folders/:id/download (auth)
+    API->>API: Verifier access token
+    alt Non authentifie
+        API-->>Client: 401 Unauthorized
+    else Auth OK
+        API->>DB: Verifier folder + ownership
+        alt Dossier introuvable / pas owner
+            DB-->>API: none
+            API-->>Client: 404/403
+        else OK
+            DB-->>API: folder + liste fichiers
+            API->>ZIP: Ouvrir flux ZIP + headers
+            loop Chaque fichier
+                API->>FS: Lire file_path
+                FS-->>ZIP: bytes
+            end
+            ZIP-->>Client: ZIP (stream)
+        end
     end
-    Zip-->>Client: flux ZIP (chunked)
-    Ctrl-->>Lim: Release slot (fin/abort)
 ```
 
 ---
