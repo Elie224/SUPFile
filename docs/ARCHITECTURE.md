@@ -245,35 +245,42 @@ User Input (email, password)
 ┌─────────────────────────┐
 │ POST /api/auth/signup   │
 └────────────┬────────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Validation Email │ → Regex, unique check
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Hash Password    │ → bcryptjs (10 rounds)
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Insert en BDD    │ → users table
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Générer JWT      │ → 1h expiration
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Créer dossier    │ → /uploads/user_123/
-    │ racine           │
-    └────────┬─────────┘
-             │
-             ▼
-    HTTP 201 + JWT Token
+         │
+         ▼
+┌──────────────────┐
+│ Validation Email │ → Regex, unique check
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Hash Password    │ → bcryptjs (10 rounds)
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Insert en BDD    │ → users collection
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Générer token    │ → vérification email (15 min)
+│ vérif. email     │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Envoyer email    │ → lien /verify-email?token=...
+│ de vérification  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Créer dossier    │ → /uploads/user_123/
+│ racine           │
+└────────┬─────────┘
+         │
+         ▼
+HTTP 201 + message (connexion après vérification)
 ```
 
 ### 5.2 Connexion
@@ -581,7 +588,8 @@ External user receives link
 ### 8.1 Authentification
 
 - ✓ JWT (JSON Web Tokens) pour API authentication
-- ✓ Tokens expirables (Access: 1h, Refresh: 7j)
+- ✓ Tokens expirables (JWT de session : Access: 1h, Refresh: 7j)
+- ✓ Liens sensibles expirables (Validation e-mail : 15 min, Reset mot de passe : 15 min)
 - ✓ Refresh token rotation pour revocation
 - ✓ HTTPS obligatoire en production
 
