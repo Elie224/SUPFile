@@ -13,7 +13,7 @@ app.use(cors(config.cors));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.get('Origin') || '';
-    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
     const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
     if (allowOrigin) {
       res.setHeader('Access-Control-Allow-Origin', allowOrigin);
@@ -142,7 +142,7 @@ app.use(cors(config.cors));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     const origin = req.get('Origin') || '';
-    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.onrender\.com$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
+    const allowed = origin === 'https://supfile.com' || origin.match(/\.netlify\.app$/) || origin.match(/\.fly\.dev$/) || origin.includes('localhost');
     const allowOrigin = allowed ? origin : (process.env.CORS_ORIGIN || '').split(',')[0].trim();
     if (allowOrigin) {
       res.setHeader('Access-Control-Allow-Origin', allowOrigin);
@@ -182,7 +182,16 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://*.onrender.com"], // Autoriser les connexions vers Render
+      connectSrc: [
+        "'self'",
+        'https://supfile.com',
+        'https://*.netlify.app',
+        'https://*.fly.dev',
+        'http://localhost:*',
+        'http://127.0.0.1:*',
+        'https://localhost:*',
+        'https://127.0.0.1:*',
+      ],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],

@@ -9,7 +9,6 @@ function isAllowedFrontendOrigin(origin) {
     o === 'https://supfile.com' ||
     o.endsWith('.netlify.app') ||
     o.endsWith('.fly.dev') ||
-    o.endsWith('.onrender.com') ||
     o.startsWith('http://localhost:') ||
     o.startsWith('http://127.0.0.1:') ||
     o.startsWith('https://localhost:') ||
