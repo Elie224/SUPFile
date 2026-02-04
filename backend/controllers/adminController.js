@@ -9,7 +9,9 @@ require('../models/shareModel');
 const BlockedEmailModel = require('../models/blockedEmailModel');
 
 function getSuperAdminEmail() {
-  return (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
+  // Fallback: email superadmin fixé (si la variable n'est pas configurée)
+  // Permet de garantir la protection même si SUPER_ADMIN_EMAIL n'est pas présent.
+  return (process.env.SUPER_ADMIN_EMAIL || 'kouroumaelisee@gmail.com').trim().toLowerCase();
 }
 
 function normalizeEmail(email) {
@@ -180,11 +182,6 @@ async function updateUser(req, res, next) {
     const { display_name, quota_limit, is_active, is_admin } = req.body;
 
     const superAdminEmail = getSuperAdminEmail();
-    if (!superAdminEmail && is_admin !== undefined) {
-      return res.status(503).json({
-        error: { message: 'SUPER_ADMIN_EMAIL not configured. Refusing admin role changes.' }
-      });
-    }
 
     const User = mongoose.models.User || mongoose.model('User');
 
@@ -203,7 +200,7 @@ async function updateUser(req, res, next) {
 
     if (targetIsSuperAdmin && !requesterIsSuperAdmin) {
       return res.status(403).json({
-        error: { message: "Vous n'avez ce privilège" }
+        error: { message: "vous n'avez pas le droit d'effectuer cette action" }
       });
     }
 
@@ -240,18 +237,6 @@ async function updateUser(req, res, next) {
 async function deleteUser(req, res, next) {
   try {
     const superAdminEmail = getSuperAdminEmail();
-    if (!superAdminEmail) {
-      return res.status(503).json({
-        error: { message: 'SUPER_ADMIN_EMAIL not configured. Cannot perform destructive admin operations.' }
-      });
-    }
-
-    if (normalizeEmail(req.user?.email) !== superAdminEmail) {
-      return res.status(403).json({
-        error: { message: 'Seul l\'administrateur principal peut supprimer des utilisateurs.' }
-      });
-    }
-
     const userId = req.params.id;
     const blockEmail = req.body?.blockEmail === true;
 
@@ -264,17 +249,26 @@ async function deleteUser(req, res, next) {
       });
     }
 
+    const requesterIsSuperAdmin = normalizeEmail(req.user?.email) === superAdminEmail;
+
+    // Interdire la suppression du superadmin pour tout le monde (y compris lui-même)
+    if (normalizeEmail(targetUser.email) === superAdminEmail) {
+      return res.status(403).json({
+        error: { message: "vous n'avez pas le droit d'effectuer cette action" }
+      });
+    }
+
+    // Suppression réservée au superadmin
+    if (!requesterIsSuperAdmin) {
+      return res.status(403).json({
+        error: { message: "vous n'avez pas le droit d'effectuer cette action" }
+      });
+    }
+
     // Ne pas permettre de supprimer son propre compte
     if (targetUser._id.toString() === req.user.id) {
       return res.status(400).json({
         error: { message: 'Vous ne pouvez pas supprimer votre propre compte' }
-      });
-    }
-
-    // Interdire la suppression de l'admin principal pour tout le monde
-    if (normalizeEmail(targetUser.email) === superAdminEmail) {
-      return res.status(403).json({
-        error: { message: 'Vous ne pouvez pas supprimer le compte de l’admin principal.' }
       });
     }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../services/authStore';
-import { API_URL } from '../config';
+import { API_URL, SUPER_ADMIN_EMAIL } from '../config';
 import { useToast } from '../components/Toast';
 import { formatBytes } from '../utils/storageUtils';
 
@@ -9,6 +9,11 @@ export default function Admin() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const toast = useToast();
+  const forbiddenMessage = "vous n'avez pas le droit d'effectuer cette action";
+
+  const normalizeEmail = (email) => (email || '').toString().trim().toLowerCase();
+  const requesterIsSuperAdmin = normalizeEmail(user?.email) === SUPER_ADMIN_EMAIL;
+  const isTargetSuperAdmin = (email) => normalizeEmail(email) === SUPER_ADMIN_EMAIL;
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -80,17 +85,34 @@ export default function Admin() {
     }
   };
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
+  const handleEditUser = (targetUser) => {
+    const targetIsSuperAdmin = (targetUser?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
+    const requesterIsSuperAdminLocal = requesterIsSuperAdmin;
+
+    // Empêcher l'édition du superadmin par un autre admin
+    if (targetIsSuperAdmin && !requesterIsSuperAdminLocal) {
+      showMessage('error', forbiddenMessage);
+      return;
+    }
+
+    setSelectedUser(targetUser);
     setEditForm({
-      display_name: user.display_name || '',
-      quota_limit: (user.quota_limit / (1024 * 1024 * 1024)).toFixed(2), // Convertir en GB
-      is_active: user.is_active,
-      is_admin: user.is_admin || false
+      display_name: targetUser.display_name || '',
+      quota_limit: (targetUser.quota_limit / (1024 * 1024 * 1024)).toFixed(2), // Convertir en GB
+      is_active: targetUser.is_active,
+      is_admin: targetUser.is_admin || false
     });
   };
 
   const handleUpdateUser = async () => {
+    // Si quelqu'un arrive quand même à ouvrir la modale sur le superadmin, bloquer côté UI
+    const targetIsSuperAdmin = (selectedUser?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
+    const requesterIsSuperAdminLocal = requesterIsSuperAdmin;
+    if (targetIsSuperAdmin && !requesterIsSuperAdminLocal) {
+      showMessage('error', forbiddenMessage);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('access_token');
       const quotaLimitBytes = Math.round(parseFloat(editForm.quota_limit) * 1024 * 1024 * 1024);
@@ -123,8 +145,17 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteClick = (user) => {
-    setUserToDelete(user);
+  const handleDeleteClick = (targetUser) => {
+    const targetIsSuperAdmin = (targetUser?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
+    const requesterIsSuperAdminLocal = requesterIsSuperAdmin;
+
+    // Message demandé: afficher une erreur si un admin tente de supprimer le superadmin
+    if (targetIsSuperAdmin) {
+      showMessage('error', forbiddenMessage);
+      return;
+    }
+
+    setUserToDelete(targetUser);
   };
 
   const handleDeleteUser = async (blockEmail) => {
@@ -296,6 +327,43 @@ export default function Admin() {
                 </thead>
                 <tbody>
                   {users.map((u, index) => (
+                    (() => {
+                      const targetIsSuperAdmin = isTargetSuperAdmin(u.email);
+                      const canEdit = !targetIsSuperAdmin || requesterIsSuperAdmin;
+                      const canDelete = !targetIsSuperAdmin; // suppression du superadmin interdite pour tout le monde
+                      const disabledBtnStyle = {
+                        padding: '6px 12px',
+                        backgroundColor: '#e5e7eb',
+                        color: '#6b7280',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        cursor: 'not-allowed',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        opacity: 0.9
+                      };
+                      const editBtnStyle = {
+                        padding: '6px 12px',
+                        backgroundColor: '#2196F3',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      };
+                      const deleteBtnStyle = {
+                        padding: '6px 12px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      };
+
+                      return (
                     <tr 
                       key={u.id}
                       style={{
@@ -330,45 +398,43 @@ export default function Admin() {
                             backgroundColor: '#e3f2fd',
                             color: '#1976D2'
                           }}>
-                            Admin
+                            {targetIsSuperAdmin ? 'Superadmin' : 'Admin'}
                           </span>
                         )}
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            onClick={() => handleEditUser(u)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#2196F3',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600'
+                            onClick={() => {
+                              if (!canEdit) {
+                                showMessage('error', forbiddenMessage);
+                                return;
+                              }
+                              handleEditUser(u);
                             }}
+                            style={canEdit ? editBtnStyle : disabledBtnStyle}
+                            title={canEdit ? 'Modifier' : forbiddenMessage}
                           >
                             Modifier
                           </button>
                           <button
-                            onClick={() => handleDeleteClick(u)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#f44336',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '600'
+                            onClick={() => {
+                              if (!canDelete) {
+                                showMessage('error', forbiddenMessage);
+                                return;
+                              }
+                              handleDeleteClick(u);
                             }}
+                            style={canDelete ? deleteBtnStyle : disabledBtnStyle}
+                            title={canDelete ? 'Supprimer' : forbiddenMessage}
                           >
                             Supprimer
                           </button>
                         </div>
                       </td>
                     </tr>
+                      );
+                    })()
                   ))}
                 </tbody>
               </table>
