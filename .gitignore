@@ -41,6 +41,9 @@ Thumbs.db
 
 # Docker
 .docker-compose.override.yml
+
+# Gradle cache (ne jamais versionner)
+.gradle/
 # Local debug scripts (do not commit)
 create-account.js
 forgot-password.js
