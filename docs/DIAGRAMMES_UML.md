@@ -12,85 +12,107 @@ Ils sont décrits en **Mermaid** (affichables sur GitHub, GitLab et dans de nomb
 
 ## 1. Diagramme de cas d’utilisation (Use Case)
 
-Les acteurs et les cas d’usage principaux du système.
+Ce diagramme est volontairement **plus simple à lire** :
+- Les **acteurs** sont à gauche.
+- Les cas d’usage sont dans la boîte **SUPFile (Système)**.
+- Les flèches en pointillés `inclut` montrent qu’un cas d’usage en **contient** un autre (ex. « Gérer fichiers & dossiers » inclut upload/download/preview).
+
+### 1.1 Vue simplifiée (recommandée)
 
 ```mermaid
-flowchart TB
-    subgraph Acteurs
-        A1[Utilisateur non inscrit]
-        A2[Utilisateur inscrit]
-        A3[Administrateur]
+flowchart LR
+    classDef actor fill:#ffffff,stroke:#333,stroke-width:1px;
+    classDef uc fill:#f6f8ff,stroke:#4b6cff,stroke-width:1px;
+
+    A1[Utilisateur non inscrit]:::actor
+    A2[Utilisateur inscrit]:::actor
+    A3[Administrateur]:::actor
+
+    subgraph SYS[SUPFile (Système)]
+        direction TB
+
+        subgraph PUB[Accès public]
+            UC_LINK([Ouvrir un lien public]):::uc
+            UC_LINK_DL([Télécharger via lien]):::uc
+            UC_LINK_PREV([Prévisualiser via lien]):::uc
+        end
+
+        subgraph AUTH[Authentification]
+            UC_SIGNUP([S’inscrire + vérifier e-mail]):::uc
+            UC_LOGIN([Se connecter (email/mdp)]):::uc
+            UC_OAUTH([Se connecter OAuth2 (Google/GitHub)]):::uc
+            UC_RESET([Mot de passe oublié / réinitialiser]):::uc
+            UC_2FA([Activer / gérer 2FA]):::uc
+        end
+
+        subgraph CORE[Espace personnel]
+            UC_DASH([Tableau de bord]):::uc
+            UC_FILES([Gérer fichiers & dossiers]):::uc
+            UC_UPLOAD([Uploader]):::uc
+            UC_DOWNLOAD([Télécharger (fichier / dossier ZIP)]):::uc
+            UC_PREVIEW([Prévisualiser / streamer]):::uc
+            UC_SHARE([Partager (public / interne)]):::uc
+            UC_SEARCH([Rechercher & filtrer]):::uc
+            UC_TRASH([Corbeille / restaurer / purge]):::uc
+            UC_SETTINGS([Paramètres du compte]):::uc
+        end
+
+        subgraph ADM[Administration]
+            UC_USERS([Gérer utilisateurs]):::uc
+            UC_STATS([Consulter statistiques]):::uc
+        end
+
+        UC_FILES -.->|inclut| UC_UPLOAD
+        UC_FILES -.->|inclut| UC_DOWNLOAD
+        UC_FILES -.->|inclut| UC_PREVIEW
+
+        UC_SHARE -.->|génère| UC_LINK
+        UC_LINK -.->|permet| UC_LINK_DL
+        UC_LINK -.->|permet| UC_LINK_PREV
     end
 
-    subgraph Cas_d_usage_publics
-        UC1[Accéder à un lien public partagé]
-        UC2[Télécharger fichier via lien]
-    end
+    A1 --> UC_LINK
+    A1 --> UC_SIGNUP
+    A1 --> UC_LOGIN
+    A1 --> UC_OAUTH
+    A1 --> UC_RESET
 
-    subgraph Authentification
-        UC3[S'inscrire]
-        UC4[Se connecter email/mot de passe]
-        UC5[Se connecter OAuth2 Google/GitHub]
-        UC6[Mot de passe oublié]
-        UC7[Activer / gérer 2FA]
-    end
+    A2 --> UC_DASH
+    A2 --> UC_FILES
+    A2 --> UC_SHARE
+    A2 --> UC_SEARCH
+    A2 --> UC_TRASH
+    A2 --> UC_SETTINGS
+    A2 --> UC_2FA
 
-    subgraph Espace_personnel
-        UC8[Accéder au tableau de bord]
-        UC9[Gérer fichiers et dossiers]
-        UC10[Prévisualiser fichiers]
-        UC11[Partager fichier/dossier]
-        UC12[Rechercher et filtrer]
-        UC13[Modifier paramètres]
-        UC14[Corbeille et restauration]
-    end
-
-    subgraph Administration
-        UC15[Gérer utilisateurs]
-        UC16[Consulter statistiques]
-    end
-
-    A1 --> UC1
-    A1 --> UC2
-    A2 --> UC3
-    A2 --> UC4
-    A2 --> UC5
-    A2 --> UC6
-    A2 --> UC7
-    A2 --> UC8
-    A2 --> UC9
-    A2 --> UC10
-    A2 --> UC11
-    A2 --> UC12
-    A2 --> UC13
-    A2 --> UC14
-    A3 --> UC15
-    A3 --> UC16
-    A2 --> UC8
-    UC8 --> UC9
-    UC8 --> UC10
+    A3 --> UC_USERS
+    A3 --> UC_STATS
 ```
 
-### Légende des cas d’usage
+### 1.2 Détail des cas d’usage (en clair)
 
-| Id  | Cas d’usage | Description |
-|-----|-------------|-------------|
-| UC1 | Accéder à un lien public partagé | Ouvrir une URL de partage (sans compte) |
-| UC2 | Télécharger via lien | Télécharger un fichier via le lien public |
-| UC3 | S’inscrire | Créer un compte (email + mot de passe) |
-| UC4 | Se connecter (email/mdp) | Connexion classique |
-| UC5 | Se connecter OAuth2 | Connexion avec Google ou GitHub |
-| UC6 | Mot de passe oublié | Demande et réinitialisation par email |
-| UC7 | 2FA | Activer / désactiver double authentification (TOTP) |
-| UC8 | Tableau de bord | Vue quota, répartition, fichiers récents |
-| UC9 | Gérer fichiers/dossiers | Créer, renommer, déplacer, supprimer, upload, download |
-| UC10 | Prévisualiser | Images, PDF, texte, audio/vidéo en streaming |
-| UC11 | Partager | Lien public (optionnel : mot de passe, expiration) ou partage avec un utilisateur |
-| UC12 | Rechercher et filtrer | Recherche par nom/extension, filtres par type et date |
-| UC13 | Paramètres | Profil, avatar, email, mot de passe, thème, langue |
-| UC14 | Corbeille | Consulter la corbeille, restaurer ou purger |
-| UC15 | Gérer utilisateurs | Administration des comptes (admin) |
-| UC16 | Statistiques | Tableau de bord admin (stats globales) |
+**Accès public (sans compte)**
+- Ouvrir un lien public de partage
+- Prévisualiser / télécharger via ce lien (si mot de passe requis : saisie du mot de passe)
+
+**Authentification**
+- Inscription (email + mot de passe) + vérification e-mail
+- Connexion standard + option 2FA
+- Connexion OAuth2 (Google/GitHub)
+- Mot de passe oublié / réinitialisation
+
+**Espace personnel (utilisateur connecté)**
+- Tableau de bord (quota + fichiers récents)
+- Gestion fichiers/dossiers : navigation, création, renommage, déplacement, suppression → corbeille
+- Upload (avec progression) et download (fichier + dossier ZIP)
+- Prévisualisation (images, PDF, texte) et streaming audio/vidéo
+- Partage : lien public (option mot de passe/expiration) + partage interne (entre utilisateurs)
+- Recherche + filtres
+- Paramètres du compte (profil, thème, sécurité)
+
+**Administration**
+- Gestion des utilisateurs
+- Consultation des statistiques
 
 ---
 
