@@ -71,4 +71,21 @@ Un document de **conformité au barème** (500 points + bonus/malus) est disponi
 
 ---
 
+## Checklist « correcteur » (vérification rapide)
+
+Objectif : vérifier rapidement que l’application démarre et répond.
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose ps
+curl http://localhost:5000/health
+```
+
+Notes :
+- Le service mobile Flutter est optionnel (profil Docker) : `docker compose --profile mobile up -d`
+- OAuth Google/GitHub dépend des credentials (variables d’environnement) : sans clés valides, la connexion OAuth peut échouer.
+
+---
+
 Document créé : Décembre 2025
