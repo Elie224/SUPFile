@@ -242,9 +242,9 @@ npm test
 
 - **Render / Railway / Fly.io** : déploiement du backend et du frontend ; MongoDB managé (MongoDB Atlas) ou conteneur.
 - **VPS (DigitalOcean, OVH, etc.)** : installer Docker, utiliser `docker compose` avec un reverse proxy (Nginx) et Let’s Encrypt pour le HTTPS.
-- **MongoDB Atlas** : pour la base de données, utiliser une URI du type `mongodb+srv://[REDACTED] dans `MONGO_URI`.
+- **MongoDB Atlas** : pour la base de données, utiliser une URI du type `mongodb+srv://[REDACTED]` dans `MONGO_URI`.
 
-Voir aussi `docs/archive/DEPLOIEMENT_RENDER.md` (anciennement à la racine) pour un exemple avec Render.
+Voir aussi `backend/DEPLOIEMENT_FLY.md` pour le déploiement du backend sur Fly.io.
 
 ---
 

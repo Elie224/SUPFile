@@ -11,7 +11,7 @@ Les corrections suivantes ont été faites dans le code source :
 ### Mobile (`mobile-app/`)
 - ✅ **Deep Links** : Configuration dans `AndroidManifest.xml` pour `supfile://oauth/*`
 - ✅ **linkStream** : Correction dans `oauth_service.dart` 
-- ✅ **API URL** : Par défaut `https://supfile-1.onrender.com` au lieu de `localhost`
+- ✅ **API URL** : Par défaut `https://supfile.fly.dev` (ou une URL définie au build) au lieu de `localhost`
 
 ### Backend (`backend/`)
 - ✅ **Route POST** : `POST /api/auth/google/callback` pour Google Sign-In natif mobile

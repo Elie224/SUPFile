@@ -58,7 +58,8 @@ Testez avec curl ou Postman :
 # Test d'inscription
 $body = @{
     email = "test@example.com"
-    password = "Test1234"
+   # Exemple uniquement : utilisez un mot de passe conforme à la politique (et ne commitez jamais de secrets)
+   password = "CHANGE_ME_STRONG_PASSWORD"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "http://localhost:5000/api/auth/signup" -Method Post -Body $body -ContentType "application/json"

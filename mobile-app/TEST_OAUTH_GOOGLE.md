@@ -3,7 +3,7 @@
 ## 📋 Prérequis pour le test
 
 ### 1. API Backend en ligne ✅
-L'API est accessible sur : `https://supfile-1.onrender.com`
+L'API est accessible sur : `https://supfile.fly.dev` (ou en local : `http://localhost:5000`)
 
 ### 2. Package Name de l'application
 - **Package Name** : `com.example.supfile_mobile`
@@ -124,9 +124,9 @@ keytool -list -v -keystore app\debug.keystore -alias androiddebugkey -storepass 
 **Cause** : L'application ne peut pas se connecter au backend
 
 **Solution** :
-1. Vérifier que l'API est en ligne : `https://supfile-1.onrender.com/health`
+1. Vérifier que l'API est en ligne : `https://supfile.fly.dev/health` (ou `http://localhost:5000/health`)
 2. Vérifier la connexion internet de l'émulateur/appareil
-3. Vérifier que `AppConstants.apiBaseUrl` est bien `https://supfile-1.onrender.com`
+3. Vérifier que `AppConstants.apiBaseUrl` est bien `https://supfile.fly.dev` (ou votre URL locale)
 
 ### L'application ne démarre pas
 

@@ -759,7 +759,7 @@ export default function Files() {
       }
       
       if (response.data && response.data.data) {
-        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
         const shareUrl = response.data.data.share_url || `${frontendUrl}/share/${response.data.data.public_token}`;
         setShareLink(shareUrl);
         setSharePassword('');

@@ -22,6 +22,12 @@ docker compose logs -f
 # MongoDB       : mongodb://localhost:27017 (si besoin)
 ```
 
+Note : le service **mobile (Flutter)** est optionnel et n'est pas lancé par défaut. Pour le démarrer via Docker :
+
+```bash
+docker compose --profile mobile up -d
+```
+
 Sur Windows (PowerShell), l'équivalent de la copie :
 
 ```powershell

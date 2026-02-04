@@ -3,6 +3,7 @@ const ShareModel = require('../models/shareModel');
 const FileModel = require('../models/fileModel');
 const FolderModel = require('../models/folderModel');
 const { normalizePublicShareToken, normalizeSharePasswordForCompare } = require('../utils/shareSecurity');
+const { getFrontendBaseUrl } = require('../utils/frontendUrl');
 
 function normalizeOptionalId(value) {
   if (value === null || value === undefined) return null;
@@ -103,7 +104,7 @@ async function createPublicShare(req, res, next) {
     res.status(201).json({
       data: {
         ...share,
-        share_url: `${process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com'}/share/${share.public_token}`,
+        share_url: `${getFrontendBaseUrl(req)}/share/${share.public_token}`,
       },
       message: 'Partage créé',
     });

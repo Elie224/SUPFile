@@ -176,7 +176,7 @@ docker compose down -v
 - **Archive ZIP** : le rendu doit contenir une archive ZIP avec le code source, les assets, la documentation technique et le manuel utilisateur.
 - **Documentation technique** : voir le dossier `docs/` :
   - **Installation et pré-requis** : `docs/INSTALLATION.md`
-  - **Guide de déploiement** : `docs/INSTALLATION.md` (Docker) et `DEPLOIEMENT_RENDER.md` à la racine
+   - **Guide de déploiement** : `docs/INSTALLATION.md` (Docker) et `backend/DEPLOIEMENT_FLY.md` (Fly.io)
   - **Justification des choix technologiques** : `docs/ARCHITECTURE.md` (sections 10 et 11)
   - **Diagrammes UML** (cas d’utilisation, schéma relationnel BDD) : `docs/DIAGRAMMES_UML.md`
   - **Architecture de l’API** (endpoints principaux) : `docs/API.md` et résumé dans `docs/DIAGRAMMES_UML.md`

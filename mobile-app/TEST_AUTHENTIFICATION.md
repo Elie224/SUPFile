@@ -10,8 +10,8 @@
 2. Cliquer sur "Inscription"
 3. Remplir le formulaire :
    - Email : `test@example.com`
-   - Mot de passe : `Test1234!`
-   - Confirmer le mot de passe : `Test1234!`
+   - Mot de passe : `CHANGE_ME_STRONG_PASSWORD`
+   - Confirmer le mot de passe : `CHANGE_ME_STRONG_PASSWORD`
 4. Cliquer sur "Inscription"
 5. **Résultat attendu** : ✅ Redirection vers Dashboard
 6. Déconnexion
@@ -40,7 +40,7 @@
 
 **❌ Si erreur réseau** :
 - Vérifier la connexion internet
-- Vérifier que l'API backend est en ligne : `https://supfile-1.onrender.com/health`
+- Vérifier que l'API backend est en ligne : `https://supfile.fly.dev/health` (ou votre URL locale `http://localhost:5000/health`)
 
 **✅ Si réussi** : Google OAuth fonctionne
 
@@ -142,8 +142,8 @@ adb install C:\Users\KOURO\OneDrive\Desktop\SUPFile\mobile-app\build\app\outputs
 
 **Solution** :
 1. Vérifier la connexion internet du téléphone
-2. Vérifier que l'API est en ligne : `https://supfile-1.onrender.com/health`
-3. Vérifier que l'application utilise bien `https://supfile-1.onrender.com` (pas `localhost`)
+2. Vérifier que l'API est en ligne : `https://supfile.fly.dev/health` (ou `http://localhost:5000/health`)
+3. Vérifier que l'application utilise bien `https://supfile.fly.dev` (ou votre URL API) (pas `localhost`)
 
 ### Erreur : "DEVELOPER_ERROR" (Google OAuth)
 

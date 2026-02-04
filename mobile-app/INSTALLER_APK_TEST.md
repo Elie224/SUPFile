@@ -105,7 +105,7 @@ C:\Users\KOURO\OneDrive\Desktop\SUPFile\mobile-app\build\app\outputs\flutter-apk
 
 - **APK actuel** : Signé avec le keystore **debug** (pour tester uniquement)
 - **Pour production** : Il faudra générer un APK signé avec un keystore release
-- **API Backend** : `https://supfile-1.onrender.com` (en ligne ✅)
+- **API Backend** : `https://supfile.fly.dev` (en ligne ✅)
 
 ---
 

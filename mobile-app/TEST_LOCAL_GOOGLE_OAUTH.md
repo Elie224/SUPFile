@@ -40,7 +40,7 @@ flutter run --dart-define=API_URL=http://192.168.1.X:5000
 **Avec API backend en production** (Render) :
 ```powershell
 flutter run
-# Utilisera https://supfile-1.onrender.com par défaut
+# Utilisera https://supfile.fly.dev par défaut (ou l'URL définie via --dart-define)
 ```
 
 ### 4. Tester Google OAuth

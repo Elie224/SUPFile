@@ -3,6 +3,7 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
 const config = require('../config');
+const { getFrontendBaseUrl } = require('../utils/frontendUrl');
 
 // Middleware pour initialiser l'authentification OAuth
 const initiateOAuth = (provider) => {
@@ -24,7 +25,7 @@ const initiateOAuth = (provider) => {
       console.error(`  Provider config exists: ${!!providerConfig}`);
       console.error(`  Client ID present: ${!!providerConfig?.clientId}`);
       console.error(`  Client Secret present: ${!!providerConfig?.clientSecret}`);
-      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+      const frontendUrl = getFrontendBaseUrl(req);
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} is not configured. Please contact the administrator.`)}`);
     }
     
@@ -33,7 +34,7 @@ const initiateOAuth = (provider) => {
       if (process.env.NODE_ENV !== 'production') {
         console.error(`OAuth ${provider} strategy not found in Passport`);
       }
-      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+      const frontendUrl = getFrontendBaseUrl(req);
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} strategy is not registered. Please check server configuration.`)}`);
     }
 
@@ -53,7 +54,7 @@ const initiateOAuth = (provider) => {
       })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);
-      const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+      const frontendUrl = getFrontendBaseUrl(req);
       res.redirect(`${frontendUrl}/login?error=oauth_init_failed&message=${encodeURIComponent(error.message || 'Failed to initiate OAuth')}`);
     }
   };
@@ -67,14 +68,14 @@ const handleOAuthCallback = (provider) => {
         if (process.env.NODE_ENV !== 'production') {
           console.error(`OAuth ${provider} error:`, err);
         }
-        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+        const frontendUrl = getFrontendBaseUrl(req);
         const errorMessage = err.message || 'Erreur lors de l\'authentification OAuth';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
 
       if (!user) {
         console.error(`OAuth ${provider}: No user returned from authentication`);
-        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+        const frontendUrl = getFrontendBaseUrl(req);
         const errorMessage = info?.message || 'Échec de l\'authentification. Veuillez réessayer.';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
@@ -132,7 +133,7 @@ const handleOAuthCallback = (provider) => {
         }
         
         // Sinon, rediriger vers le frontend web avec les tokens dans l'URL
-        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+        const frontendUrl = getFrontendBaseUrl(req);
         const redirectUrl = req.session?.oauthRedirect || '/dashboard';
         
         // Encoder les tokens pour les passer dans l'URL
@@ -145,7 +146,7 @@ const handleOAuthCallback = (provider) => {
         if (process.env.NODE_ENV !== 'production') {
           console.error(`OAuth ${provider} callback error:`, error);
         }
-        const frontendUrl = process.env.FRONTEND_URL || 'https://supfile-frontend.onrender.com';
+        const frontendUrl = getFrontendBaseUrl(req);
         const errorMessage = error.message || 'Erreur lors du traitement de l\'authentification OAuth';
         res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
