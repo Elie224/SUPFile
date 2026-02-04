@@ -105,8 +105,33 @@ Tous les services doivent être **Up**.
 
 ```bash
 curl http://localhost:5000/health
-# Réponse attendue : {"status":"OK","message":"SUPFile API is running"}
+# Réponse attendue : {"status":"ok"}
 ```
+
+---
+
+## Checklist « correcteur » (recommandée)
+
+Objectif : permettre une vérification rapide et reproductible.
+
+1) Démarrage (3 services) :
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose ps
+```
+
+2) Sanity checks :
+
+```bash
+curl http://localhost:5000/health
+# => {"status":"ok"}
+```
+
+3) Notes importantes :
+- Le service mobile Flutter est optionnel (profil Docker) : `docker compose --profile mobile up -d`
+- OAuth Google/GitHub dépend des credentials fournis via variables d’environnement.
 
 ---
 
