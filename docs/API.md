@@ -46,17 +46,22 @@ Si la 2FA est activée, l'appel à `/api/auth/login` renvoie `requires_2fa: true
 
 ### Réponses
 
-Toutes les réponses sont en JSON avec structure uniforme :
+La majorité des endpoints répondent en JSON. Selon les routes, la présence de `message` varie.
 
-**Succès** (2xx) :
+Notes importantes (conformes au code actuel) :
+- Certaines routes de téléchargement/preview/stream renvoient un flux binaire (pas du JSON).
+- Certaines erreurs historiques renvoient `{ error: '...', message: '...' }` ou `{ error: { message: '...' } }`.
+- Les erreurs « non gérées » passées à `next(err)` sont normalisées par le middleware global.
+
+**Succès** (2xx) — format courant :
 ```json
 {
   "data": { ... },
-  "message": "Success message"
+  "message": "Message (optionnel)"
 }
 ```
 
-**Erreur** (4xx/5xx) :
+**Erreur** (4xx/5xx) — format normalisé (middleware global) :
 ```json
 {
   "error": {
@@ -331,16 +336,57 @@ Modifier le profil utilisateur.
 **Body** (tous les champs optionnels) :
 ```json
 {
-  "display_name": "Jane Doe",
-  "avatar_url": "https://..."
+  "email": "user@example.com",
+  "display_name": "Jane Doe"
 }
 ```
 
-**Réponse** (200) : Utilisateur mis à jour
+**Réponse** (200) :
+```json
+{
+  "data": {
+    "id": "64f0c2e6c9a1b1b5b0e8c123",
+    "email": "user@example.com",
+    "display_name": "Jane Doe",
+    "avatar_url": "/avatars/....png",
+    "quota_used": 123,
+    "quota_limit": 32212254720,
+    "preferences": {
+      "theme": "light",
+      "language": "en",
+      "notifications_enabled": true
+    }
+  },
+  "message": "Profile updated"
+}
+```
 
 **Erreurs possibles** :
 - 400 : Données invalides
-- 409 : Avatar URL non accessible
+- 409 : Email déjà utilisé
+
+---
+
+#### POST `/users/me/avatar`
+
+Uploader/modifier l'avatar de l'utilisateur.
+
+**Authentification** : Requise
+
+**Content-Type** : `multipart/form-data`
+
+**Form Data** :
+```
+avatar: <binary_image>
+```
+
+**Réponse** (200) :
+```json
+{
+  "data": { "avatar_url": "/avatars/<filename>" },
+  "message": "Avatar uploaded"
+}
+```
 
 ---
 
@@ -380,17 +426,68 @@ Mettre à jour les préférences utilisateur.
 **Body** :
 ```json
 {
-  "theme": "dark",
-  "language": "fr",
-  "notifications_enabled": false
+  "preferences": {
+    "theme": "dark",
+    "language": "fr",
+    "notifications_enabled": false
+  }
 }
 ```
 
-**Réponse** (200) : Préférences mises à jour
+**Réponse** (200) :
+```json
+{
+  "data": {
+    "preferences": {
+      "theme": "dark",
+      "language": "fr",
+      "notifications_enabled": false
+    }
+  },
+  "message": "Preferences updated"
+}
+```
 
 ---
 
 ### 📁 DOSSIERS
+
+#### GET `/folders`
+
+Lister les dossiers (enfants d'un parent).
+
+**Authentification** : Requise
+
+**Query Parameters** :
+- `parent_id` : `root` / vide / omis = racine, sinon `ObjectId`
+
+**Réponse** (200) :
+```json
+{
+  "data": [
+    {
+      "id": "64f0c2e6c9a1b1b5b0e8c999",
+      "name": "Documents",
+      "owner_id": "64f0c2e6c9a1b1b5b0e8c123",
+      "parent_id": null,
+      "is_deleted": false,
+      "deleted_at": null,
+      "created_at": "2025-12-09T10:00:00.000Z",
+      "updated_at": "2025-12-09T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+#### GET `/folders/all`
+
+Lister tous les dossiers de l'utilisateur (liste à plat).
+
+**Authentification** : Requise
+
+**Réponse** (200) : `{ "data": [ ... ] }`
 
 #### POST `/folders`
 
@@ -410,12 +507,14 @@ Créer un nouveau dossier.
 ```json
 {
   "data": {
-    "id": 42,
+    "id": "64f0c2e6c9a1b1b5b0e8c999",
     "name": "Mon Dossier",
-    "owner_id": 1,
+    "owner_id": "64f0c2e6c9a1b1b5b0e8c123",
     "parent_id": null,
-    "created_at": "2025-12-09T10:00:00Z",
-    "updated_at": "2025-12-09T10:00:00Z"
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2025-12-09T10:00:00.000Z",
+    "updated_at": "2025-12-09T10:00:00.000Z"
   },
   "message": "Folder created"
 }
@@ -425,6 +524,51 @@ Créer un nouveau dossier.
 - 400 : Nom de dossier vide
 - 404 : Dossier parent non trouvé
 - 403 : Pas de permission sur le dossier parent
+
+---
+
+#### GET `/folders/trash`
+
+Lister les dossiers supprimés (corbeille).
+
+**Authentification** : Requise
+
+**Réponse** (200) :
+```json
+{
+  "data": {
+    "items": [ { "id": "...", "name": "...", "deleted_at": "..." } ],
+    "total": 1
+  }
+}
+```
+
+---
+
+#### GET `/folders/:id`
+
+Récupérer un dossier.
+
+**Authentification** : Requise
+
+**Notes** : si le dossier est partagé avec l'utilisateur (partage interne), la réponse inclut `shared_with_me: true`.
+
+---
+
+#### GET `/folders/:id/download`
+
+Télécharger un dossier en ZIP (streaming).
+
+**Authentification** : Requise
+
+**JWT** :
+- Header : `Authorization: Bearer <access_token>`
+- ou query : `?access_token=<access_token>` (préféré)
+- ou query : `?token=<access_token>`
+
+**Réponse** :
+- 200 `application/zip` (flux)
+- 503 si trop de téléchargements ZIP concurrents (concurrency limiter)
 
 ---
 
@@ -438,11 +582,11 @@ Renommer ou déplacer un dossier.
 ```json
 {
   "name": "Nouveau Nom",
-  "parent_id": 10
+  "parent_id": "64f0c2e6c9a1b1b5b0e8c111"
 }
 ```
 
-**Réponse** (200) : Dossier mis à jour
+**Réponse** (200) : `{ "data": { ... }, "message": "Folder updated" }`
 
 ---
 
@@ -452,11 +596,26 @@ Supprimer un dossier et son contenu.
 
 **Authentification** : Requise
 
-**Réponse** (204) : Pas de contenu
+**Réponse** (200) :
+```json
+{ "message": "Folder deleted" }
+```
 
 **Notes** :
-- Soft delete (peut être restauré)
-- Cascade : tous les fichiers du dossier sont aussi supprimés
+- Soft delete (corbeille) au premier DELETE ; suppression définitive si déjà en corbeille.
+
+---
+
+#### POST `/folders/:id/restore`
+
+Restaurer un dossier supprimé.
+
+**Authentification** : Requise
+
+**Réponse** (200) :
+```json
+{ "message": "Folder restored" }
+```
 
 ---
 
@@ -469,11 +628,11 @@ Lister les fichiers d'un dossier.
 **Authentification** : Requise
 
 **Query Parameters** :
-- `folder_id` : ID du dossier (défaut : racine)
-- `skip` : Nombre d'éléments à ignorer (défaut : 0)
-- `limit` : Nombre d'éléments à retourner (défaut : 50, max : 200)
-- `sort_by` : `name`, `date`, `size` (défaut : `date`)
-- `sort_order` : `asc`, `desc` (défaut : `desc`)
+- `folder_id` : `ObjectId` du dossier. Si omis / vide / `root`, la route liste la « racine » (voir implémentation).
+- `skip` : Offset (défaut : 0, max : 10000)
+- `limit` : Taille de page (défaut : 50, max : 100)
+- `sort_by` : `name`, `updated_at`, `created_at`, `size`, `mime_type`
+- `sort_order` : `asc` ou `desc`
 
 **Réponse** (200) :
 ```json
@@ -481,20 +640,29 @@ Lister les fichiers d'un dossier.
   "data": {
     "items": [
       {
-        "id": 1,
-        "name": "document.pdf",
+        "id": "64f0c2e6c9a1b1b5b0e8caaa",
         "type": "file",
+        "name": "document.pdf",
         "mime_type": "application/pdf",
         "size": 1024000,
-        "created_at": "2025-12-09T10:00:00Z",
-        "updated_at": "2025-12-09T10:00:00Z"
+        "folder_id": "64f0c2e6c9a1b1b5b0e8c999",
+        "owner_id": "64f0c2e6c9a1b1b5b0e8c123",
+        "file_path": "<server_path>",
+        "is_deleted": false,
+        "deleted_at": null,
+        "created_at": "2025-12-09T10:00:00.000Z",
+        "updated_at": "2025-12-09T10:00:00.000Z"
       },
       {
-        "id": 2,
-        "name": "Images",
         "type": "folder",
-        "created_at": "2025-12-08T10:00:00Z",
-        "updated_at": "2025-12-08T10:00:00Z"
+        "id": "64f0c2e6c9a1b1b5b0e8cbbb",
+        "name": "Images",
+        "owner_id": "64f0c2e6c9a1b1b5b0e8c123",
+        "parent_id": "64f0c2e6c9a1b1b5b0e8c999",
+        "is_deleted": false,
+        "deleted_at": null,
+        "created_at": "2025-12-08T10:00:00.000Z",
+        "updated_at": "2025-12-08T10:00:00.000Z"
       }
     ],
     "pagination": {
@@ -505,6 +673,80 @@ Lister les fichiers d'un dossier.
   }
 }
 ```
+
+---
+
+#### POST `/files/upload/init`
+
+Initialiser un upload chunké (reprise possible).
+
+**Authentification** : Requise
+
+**Body** :
+```json
+{
+  "name": "video.mp4",
+  "size": 123456789,
+  "mime_type": "video/mp4",
+  "folder_id": "64f0c2e6c9a1b1b5b0e8c999"
+}
+```
+
+**Réponse** (201) :
+```json
+{ "data": { "upload_id": "<uuid>", "chunk_size": 5242880 } }
+```
+
+---
+
+#### GET `/files/upload/status`
+
+Statut d'un upload chunké.
+
+**Authentification** : Requise
+
+**Query Parameters** :
+- `upload_id` : UUID
+
+**Réponse** (200) :
+```json
+{ "data": { "upload_id": "<uuid>", "uploaded_chunks": [0, 1, 2] } }
+```
+
+---
+
+#### POST `/files/upload/chunk`
+
+Uploader un chunk.
+
+**Authentification** : Requise
+
+**Content-Type** : `multipart/form-data`
+
+**Form Data** :
+```
+upload_id: <uuid>
+chunk_index: 0
+total_chunks: 10
+chunk: <binary>
+```
+
+**Réponse** (200) : `{ "data": { "upload_id": "<uuid>", "chunk_index": 0 } }`
+
+---
+
+#### POST `/files/upload/complete`
+
+Finaliser un upload chunké (assemblage + création BDD).
+
+**Authentification** : Requise
+
+**Body** :
+```json
+{ "upload_id": "<uuid>", "total_chunks": 10 }
+```
+
+**Réponse** (201) : `{ "data": { ...file }, "message": "File uploaded successfully" }`
 
 ---
 
@@ -526,14 +768,19 @@ folder_id: (optionnel)
 ```json
 {
   "data": {
-    "id": 123,
+    "id": "64f0c2e6c9a1b1b5b0e8caaa",
     "name": "photo.jpg",
     "mime_type": "image/jpeg",
     "size": 2048000,
-    "file_path": "/uploads/user_1/uuid-123.jpg",
-    "created_at": "2025-12-09T10:00:00Z"
+    "folder_id": "64f0c2e6c9a1b1b5b0e8c999",
+    "owner_id": "64f0c2e6c9a1b1b5b0e8c123",
+    "file_path": "<server_path>",
+    "is_deleted": false,
+    "deleted_at": null,
+    "created_at": "2025-12-09T10:00:00.000Z",
+    "updated_at": "2025-12-09T10:00:00.000Z"
   },
-  "message": "File uploaded"
+  "message": "File uploaded successfully"
 }
 ```
 
@@ -559,11 +806,11 @@ Renommer ou déplacer un fichier.
 ```json
 {
   "name": "nouveau_nom.pdf",
-  "folder_id": 42
+  "folder_id": "64f0c2e6c9a1b1b5b0e8c999"
 }
 ```
 
-**Réponse** (200) : Fichier mis à jour
+**Réponse** (200) : `{ "data": { ... }, "message": "File updated" }`
 
 ---
 
@@ -573,9 +820,12 @@ Supprimer un fichier (corbeille).
 
 **Authentification** : Requise
 
-**Réponse** (204) : Pas de contenu
+**Réponse** (200) :
+```json
+{ "message": "File deleted" }
+```
 
-**Notes** : Soft delete - peut être restauré via `/files/:id/restore`
+**Notes** : soft delete au premier DELETE ; suppression définitive si déjà en corbeille.
 
 ---
 
@@ -585,7 +835,10 @@ Restaurer un fichier supprimé.
 
 **Authentification** : Requise
 
-**Réponse** (200) : Fichier restauré
+**Réponse** (200) :
+```json
+{ "message": "File restored" }
+```
 
 **Erreurs possibles** :
 - 404 : Fichier non trouvé dans la corbeille
@@ -597,7 +850,16 @@ Restaurer un fichier supprimé.
 
 Télécharger un fichier.
 
-**Authentification** : Requise (sauf si accès via lien public)
+**Authentification** : Requise (sauf accès via partage public)
+
+Accès public (partage) :
+- `?token=<public_token>`
+- `&password=<password>` si protégé
+
+Accès avec JWT en query (recommandé) :
+- `?access_token=<access_token>`
+
+Note : `token` est aussi utilisé par les partages publics ; pour éviter les ambiguïtés, utilisez `access_token` pour un JWT.
 
 **Réponse** (200) : Fichier en streaming
 
@@ -609,21 +871,16 @@ Télécharger un fichier.
 
 Prévisualiser un fichier (image, PDF, texte).
 
-**Authentification** : Requise
+**Authentification** :
+- propriétaire via JWT (header ou `access_token`), ou
+- via partage public (`token=<public_token>` + `password` optionnel).
 
-**Query Parameters** :
-- `size` : `small`, `medium`, `large` (pour images)
+**Réponse** (200) : flux binaire `inline` (pas du JSON) pour :
+- images (`image/*`)
+- PDF (`application/pdf`)
+- fichiers texte (ex: `text/*`, `application/json`, `application/xml`, `application/yaml`, `application/javascript`, ...)
 
-**Réponse** (200) :
-```json
-{
-  "data": {
-    "content": "base64_encoded_image_or_text",
-    "mime_type": "image/jpeg",
-    "size": 1024
-  }
-}
-```
+**Réponse** (400) : si le type n'est pas prévisualisable.
 
 **Types supportés** :
 - Images : JPG, PNG, GIF, WebP
@@ -636,16 +893,36 @@ Prévisualiser un fichier (image, PDF, texte).
 
 Streamer un fichier audio/vidéo.
 
-**Authentification** : Requise
+**Authentification** :
+- propriétaire via JWT (header ou `access_token`), ou
+- via partage public (`token=<public_token>` + `password` optionnel).
 
-**Query Parameters** :
-- `range` : HTTP Range Header (optionnel, pour seek)
+**Headers** :
+- `Range: bytes=<start>-<end>` (optionnel) pour le seek
 
 **Réponse** (200 ou 206) :
 - 200 : Streaming complet
 - 206 : Partial content (seek)
 
 **Content-Type** : Basé sur le fichier
+
+---
+
+#### GET `/files/trash`
+
+Lister les fichiers supprimés (corbeille).
+
+**Authentification** : Requise
+
+**Réponse** (200) :
+```json
+{
+  "data": {
+    "items": [ { "id": "...", "name": "...", "deleted_at": "..." } ],
+    "total": 1
+  }
+}
+```
 
 ---
 
@@ -660,7 +937,7 @@ Générer un lien public pour partager un fichier ou dossier.
 **Body** :
 ```json
 {
-  "file_id": 123,
+  "file_id": "64f0c2e6c9a1b1b5b0e8caaa",
   "password": "secure_pass",
   "expires_at": "2025-12-31T23:59:59Z"
 }
@@ -674,13 +951,21 @@ Générer un lien public pour partager un fichier ou dossier.
 ```json
 {
   "data": {
-    "id": 456,
-    "token": "abc123xyz...",
-    "share_url": "https://supfile.com/s/abc123xyz",
-    "expires_at": "2025-12-31T23:59:59Z",
-    "created_at": "2025-12-09T10:00:00Z"
+    "id": "64f0c2e6c9a1b1b5b0e8cddd",
+    "file_id": "64f0c2e6c9a1b1b5b0e8caaa",
+    "folder_id": null,
+    "created_by_id": "64f0c2e6c9a1b1b5b0e8c123",
+    "share_type": "public",
+    "public_token": "<hex>",
+    "requires_password": true,
+    "expires_at": "2025-12-31T23:59:59.000Z",
+    "is_active": true,
+    "access_count": 0,
+    "created_at": "2025-12-09T10:00:00.000Z",
+    "updated_at": "2025-12-09T10:00:00.000Z",
+    "share_url": "https://<frontend>/share/<public_token>"
   },
-  "message": "Share link created"
+  "message": "Partage créé"
 }
 ```
 
@@ -695,12 +980,12 @@ Partager un dossier avec un autre utilisateur inscrit.
 **Body** :
 ```json
 {
-  "folder_id": 42,
-  "user_id": 2
+  "folder_id": "64f0c2e6c9a1b1b5b0e8cbbb",
+  "shared_with_user_id": "64f0c2e6c9a1b1b5b0e8c222"
 }
 ```
 
-**Réponse** (201) : Partage créé
+**Réponse** (201) : `{ "data": { ...share }, "message": "Partage créé" }`
 
 **Erreurs possibles** :
 - 404 : Utilisateur ou dossier non trouvé
@@ -721,21 +1006,39 @@ Accéder à un lien public partagé (sans authentification).
 ```json
 {
   "data": {
-    "file_or_folder": {
-      "id": 123,
-      "name": "photo.jpg",
-      "size": 2048000,
-      "created_at": "2025-12-09T10:00:00Z"
-    },
-    "download_token": "xyz789..."  // Token temporaire pour download
+    "share": { "id": "...", "public_token": "...", "requires_password": false, "expires_at": null },
+    "resource": { "id": "...", "type": "file", "name": "photo.jpg", "mime_type": "image/jpeg" }
   }
 }
 ```
 
 **Erreurs possibles** :
 - 404 : Lien inexistant
-- 401 : Mot de passe requis/incorrect
+- 401 : Mot de passe requis/incorrect (`requires_password: true` peut être renvoyé)
 - 403 : Lien expiré
+
+---
+
+#### GET `/share`
+
+Lister les partages.
+
+**Authentification** : Requise
+
+**Query Parameters** :
+- `type` : `public` ou `internal` (optionnel)
+
+**Réponse** (200) : `{ "data": [ ...shares ] }`
+
+---
+
+#### DELETE `/share/:id`
+
+Désactiver un partage (le créateur seulement).
+
+**Authentification** : Requise
+
+**Réponse** (200) : `{ "message": "Share deactivated" }`
 
 ---
 
@@ -748,42 +1051,41 @@ Rechercher des fichiers et dossiers.
 **Authentification** : Requise
 
 **Query Parameters** :
-- `q` : Terme de recherche (obligatoire)
-- `type` : `file`, `folder` (optionnel)
+- `q` : Terme de recherche (optionnel mais recommandé)
+- `type` : `file`, `folder`, `all` (optionnel)
 - `mime_type` : Filtrer par MIME type (optionnel)
-- `from_date` : Date de début (optionnel, ISO format)
-- `to_date` : Date de fin (optionnel, ISO format)
-- `min_size` : Taille minimale en bytes (optionnel)
-- `max_size` : Taille maximale en bytes (optionnel)
-- `skip` : Offset (optionnel)
-- `limit` : Limite (optionnel)
+- `date_from` : Date de début (optionnel)
+- `date_to` : Date de fin (optionnel)
+- `sort_by`, `sort_order`, `skip`, `limit` : pagination/tri (mêmes règles que `/files`)
 
 **Exemples** :
 ```
 GET /search?q=rapport&type=file&mime_type=application/pdf
-GET /search?q=2024&from_date=2024-01-01&to_date=2024-12-31
-GET /search?q=.jpg&type=file&min_size=1000000&max_size=5000000
+GET /search?q=2024&date_from=2024-01-01&date_to=2024-12-31
+GET /search?q=.jpg&type=file
 ```
 
 **Réponse** (200) :
 ```json
 {
   "data": {
-    "results": [
+    "items": [
       {
-        "id": 1,
+        "id": "64f0c2e6c9a1b1b5b0e8caaa",
         "name": "rapport_2024.pdf",
         "type": "file",
         "mime_type": "application/pdf",
         "size": 512000,
-        "folder_path": "/Documents/Annuel",
-        "created_at": "2025-12-09T10:00:00Z"
+        "updated_at": "2025-12-09T10:00:00.000Z"
       }
     ],
     "pagination": {
       "total": 5,
+      "totalFiles": 4,
+      "totalFolders": 1,
       "skip": 0,
-      "limit": 50
+      "limit": 50,
+      "hasMore": false
     }
   }
 }
@@ -803,49 +1105,32 @@ Récupérer les statistiques du dashboard utilisateur.
 ```json
 {
   "data": {
-    "user_quota": {
+    "quota": {
       "used": 5368709120,
       "limit": 32212254720,
-      "percentage": 16.66,
-      "available": 26844545600
+      "available": 26843545600,
+      "percentage": 17,
+      "percentageRaw": 16.6667
     },
-    "storage_breakdown": [
-      {
-        "type": "video",
-        "size": 3221225472,
-        "count": 15,
-        "percentage": 60
-      },
-      {
-        "type": "image",
-        "size": 1073741824,
-        "count": 250,
-        "percentage": 20
-      },
-      {
-        "type": "document",
-        "size": 536870912,
-        "count": 45,
-        "percentage": 10
-      },
-      {
-        "type": "other",
-        "size": 536870912,
-        "count": 100,
-        "percentage": 10
-      }
-    ],
+    "breakdown": {
+      "images": 1073741824,
+      "videos": 3221225472,
+      "documents": 536870912,
+      "audio": 0,
+      "other": 536870912,
+      "total": 5368709120
+    },
     "recent_files": [
       {
-        "id": 1,
+        "id": "64f0c2e6c9a1b1b5b0e8caaa",
         "name": "video.mp4",
-        "type": "file",
         "size": 1073741824,
-        "modified_at": "2025-12-09T15:30:00Z"
+        "mime_type": "video/mp4",
+        "updated_at": "2025-12-09T15:30:00.000Z"
       }
     ],
-    "shared_count": 12,
-    "public_links_count": 5
+    "total_files": 42,
+    "total_folders": 10
   }
 }
 ```
@@ -854,17 +1139,21 @@ Récupérer les statistiques du dashboard utilisateur.
 
 ## Rate Limiting
 
-Pour éviter les abus :
+Le rate limiting est appliqué côté backend (valeurs configurables via variables d'environnement).
 
-| Endpoint | Limite | Fenêtre |
-|----------|--------|---------|
-| `/auth/login` | 5 tentatives | 15 minutes |
-| `/auth/signup` | 3 compte/heure | 1 heure |
-| `/files/upload` | 100 files/heure | 1 heure |
-| Autres GET | 1000 req/heure | 1 heure |
-| Autres POST/PATCH/DELETE | 500 req/heure | 1 heure |
+Valeurs par défaut (code actuel) :
 
-**En cas de dépassement** : Réponse 429 Too Many Requests
+| Groupe | Limite | Fenêtre |
+|-------|--------|---------|
+| Global (`generalLimiter`) | 2000 req / IP | 15 min |
+| Auth (`authLimiter`) | 30 tentatives (échecs) / IP | 15 min |
+| Upload (`uploadLimiter`) | 50 uploads / IP | 1 h |
+| Upload chunks (`chunkUploadLimiter`) | 5000 req / IP | 1 h |
+| Partage (`shareLimiter`) | 20 créations / IP | 1 h |
+| Emails sensibles (`emailSensitiveLimiter`) | 5 req / IP | 1 h |
+| Reset flow (`resetFlowLimiter`) | 20 req / IP | 1 h |
+
+**En cas de dépassement** : 429 avec un JSON `{ error: { message, status: 429 } }`.
 
 ---
 

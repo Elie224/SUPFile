@@ -209,8 +209,8 @@ sequenceDiagram
     Auth->>Users: create(user)
     Users->>DB: insertOne(users)
     DB-->>Users: user
-    Auth-->>API: JWT + refresh token (session)
-    API-->>Client: 201 + tokens + profil
+    Auth-->>API: Créer compte + déclencher email de vérification
+    API-->>Client: 201 + message (pas de tokens)
 ```
 
 ### 3.2 Téléchargement d’un dossier en ZIP (streaming)
@@ -234,7 +234,7 @@ sequenceDiagram
     API->>Auth: Extraire/valider access_token (Header ou query)
     Auth-->>API: userId OK
     API->>Lim: Acquire slot (max concurrent ZIP)
-    Lim-->>API: Allowed or 429 Retry-After
+    Lim-->>API: Allowed ou 503 (retryAfterSeconds)
     API->>Ctrl: downloadFolderZip(req,res)
     Ctrl->>Folders: Vérifier ownership + métadonnées dossier
     Ctrl->>Folders: Lister sous-dossiers (pagination)
@@ -375,26 +375,44 @@ Pour le détail des routes et paramètres, voir **`docs/API.md`**. Résumé des 
 | `POST /api/auth/signup` | Inscription |
 | `POST /api/auth/login` | Connexion |
 | `POST /api/auth/refresh` | Rafraîchir le token |
-| `GET/PATCH /api/auth/me` | Profil utilisateur |
+| `GET /api/users/me` | Profil utilisateur |
+| `PATCH /api/users/me` | Modifier email / display_name |
+| `POST /api/users/me/avatar` | Modifier avatar |
+| `PATCH /api/users/me/preferences` | Préférences (theme/langue/notifications) |
 | `POST /api/auth/forgot-password` | Mot de passe oublié |
 | `POST /api/auth/reset-password` | Réinitialisation mot de passe |
 | `GET /api/folders` | Lister dossiers (racine ou enfants) |
+| `GET /api/folders/all` | Lister tous les dossiers |
+| `GET /api/folders/trash` | Corbeille dossiers |
+| `GET /api/folders/:id/download` | Télécharger un dossier en ZIP |
 | `POST /api/folders` | Créer dossier |
 | `PATCH /api/folders/:id` | Renommer / déplacer dossier |
 | `DELETE /api/folders/:id` | Supprimer dossier |
+| `POST /api/folders/:id/restore` | Restaurer dossier |
 | `POST /api/files/upload` | Upload fichier(s) |
+| `POST /api/files/upload/init` | Init upload chunké |
+| `GET /api/files/upload/status` | Statut upload chunké |
+| `POST /api/files/upload/chunk` | Upload chunk |
+| `POST /api/files/upload/complete` | Finaliser upload chunké |
 | `GET /api/files` | Lister fichiers d’un dossier |
 | `GET /api/files/:id/download` | Télécharger |
 | `GET /api/files/:id/preview` | Prévisualisation (image, PDF, texte) |
 | `GET /api/files/:id/stream` | Streaming audio/vidéo |
 | `PATCH /api/files/:id` | Renommer / déplacer |
 | `DELETE /api/files/:id` | Supprimer (corbeille) |
-| `GET/POST /api/trash` | Corbeille (liste, restaurer, purger) |
+| `GET /api/files/trash` | Corbeille fichiers |
+| `POST /api/files/:id/restore` | Restaurer fichier |
 | `POST /api/share/public` | Créer partage public |
 | `GET /api/share/:token` | Accès lien public |
 | `POST /api/share/internal` | Partager avec un utilisateur |
+| `GET /api/share` | Lister les partages |
+| `DELETE /api/share/:id` | Désactiver un partage |
 | `GET /api/search` | Recherche unifiée + filtres |
 | `GET /api/dashboard` | Tableau de bord (quota, répartition, récents) |
+| `GET /api/2fa/status` | Statut 2FA |
+| `POST /api/2fa/setup` | Setup 2FA |
+| `POST /api/2fa/verify` | Vérifier 2FA |
+| `POST /api/2fa/disable` | Désactiver 2FA |
 | `GET /api/admin/*` | Routes administration (rôle admin) |
 
 ---
