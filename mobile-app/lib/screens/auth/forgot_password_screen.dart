@@ -239,6 +239,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: const Text('Retour à la connexion'),
           ),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () => context.go('/reset-password'),
+          child: const Text('J\'ai déjà un token'),
+        ),
       ],
     );
   }

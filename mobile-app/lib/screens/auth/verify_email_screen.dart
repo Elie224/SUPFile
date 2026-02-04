@@ -16,6 +16,7 @@ class VerifyEmailScreen extends StatefulWidget {
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _tokenController = TextEditingController();
   String _status = 'loading';
   String _message = '';
   bool _resendLoading = false;
@@ -24,21 +25,29 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
-    _verifyEmail();
+    _tokenController.text = widget.token ?? '';
+    if ((widget.token ?? '').trim().isNotEmpty) {
+      _verifyEmail();
+    } else {
+      _status = 'input';
+      _message =
+          'Collez votre token de vérification (ou utilisez le lien reçu par email).';
+    }
   }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _tokenController.dispose();
     super.dispose();
   }
 
   Future<void> _verifyEmail() async {
-    final token = widget.token;
-    if (token == null || token.isEmpty) {
+    final token = _tokenController.text.trim();
+    if (token.isEmpty) {
       setState(() {
-        _status = 'error';
-        _message = 'Lien invalide : token manquant.';
+        _status = 'input';
+        _message = 'Token manquant.';
       });
       return;
     }
@@ -151,7 +160,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SupFileLogo(size: 72, showIcon: true, useGradient: true),
+                  const SupFileLogo(
+                      size: 72, showIcon: true, useGradient: true),
                   const SizedBox(height: 12),
                   Text(
                     'Vérification de l\'email',
@@ -164,7 +174,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     const SizedBox(height: 12),
                     const Text('Vérification en cours...'),
                   ] else if (_status == 'success') ...[
-                    const Icon(Icons.check_circle, color: Colors.green, size: 48),
+                    const Icon(Icons.check_circle,
+                        color: Colors.green, size: 48),
                     const SizedBox(height: 12),
                     Text(
                       _message,
@@ -174,12 +185,27 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     const SizedBox(height: 8),
                     const Text('Redirection vers la connexion...'),
                   ] else ...[
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 48),
                     const SizedBox(height: 12),
                     Text(
                       _message,
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _tokenController,
+                      decoration: const InputDecoration(
+                        labelText: 'Token de vérification',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _verifyEmail,
+                      icon: const Icon(Icons.verified_user),
+                      label: const Text('Vérifier'),
                     ),
                     const SizedBox(height: 16),
                     TextField(

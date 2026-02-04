@@ -20,6 +20,9 @@ import '../screens/trash/trash_screen.dart';
 import '../screens/admin/admin_screen.dart';
 import '../screens/intro/intro_screen.dart';
 import '../screens/offline/offline_screen.dart';
+import '../screens/legal/privacy_policy_screen.dart';
+import '../screens/legal/terms_of_use_screen.dart';
+import '../screens/legal/legal_notice_screen.dart';
 import '../providers/auth_provider.dart';
 import '../models/file.dart';
 
@@ -63,6 +66,18 @@ class AppRouter {
           },
         ),
         GoRoute(
+          path: '/politique-confidentialite',
+          builder: (context, state) => const PrivacyPolicyScreen(),
+        ),
+        GoRoute(
+          path: '/conditions-utilisation',
+          builder: (context, state) => const TermsOfUseScreen(),
+        ),
+        GoRoute(
+          path: '/mentions-legales',
+          builder: (context, state) => const LegalNoticeScreen(),
+        ),
+        GoRoute(
           path: '/dashboard',
           builder: (context, state) => const DashboardScreen(),
         ),
@@ -91,10 +106,12 @@ class AppRouter {
                 body: Center(child: Text('Aucune image disponible')),
               );
             }
-            final images = imagesJson.map((json) => FileItem.fromJson(json)).toList();
+            final images =
+                imagesJson.map((json) => FileItem.fromJson(json)).toList();
             return ImageGalleryScreen(
               images: images,
-              initialIndex: initialIndex != null ? int.tryParse(initialIndex) ?? 0 : 0,
+              initialIndex:
+                  initialIndex != null ? int.tryParse(initialIndex) ?? 0 : 0,
             );
           },
         ),
@@ -170,25 +187,32 @@ class AppRouter {
             state.matchedLocation == '/signup' ||
             state.matchedLocation == '/forgot-password' ||
             state.matchedLocation.startsWith('/reset-password') ||
-            state.matchedLocation.startsWith('/verify-email');
-        final isPublicShareRoute = state.matchedLocation.startsWith('/share/') && 
-                                   state.pathParameters.containsKey('token');
-        
+            state.matchedLocation.startsWith('/verify-email') ||
+            state.matchedLocation == '/politique-confidentialite' ||
+            state.matchedLocation == '/conditions-utilisation' ||
+            state.matchedLocation == '/mentions-legales';
+        final isPublicShareRoute =
+            state.matchedLocation.startsWith('/share/') &&
+                state.pathParameters.containsKey('token');
+
         // Permettre l'accès aux liens de partage publics sans authentification
         if (isPublicShareRoute) {
           return null;
         }
-        
+
         if (!isLoggedIn && !isPublicRoute) {
           return '/login';
         }
 
-        if (isLoggedIn && (state.matchedLocation == '/' || state.matchedLocation == '/login' ||
-            state.matchedLocation == '/signup' || state.matchedLocation == '/forgot-password' ||
-            state.matchedLocation.startsWith('/reset-password'))) {
+        if (isLoggedIn &&
+            (state.matchedLocation == '/' ||
+                state.matchedLocation == '/login' ||
+                state.matchedLocation == '/signup' ||
+                state.matchedLocation == '/forgot-password' ||
+                state.matchedLocation.startsWith('/reset-password'))) {
           return '/dashboard';
         }
-        
+
         return null;
       },
     );

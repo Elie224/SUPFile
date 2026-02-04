@@ -18,6 +18,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  final _tokenController = TextEditingController();
   final ApiService _apiService = ApiService();
   bool _loading = false;
   bool _verifying = true;
@@ -31,25 +32,39 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _verifyToken();
+    _tokenController.text = widget.token ?? '';
+    if (_tokenController.text.trim().isNotEmpty) {
+      _verifyToken();
+    } else {
+      _verifying = false;
+      _tokenValid = false;
+      _error = null;
+    }
   }
 
   @override
   void dispose() {
     _passwordController.dispose();
     _confirmController.dispose();
+    _tokenController.dispose();
     super.dispose();
   }
 
   Future<void> _verifyToken() async {
-    final token = widget.token;
-    if (token == null || token.isEmpty) {
+    final token = _tokenController.text.trim();
+    if (token.isEmpty) {
       setState(() {
         _verifying = false;
-        _error = 'Lien de réinitialisation invalide.';
+        _tokenValid = false;
+        _error = 'Token manquant.';
       });
       return;
     }
+
+    setState(() {
+      _verifying = true;
+      _error = null;
+    });
 
     try {
       final response = await _apiService.verifyResetToken(token);
@@ -61,7 +76,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             _tokenValid = data['valid'] == true;
             _tokenEmail = data['email']?.toString();
             if (!_tokenValid) {
-              _error = 'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande.';
+              _error =
+                  'Ce lien a expiré (15 minutes) ou est invalide. Refaites une demande.';
             }
           });
         }
@@ -97,8 +113,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
-    final token = widget.token;
-    if (token == null || token.isEmpty) {
+    final token = _tokenController.text.trim();
+    if (token.isEmpty) {
       setState(() {
         _error = 'Token manquant';
         _loading = false;
@@ -222,80 +238,133 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
             const SizedBox(height: 16),
           ],
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              labelText: 'Nouveau mot de passe',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) return 'Mot de passe requis';
-              if (!InputValidator.isValidPassword(value)) {
-                return '8 caractères min., une majuscule et un chiffre';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _confirmController,
-            obscureText: _obscureConfirm,
-            decoration: InputDecoration(
-              labelText: 'Confirmer le mot de passe',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirm ? Icons.visibility : Icons.visibility_off,
-                ),
-                onPressed: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-            ),
-            validator: (value) {
-              if (value != _passwordController.text) {
-                return 'Les mots de passe ne correspondent pas';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _loading ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppConstants.supinfoPurple,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          if (!_tokenValid) ...[
+            TextFormField(
+              controller: _tokenController,
+              decoration: const InputDecoration(
+                labelText: 'Token de réinitialisation',
+                prefixIcon: Icon(Icons.vpn_key_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
                 ),
               ),
-              child: _loading
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Réinitialiser le mot de passe'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Token requis';
+                }
+                return null;
+              },
             ),
-          ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _verifying ? null : _verifyToken,
+                icon: _verifying
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.verified),
+                label: const Text('Vérifier le token'),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (!_tokenValid)
+            Text(
+              'Astuce : le lien reçu par email expire au bout de 15 minutes.',
+              style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                  fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          if (!_tokenValid) const SizedBox(height: 16),
+          if (!_tokenValid)
+            TextButton(
+              onPressed: () => context.go('/forgot-password'),
+              child: const Text('Refaire une demande'),
+            ),
+          if (!_tokenValid) const SizedBox(height: 8),
+          if (_tokenValid) ...[
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Nouveau mot de passe',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty)
+                  return 'Mot de passe requis';
+                if (!InputValidator.isValidPassword(value)) {
+                  return '8 caractères min., une majuscule et un chiffre';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmController,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Confirmer le mot de passe',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+              ),
+              validator: (value) {
+                if (value != _passwordController.text) {
+                  return 'Les mots de passe ne correspondent pas';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.supinfoPurple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _loading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Réinitialiser le mot de passe'),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => context.go('/login'),

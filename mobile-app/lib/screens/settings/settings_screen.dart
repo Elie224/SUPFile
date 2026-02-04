@@ -73,19 +73,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _displayNameController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _updateProfile() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.user;
-    
+
     setState(() {
       _isUpdatingProfile = true;
     });
 
     try {
       await _apiService.updateProfile(
-        email: _emailController.text.trim() != currentUser?.email 
-            ? _emailController.text.trim() 
+        email: _emailController.text.trim() != currentUser?.email
+            ? _emailController.text.trim()
             : null,
         displayName: _displayNameController.text.trim().isNotEmpty
             ? _displayNameController.text.trim()
@@ -116,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
     }
   }
-  
+
   void _showEditProfileDialog() {
     showDialog(
       context: context,
@@ -153,11 +153,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: _isUpdatingProfile ? null : () async {
-              await _updateProfile();
-              if (!context.mounted) return;
-              Navigator.pop(context);
-            },
+            onPressed: _isUpdatingProfile
+                ? null
+                : () async {
+                    await _updateProfile();
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                  },
             child: _isUpdatingProfile
                 ? const SizedBox(
                     width: 20,
@@ -190,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (image != null) {
         final file = File(image.path);
-        
+
         // Vérifier la taille
         final fileSize = await file.length();
         if (fileSize > AppConstants.maxImageSize) {
@@ -286,11 +288,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
+
         _currentPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
-        
+
         Navigator.pop(context); // Fermer le dialogue
       }
     } catch (e) {
@@ -326,7 +328,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                      _obscureCurrentPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -345,7 +349,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                      _obscureNewPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -364,7 +370,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                      _obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -521,17 +529,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (response.statusCode == 200) {
                     Navigator.pop(ctx);
                     setState(() => _twoFactorEnabled = true);
-                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    final authProvider =
+                        Provider.of<AuthProvider>(context, listen: false);
                     await authProvider.refreshUser();
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Double authentification activée'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      const SnackBar(
+                        content: Text('Double authentification activée'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
                   } else {
-                    final msg = response.data['error']?['message'] ?? 'Code invalide';
+                    final msg =
+                        response.data['error']?['message'] ?? 'Code invalide';
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(msg), backgroundColor: Colors.red),
                     );
@@ -584,8 +594,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : () async {
                         final screenContext = this.context;
                         final messenger = ScaffoldMessenger.of(screenContext);
-                        final authProvider =
-                            Provider.of<AuthProvider>(screenContext, listen: false);
+                        final authProvider = Provider.of<AuthProvider>(
+                            screenContext,
+                            listen: false);
 
                         final password = passwordController.text;
                         if (password.isEmpty) return;
@@ -603,7 +614,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           if (!mounted) return;
                           messenger.showSnackBar(
                             const SnackBar(
-                              content: Text('Double authentification désactivée'),
+                              content:
+                                  Text('Double authentification désactivée'),
                               backgroundColor: Colors.green,
                             ),
                           );
@@ -680,7 +692,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: Colors.blue,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                            child: const Icon(Icons.camera_alt,
+                                size: 20, color: Colors.white),
                           ),
                         ),
                       ],
@@ -705,7 +718,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          
+
           // Thème (persisté côté API pour synchronisation multi-appareils)
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
@@ -730,9 +743,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          
+
           const Divider(),
-          
+
           // Quota
           if (user != null)
             ListTile(
@@ -749,7 +762,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 '${(user.quotaUsed / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB / ${(user.quotaLimit / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB',
               ),
             ),
-          
+
           const Divider(),
 
           ListTile(
@@ -757,6 +770,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Gérer mes partages'),
             subtitle: const Text('Voir et désactiver les liens'),
             onTap: () => context.go('/shares'),
+          ),
+
+          const Divider(),
+
+          // Pages légales
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Politique de confidentialité'),
+            onTap: () => context.go('/politique-confidentialite'),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Conditions d\'utilisation'),
+            onTap: () => context.go('/conditions-utilisation'),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Mentions légales'),
+            onTap: () => context.go('/mentions-legales'),
           ),
 
           const Divider(),
