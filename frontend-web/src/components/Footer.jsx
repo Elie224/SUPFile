@@ -1,8 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Footer() {
+  const location = useLocation();
   const currentYear = new Date().getFullYear();
+  const from = `${location.pathname}${location.search}${location.hash}`;
 
   return (
     <footer style={{
@@ -21,15 +23,15 @@ export default function Footer() {
       }}>
         © {currentYear} SUPFile. Tous droits réservés.
         {' · '}
-        <Link to="/politique-confidentialite" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+        <Link to="/politique-confidentialite" state={{ from }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
           Politique de confidentialité
         </Link>
         {' · '}
-        <Link to="/conditions-utilisation" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+        <Link to="/conditions-utilisation" state={{ from }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
           Conditions d'utilisation
         </Link>
         {' · '}
-        <Link to="/mentions-legales" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+        <Link to="/mentions-legales" state={{ from }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
           Mentions légales
         </Link>
       </div>

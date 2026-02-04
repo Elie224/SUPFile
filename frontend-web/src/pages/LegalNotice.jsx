@@ -1,12 +1,32 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 
 export default function LegalNotice() {
   const updatedAt = '2026-02-04';
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+
+  const handleBackToApp = () => {
+    if (typeof from === 'string' && from.startsWith('/')) {
+      navigate(from);
+      return;
+    }
+    navigate('/');
+  };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <main className="container" style={{ flex: 1, maxWidth: '900px', padding: '24px 16px' }}>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary mb-3"
+          onClick={handleBackToApp}
+          style={{ borderColor: 'var(--primary-color)', color: 'var(--primary-color)', fontWeight: 600 }}
+        >
+          Retour à l’application
+        </button>
         <h1 className="h3 mb-3">Mentions légales</h1>
         <p className="text-muted" style={{ fontSize: '14px' }}>Dernière mise à jour : {updatedAt}</p>
 
