@@ -171,31 +171,25 @@ classDiagram
         +Boolean is_revoked
     }
 
-    class BlockedEmail {
-        +ObjectId _id
-        +String email
-        +ObjectId blocked_by
-    }
-
     User "1" o-- "0..*" Folder : owns
-    User "1" o-- "0..*" File : owns
     User "1" --> "0..*" Session : sessions
 
     Folder "0..1" --> "0..*" Folder : children
     Folder "1" o-- "0..*" File : contains
 
     User "1" --> "0..*" Share : creates
-    Share "0..1" -- "0..*" File : file_id
-    Share "0..1" -- "0..*" Folder : folder_id
-    Share "0..1" -- "0..*" User : shared_with_user_id
 
-    User "0..1" --> "0..*" BlockedEmail : blocked_by
-
-    note for Share "Contrainte: la Share cible soit un File, soit un Folder."
+    note for Share "Contrainte: une Share cible soit un File (file_id), soit un Folder (folder_id)."
     note for File "Binaire stocke sur le systeme de fichiers (uploads/). La BDD garde les metadonnees."
 ```
 
 Champs secondaires (profil, preferences, reset password, timestamps, etc.) volontairement omis pour garder le diagramme lisible.
+
+Lecture rapide :
+- Un `User` possede une arborescence de `Folder`.
+- Un `Folder` peut contenir des sous-dossiers (relation `children`) et des `File`.
+- Un `User` cree des `Share` et possede des `Session` (refresh tokens).
+- Les champs `file_id`, `folder_id` et `shared_with_user_id` (pour les partages internes) existent mais ne sont pas relies par des fleches ici pour eviter un diagramme surcharge.
 
 ---
 
