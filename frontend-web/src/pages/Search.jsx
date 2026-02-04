@@ -3,7 +3,6 @@ import { dashboardService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useDebounce } from '../utils/debounce';
-import offlineDB from '../services/offlineDB';
 import { formatBytes } from '../utils/storageUtils';
 
 export default function Search() {
@@ -19,7 +18,6 @@ export default function Search() {
     date_from: '',
     date_to: '',
   });
-  const [fromCache, setFromCache] = useState(false);
 
   // Debounce de la requête de recherche (300ms)
   const debouncedQuery = useDebounce(query, 300);
@@ -48,33 +46,10 @@ export default function Search() {
     
     setLoading(true);
     setError('');
-    setFromCache(false);
-
-    if (typeof navigator !== 'undefined' && !navigator.onLine && hasQuery) {
-      try {
-        await offlineDB.init();
-        const allFiles = await offlineDB.getAllFiles();
-        const allFolders = await offlineDB.getAllFolders();
-        const q = searchQuery.trim().toLowerCase();
-        const fileItems = allFiles.filter(f => (f.name || '').toLowerCase().includes(q)).map(f => ({ ...f, type: 'file' }));
-        const folderItems = allFolders.filter(f => (f.name || '').toLowerCase().includes(q)).map(f => ({ ...f, type: 'folder' }));
-        let items = [];
-        if (filters.type === 'files') items = fileItems;
-        else if (filters.type === 'folders') items = folderItems;
-        else items = [...folderItems, ...fileItems];
-        setResults(items);
-        setFromCache(true);
-      } catch (e) {
-        console.warn('[Search] Cache hors ligne:', e);
-        setError(t('searchError') || 'Hors ligne. La recherche utilise le cache local.');
-      }
-      setLoading(false);
-      return;
-    }
 
     try {
       const searchFilters = {
-        type: filters.type === 'files' ? 'file' : filters.type === 'folders' ? 'folder' : filters.type,
+        type: filters.type === 'all' ? undefined : filters.type,
         mime_type: filters.mime_type || undefined,
         date_from: filters.date_from || undefined,
         date_to: filters.date_to || undefined,
@@ -142,12 +117,6 @@ export default function Search() {
 
   return (
     <div className="container-fluid p-2 p-sm-3 p-md-4" style={{ maxWidth: '1400px', margin: '0 auto' }}>
-      {fromCache && (
-        <div className="alert alert-warning mb-3 d-flex align-items-center gap-2" role="alert" style={{ fontSize: '14px' }}>
-          <i className="bi bi-cloud-download"></i>
-          <span className="small">Recherche effectuée dans le cache local (mode hors ligne).</span>
-        </div>
-      )}
       <h1 className="h2 mb-3 mb-md-4 d-flex align-items-center gap-2" style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)' }}>
         <i className="bi bi-search text-primary"></i>
         {t('search') || 'Recherche'}

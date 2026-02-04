@@ -90,7 +90,7 @@ export default function Settings() {
         setUser({ ...userData, preferences: userData.preferences });
       }
     } catch (err) {
-      // Hors ligne ou erreur réseau : afficher les données du store pour permettre la navigation
+      // Erreur réseau/serveur : afficher les données du store si disponibles
       if (user) {
         const storedUser = user;
         setEmail(storedUser.email || '');
@@ -99,7 +99,7 @@ export default function Settings() {
         setTwoFactorEnabled(!!storedUser.two_factor_enabled);
         setAccountCreated('');
         setLastLogin('Jamais');
-        showMessage('', 'Données en cache (hors ligne). Activer la 2FA nécessite une connexion.');
+        showMessage('warning', 'Impossible de charger toutes les données. Certaines actions (ex: 2FA) peuvent nécessiter une connexion.');
       } else {
         showMessage('error', 'Erreur lors du chargement des données');
       }

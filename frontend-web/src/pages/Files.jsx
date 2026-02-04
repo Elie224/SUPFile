@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fileService, folderService, shareService, userService } from '../services/api';
-import { offlineFileService, offlineFolderService } from '../services/offlineFileService';
-import syncService from '../services/syncService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
@@ -80,14 +78,9 @@ export default function Files() {
     try {
       setLoading(true);
       setError(null);
-      const response = await offlineFileService.list(currentFolder?.id || null);
+      const response = await fileService.list(currentFolder?.id || null);
       const items = response.data.data.items || [];
-      
-      // Afficher si les données viennent du cache
-      if (response.fromCache) {
-        toast.info('📦 Données chargées depuis le cache local (mode hors ligne)');
-      }
-      
+
       setItems(items);
     } catch (err) {
       console.error('Failed to load files:', err);
@@ -392,23 +385,20 @@ export default function Files() {
             updateTask(file.name, { status: 'uploading', progress: 0 });
             result = await uploadChunkedFile(file, currentFolder?.id || null);
           } else {
-            result = await offlineFileService.upload(
-              file, 
+            const response = await fileService.upload(
+              file,
               currentFolder?.id || null,
               (percent) => {
                 progress[file.name] = percent;
                 updateTask(file.name, { progress: percent, status: 'uploading' });
               }
             );
+            result = response.data.data;
           }
           
           progress[file.name] = 100;
           updateTask(file.name, { progress: 100, status: 'complete', remainingSeconds: 0 });
           successCount++;
-          
-          if (result?.mode === 'offline') {
-            toast.info(`📦 ${file.name} sera uploadé lors de la prochaine synchronisation`);
-          }
         } catch (fileErr) {
           console.error(`Upload failed for ${file.name}:`, fileErr);
           const errorMsg = fileErr.response?.data?.error?.message || fileErr.message || t('uploadError');
@@ -600,17 +590,13 @@ export default function Files() {
     
     setCreatingFolder(true);
     try {
-      const result = await offlineFolderService.create(trimmedName, currentFolder?.id || null);
+      await folderService.create(trimmedName, currentFolder?.id || null);
       setNewFolderName('');
       setShowNewFolder(false);
       await loadFiles();
       setError(null);
-      
-      if (result.mode === 'offline') {
-        toast.info(`📦 Dossier "${trimmedName}" créé localement. Sera synchronisé en ligne.`);
-      } else {
-        toast.success(`Dossier "${trimmedName}" créé avec succès`);
-      }
+
+      toast.success(`Dossier "${trimmedName}" créé avec succès`);
     } catch (err) {
       console.error('Failed to create folder:', err);
       const errorMessage = err.response?.data?.error?.message || err.message || t('createFolderError');
@@ -661,18 +647,13 @@ export default function Files() {
     const itemType = item.type || (item.folder_id !== undefined ? 'file' : 'folder');
     setItemToDelete(null);
     try {
-      let result;
       if (itemType === 'folder') {
-        result = await offlineFolderService.delete(itemId);
+        await folderService.delete(itemId);
       } else {
-        result = await offlineFileService.delete(itemId);
+        await fileService.delete(itemId);
       }
       await loadFiles();
-      if (result.mode === 'offline') {
-        toast.info(`📦 "${itemName}" supprimé localement. Sera synchronisé en ligne.`);
-      } else {
-        toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
-      }
+      toast.success(`"${itemName}" a été supprimé avec succès. Vous pouvez le restaurer depuis la corbeille.`);
     } catch (err) {
       const errorMessage = err.response?.data?.error?.message || err.message || t('deleteError') || 'Erreur lors de la suppression';
       toast.error(errorMessage);
@@ -1089,15 +1070,10 @@ export default function Files() {
             </label>
             <button
               onClick={async () => {
-                if (navigator.onLine) {
-                  await syncService.fullSync();
-                  await loadFiles();
-                  toast.success('Synchronisation terminée');
-                } else {
-                  toast.info('Hors ligne - La synchronisation se fera automatiquement en ligne');
-                }
+                await loadFiles();
+                toast.success('Liste actualisée');
               }}
-              aria-label="Synchroniser"
+              aria-label="Actualiser"
               style={{ 
                 padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)', 
                 backgroundColor: '#9C27B0', 
@@ -1121,7 +1097,7 @@ export default function Files() {
               }}
             >
               <i className="bi bi-arrow-repeat me-2"></i>
-              Sync
+              Actualiser
             </button>
             <button
               onClick={() => setShowNewFolder(!showNewFolder)}

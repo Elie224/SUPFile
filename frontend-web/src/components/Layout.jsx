@@ -5,7 +5,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { dashboardService } from '../services/api';
 import Logo from './Logo';
 import Footer from './Footer';
-import SyncIndicator from './SyncIndicator';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuthStore();
@@ -694,9 +693,6 @@ export default function Layout({ children }) {
       <main style={{ flex: 1 }}>
         {children}
       </main>
-
-      {/* Indicateur de synchronisation */}
-      <SyncIndicator />
 
       {/* Footer */}
       <Footer />

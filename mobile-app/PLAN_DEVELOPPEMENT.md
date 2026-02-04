@@ -55,8 +55,6 @@
 #### 7. Fonctionnalités Avancées
 - [ ] Téléchargement de fichiers
 - [ ] Compression/décompression
-- [ ] Mode hors ligne (cache)
-- [ ] Synchronisation automatique
 
 ## 🎯 Priorités
 
@@ -72,8 +70,6 @@
 
 ### Phase 3 - Fonctionnalités Avancées (Priorité BASSE)
 7. Téléchargement
-8. Mode hors ligne
-9. Synchronisation
 
 ## 📝 Notes Techniques
 

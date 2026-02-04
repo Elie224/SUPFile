@@ -4,7 +4,6 @@ import { useAuthStore } from '../services/authStore';
 import { dashboardService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import StorageChart from '../components/StorageChart';
-import offlineDB from '../services/offlineDB';
 import { formatBytes, computeStorage, formatPercentage, computePartPercentage, DEFAULT_QUOTA_LIMIT_BYTES } from '../utils/storageUtils';
 
 export default function Dashboard() {
@@ -12,54 +11,21 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [fromCache, setFromCache] = useState(false);
   const [error, setError] = useState(null);
   const { t, language } = useLanguage();
 
   const loadDashboard = useCallback(async () => {
     if (typeof window !== 'undefined') console.log('[Dashboard] loadDashboard called');
     setError(null);
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      try {
-        const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout')), ms));
-        await Promise.race([offlineDB.init(), timeout(5000)]);
-        const cached = await offlineDB.getUserMeta('dashboardStats');
-        if (cached) {
-          setStats(cached);
-          setFromCache(true);
-        } else {
-          setError(t('offlineNoCache') || 'Hors ligne et aucune donnée en cache.');
-        }
-      } catch (err) {
-        console.warn('[Dashboard] Cache hors ligne indisponible:', err);
-        setError(t('offlineNoCache') || 'Hors ligne et aucune donnée en cache.');
-      }
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await dashboardService.getStats();
       const data = response.data.data;
       if (typeof window !== 'undefined') console.log('[Dashboard] GET /api/dashboard OK', data?.total_files);
       setStats(data);
-      setFromCache(false);
-      try {
-        await offlineDB.setUserMeta('dashboardStats', data);
-      } catch (e) {
-        console.warn('[Dashboard] Impossible de mettre en cache les stats:', e);
-      }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
-      const msg = err.response?.data?.error?.message || err.message || (err.isOffline ? (t('offlineNoCache') || 'Hors ligne.') : (t('errorLoadingDashboard') || 'Impossible de charger le tableau de bord.'));
+      const msg = err.response?.data?.error?.message || err.message || (t('errorLoadingDashboard') || 'Impossible de charger le tableau de bord.');
       setError(msg);
-      try {
-        const cached = await offlineDB.getUserMeta('dashboardStats');
-        if (cached) {
-          setStats(cached);
-          setFromCache(true);
-        }
-      } catch (e) {}
     } finally {
       setLoading(false);
     }
@@ -114,16 +80,6 @@ export default function Dashboard() {
 
   return (
     <div className="container-fluid p-3 p-md-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {fromCache && (
-        <div
-          className="alert alert-warning mb-3 d-flex align-items-center gap-2"
-          role="alert"
-          style={{ fontSize: '14px' }}
-        >
-          <i className="bi bi-cloud-download"></i>
-          <span>Données chargées depuis le cache local (mode hors ligne). Les chiffres peuvent ne pas être à jour.</span>
-        </div>
-      )}
       {/* En-tête */}
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h1 className="h2 mb-0 d-flex align-items-center gap-2">

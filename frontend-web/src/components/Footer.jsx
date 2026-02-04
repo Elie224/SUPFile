@@ -21,8 +21,16 @@ export default function Footer() {
       }}>
         © {currentYear} SUPFile. Tous droits réservés.
         {' · '}
-        <Link to="/offline" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
-          Mode hors ligne
+        <Link to="/politique-confidentialite" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Politique de confidentialité
+        </Link>
+        {' · '}
+        <Link to="/conditions-utilisation" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Conditions d'utilisation
+        </Link>
+        {' · '}
+        <Link to="/mentions-legales" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Mentions légales
         </Link>
       </div>
     </footer>

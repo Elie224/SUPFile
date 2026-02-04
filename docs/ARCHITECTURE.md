@@ -68,7 +68,7 @@
 - Même API REST que le web
 - Navigation native (iOS / Android)
 - Gestion des permissions (stockage, caméra)
-- Support hors ligne (cache, session persistée)
+- Session persistée (selon la configuration)
 
 ### 2.2 Logique métier (API)
 

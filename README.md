@@ -8,6 +8,7 @@ Une plateforme de stockage cloud distribuée, moderne et sécurisée, concurrent
 - [Installation et prérequis](#installation-et-prérequis)
 - [Déploiement avec Docker](#déploiement-avec-docker)
 - [Architecture générale](#architecture-générale)
+- [Pages légales](#pages-légales)
 - [Documentation API](#documentation-api)
 - [Contribuer](#contribuer)
 
@@ -185,6 +186,14 @@ docker compose down -v
 Voir **`docs/RENDU.md`** pour le détail des exigences de rendu et la checklist avant envoi.
 
 ---
+
+## 📄 Pages légales
+
+- Le client web expose des pages statiques :
+   - `/politique-confidentialite`
+   - `/conditions-utilisation`
+   - `/mentions-legales`
+- Le mode hors ligne (PWA/service worker/cache) n’est pas supporté : l’application nécessite une connexion Internet.
 
 ## 📡 Documentation API
 

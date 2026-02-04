@@ -170,14 +170,7 @@ Si quelqu’un vous envoie un **lien de partage** (ex. `https://.../share/abc123
 
 ---
 
-## 11. Mode hors ligne (web et mobile)
-
-- **Web** : si vous avez déjà visité des pages en étant connecté, certaines données sont mises en cache ; vous pouvez continuer à naviguer sans connexion (avec des limites). Les opérations en attente sont synchronisées au retour en ligne.
-- **Mobile** : l’app peut conserver la session et les données en cache ; les actions effectuées hors ligne (création de dossiers, uploads en attente, etc.) sont synchronisées lorsque la connexion revient.
-
----
-
-## 12. Récapitulatif des écrans / pages
+## 11. Récapitulatif des écrans / pages
 
 | Page / écran   | Description courte                                      |
 |----------------|---------------------------------------------------------|

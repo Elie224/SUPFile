@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fileService, folderService } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
-import offlineDB from '../services/offlineDB';
 import { formatBytes } from '../utils/storageUtils';
 
 export default function Trash() {
@@ -10,7 +9,6 @@ export default function Trash() {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [fromCache, setFromCache] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -23,18 +21,6 @@ export default function Trash() {
       setFiles([]);
       setFolders([]);
       setMessage({ type: '', text: '' });
-      setFromCache(false);
-
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        await offlineDB.init();
-        const cachedFiles = await offlineDB.getUserMeta('trashFiles');
-        const cachedFolders = await offlineDB.getUserMeta('trashFolders');
-        if (Array.isArray(cachedFiles)) setFiles(cachedFiles);
-        if (Array.isArray(cachedFolders)) setFolders(cachedFolders);
-        if (Array.isArray(cachedFiles) || Array.isArray(cachedFolders)) setFromCache(true);
-        setLoading(false);
-        return;
-      }
 
       const [filesResponse, foldersResponse] = await Promise.allSettled([
         fileService.listTrash(),
@@ -44,7 +30,6 @@ export default function Trash() {
       if (filesResponse.status === 'fulfilled' && filesResponse.value?.data?.data?.items) {
         const items = filesResponse.value.data.data.items;
         setFiles(items);
-        await offlineDB.setUserMeta('trashFiles', items);
       } else if (filesResponse.status === 'rejected') {
         console.error('Failed to load trash files:', filesResponse.reason);
       }
@@ -52,17 +37,11 @@ export default function Trash() {
       if (foldersResponse.status === 'fulfilled' && foldersResponse.value?.data?.data?.items) {
         const items = foldersResponse.value.data.data.items;
         setFolders(items);
-        await offlineDB.setUserMeta('trashFolders', items);
       } else if (foldersResponse.status === 'rejected') {
         console.error('Failed to load trash folders:', foldersResponse.reason);
       }
 
       if (filesResponse.status === 'rejected' && foldersResponse.status === 'rejected') {
-        const cachedFiles = await offlineDB.getUserMeta('trashFiles');
-        const cachedFolders = await offlineDB.getUserMeta('trashFolders');
-        if (Array.isArray(cachedFiles)) setFiles(cachedFiles);
-        if (Array.isArray(cachedFolders)) setFolders(cachedFolders);
-        if (Array.isArray(cachedFiles) || Array.isArray(cachedFolders)) setFromCache(true);
         const errorMsg = filesResponse.reason?.response?.data?.error?.message 
           || foldersResponse.reason?.response?.data?.error?.message
           || filesResponse.reason?.message 
@@ -254,13 +233,6 @@ export default function Trash() {
         <div className={`alert alert-${message.type === 'success' ? 'success' : message.type === 'warning' ? 'warning' : 'danger'} d-flex align-items-center gap-2 mb-3`} role="alert">
           <i className={`bi ${message.type === 'success' ? 'bi-check-circle-fill' : message.type === 'warning' ? 'bi-info-circle-fill' : 'bi-exclamation-triangle-fill'}`}></i>
           <span>{message.text}</span>
-        </div>
-      )}
-
-      {fromCache && (
-        <div className="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert" style={{ fontSize: '14px' }}>
-          <i className="bi bi-cloud-download"></i>
-          <span>Données chargées depuis le cache local (mode hors ligne).</span>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './services/authStore';
@@ -7,9 +7,6 @@ import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import OfflineBanner from './components/OfflineBanner';
-import syncService from './services/syncService';
-import offlineDB from './services/offlineDB';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 import { ensureDownloadContainer } from './utils/downloadBlob';
@@ -74,9 +71,11 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Intro = lazy(() => import('./pages/Intro'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
+const LegalNotice = lazy(() => import('./pages/LegalNotice'));
 // Import direct pour éviter page blanche au clic sur le lien de vérification email (chunk 404 après déploiement)
 import VerifyEmail from './pages/VerifyEmail';
-const Offline = lazy(() => import('./pages/Offline'));
 
 // Composant de chargement
 const LoadingFallback = () => (
@@ -92,41 +91,12 @@ const LoadingFallback = () => (
 
 function App() {
   const { user, accessToken, initialize } = useAuthStore();
-  const initialSyncDone = useRef(false);
 
   useEffect(() => {
     // Masquer le fallback "Chargement..." dès que l'app React est montée (évite page blanche si JS charge lentement)
     document.getElementById('app-loading')?.remove();
     initialize();
-    // Initialiser IndexedDB
-    offlineDB.init().catch(err => {
-      console.error('[App] Erreur initialisation IndexedDB:', err);
-    });
   }, [initialize]);
-
-  // Sync initiale une seule fois par session quand user+token sont disponibles (évite rafale GET /api/folders)
-  useEffect(() => {
-    if (!navigator.onLine || !user || !accessToken) {
-      if (!user) initialSyncDone.current = false;
-      return;
-    }
-    if (initialSyncDone.current) return;
-    initialSyncDone.current = true;
-    syncService.syncFromServer().catch(err => {
-      console.error('[App] Erreur synchronisation initiale:', err);
-    });
-  }, [user, accessToken]);
-
-  // Synchronisation automatique au retour de la connexion
-  useEffect(() => {
-    const handleOnline = () => {
-      if (user && accessToken) {
-        syncService.fullSync().catch(() => {});
-      }
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [user, accessToken]);
 
   useEffect(() => {
     // Appliquer le thème stocké (ou clair par défaut) une seule fois au démarrage.
@@ -134,31 +104,10 @@ function App() {
     document.documentElement.setAttribute('data-theme', storedTheme);
   }, []);
 
-  // Enregistrement du Service Worker pour le mode hors ligne (PWA)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-    // Préférer le plugin PWA s'il est disponible (build avec vite-plugin-pwa)
-    import('virtual:pwa-register')
-      .then(({ registerSW }) => {
-        registerSW({
-          onOfflineReady() {},
-          onNeedRefresh() {},
-          onRegisterError(e) {
-            console.warn('[PWA] Register error:', e);
-          }
-        });
-      })
-      .catch(() => {
-        // Fallback : enregistrer le SW minimal (public/sw-fallback.js) si le plugin PWA n'est pas installé
-        navigator.serviceWorker.register('/sw-fallback.js').catch(() => {});
-      });
-  }, []);
-
   return (
     <ErrorBoundary>
       <LanguageProvider>
         <ToastProvider>
-          <OfflineBanner />
           <BrowserRouter
           future={{
             v7_startTransition: true,
@@ -170,7 +119,9 @@ function App() {
         {/* /reset-password en premier : pas de redirection si connecté, pour que le lien email mène bien à la page */}
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/offline" element={<Offline />} />
+        <Route path="/politique-confidentialite" element={<PrivacyPolicy />} />
+        <Route path="/conditions-utilisation" element={<TermsOfUse />} />
+        <Route path="/mentions-legales" element={<LegalNotice />} />
         <Route path="/" element={<Intro />} />
         <Route path="/login" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={user && accessToken ? <Navigate to="/dashboard" replace /> : <Signup />} />
