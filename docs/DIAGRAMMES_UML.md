@@ -394,3 +394,7 @@ Pour le détail des routes et paramètres, voir **`docs/API.md`**. Résumé des 
 ---
 
 Document mis à jour : Février 2026
+
+---
+
+Voir aussi : docs/PLANNING_GANTT.md (planning / diagramme de Gantt).
