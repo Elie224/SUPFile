@@ -28,37 +28,37 @@ flowchart LR
     A2[Utilisateur inscrit]:::actor
     A3[Administrateur]:::actor
 
-    subgraph SYS[SUPFile (Système)]
+    subgraph SYS["SUPFile - Systeme"]
         direction TB
 
-        subgraph PUB[Accès public]
+        subgraph PUB["Acces public"]
             UC_LINK([Ouvrir un lien public]):::uc
-            UC_LINK_DL([Télécharger via lien]):::uc
-            UC_LINK_PREV([Prévisualiser via lien]):::uc
+            UC_LINK_DL([Telecharger via lien]):::uc
+            UC_LINK_PREV([Previsualiser via lien]):::uc
         end
 
-        subgraph AUTH[Authentification]
-            UC_SIGNUP([S’inscrire + vérifier e-mail]):::uc
+        subgraph AUTH["Authentification"]
+            UC_SIGNUP([S'inscrire + verifier e-mail]):::uc
             UC_LOGIN([Se connecter (email/mdp)]):::uc
             UC_OAUTH([Se connecter OAuth2 (Google/GitHub)]):::uc
-            UC_RESET([Mot de passe oublié / réinitialiser]):::uc
-            UC_2FA([Activer / gérer 2FA]):::uc
+            UC_RESET([Mot de passe oublie / reinitialiser]):::uc
+            UC_2FA([Activer / gerer 2FA]):::uc
         end
 
-        subgraph CORE[Espace personnel]
+        subgraph CORE["Espace personnel"]
             UC_DASH([Tableau de bord]):::uc
-            UC_FILES([Gérer fichiers & dossiers]):::uc
+            UC_FILES([Gerer fichiers et dossiers]):::uc
             UC_UPLOAD([Uploader]):::uc
-            UC_DOWNLOAD([Télécharger (fichier / dossier ZIP)]):::uc
-            UC_PREVIEW([Prévisualiser / streamer]):::uc
+            UC_DOWNLOAD([Telecharger (fichier / dossier ZIP)]):::uc
+            UC_PREVIEW([Previsualiser / streamer]):::uc
             UC_SHARE([Partager (public / interne)]):::uc
-            UC_SEARCH([Rechercher & filtrer]):::uc
-            UC_TRASH([Corbeille / restaurer / purge]):::uc
-            UC_SETTINGS([Paramètres du compte]):::uc
+            UC_SEARCH([Rechercher et filtrer]):::uc
+            UC_TRASH([Corbeille / restaurer / vider]):::uc
+            UC_SETTINGS([Parametres du compte]):::uc
         end
 
-        subgraph ADM[Administration]
-            UC_USERS([Gérer utilisateurs]):::uc
+        subgraph ADM["Administration"]
+            UC_USERS([Gerer utilisateurs]):::uc
             UC_STATS([Consulter statistiques]):::uc
         end
 
@@ -66,7 +66,7 @@ flowchart LR
         UC_FILES -.->|inclut| UC_DOWNLOAD
         UC_FILES -.->|inclut| UC_PREVIEW
 
-        UC_SHARE -.->|génère| UC_LINK
+        UC_SHARE -.->|genere| UC_LINK
         UC_LINK -.->|permet| UC_LINK_DL
         UC_LINK -.->|permet| UC_LINK_PREV
     end
