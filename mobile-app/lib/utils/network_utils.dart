@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'secure_logger.dart';
 
 /// Utilitaires réseau pour la sécurité et la performance
@@ -63,7 +64,9 @@ class NetworkUtils {
         // Éviter Brotli (br) : selon les stacks réseau, la réponse peut ne pas être décodée
         // correctement, ce qui peut provoquer des FormatException lors du parsing JSON.
         // Laisser gzip (supporté largement) suffit.
-        options.headers['Accept-Encoding'] = 'gzip';
+        if (!kIsWeb) {
+          options.headers['Accept-Encoding'] = 'gzip';
+        }
         return handler.next(options);
       },
     );

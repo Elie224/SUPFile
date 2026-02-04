@@ -20,7 +20,10 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Range');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Range, Cache-Control, Pragma, X-Request-Nonce, X-Request-Timestamp'
+    );
     res.setHeader('Access-Control-Max-Age', '86400');
     return res.status(204).end();
   }
@@ -146,7 +149,10 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-Request-Nonce, X-Request-Timestamp'
+    );
     res.setHeader('Access-Control-Max-Age', '86400');
     return res.status(204).end();
   }
@@ -167,6 +173,9 @@ app.use(performanceMiddleware);
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false, // Désactivé pour permettre les ressources externes
+  // On désactive frameguard globalement pour pouvoir autoriser l'embed (iframe) sur /api/files/:id/preview.
+  // On réapplique ensuite X-Frame-Options=SAMEORIGIN sur toutes les autres routes via un middleware dédié.
+  frameguard: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -189,6 +198,26 @@ app.use(helmet({
   xssFilter: true,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 }));
+
+// X-Frame-Options / frame-ancestors
+// - Par défaut: SAMEORIGIN (anti-clickjacking)
+// - Exception: /api/files/:id/preview doit pouvoir être affiché dans un iframe (Flutter Web)
+app.use((req, res, next) => {
+  const path = (req.originalUrl || '').split('?')[0];
+  const isFilePreview = /^\/api\/files\/[a-f0-9]{24}\/preview$/i.test(path);
+
+  if (isFilePreview) {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader(
+      'Content-Security-Policy',
+      "frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https://*.netlify.app https://*.fly.dev https://supfile.com"
+    );
+  } else {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  }
+
+  next();
+});
 
 // Rate limiting global
 app.use(generalLimiter);

@@ -4,8 +4,12 @@ import '../../services/sync_service.dart';
 import '../../services/offline_storage_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/performance_cache.dart';
 import '../../widgets/app_back_button.dart';
+import 'package:provider/provider.dart';
+import '../../providers/files_provider.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -128,7 +132,66 @@ class _TrashScreenState extends State<TrashScreen> {
 
   Future<void> _restoreFile(String fileId) async {
     try {
+      final FilesProvider? filesProvider = mounted ? context.read<FilesProvider>() : null;
+
+      // Optimistic UI: retirer immédiatement de la liste.
+      if (mounted) {
+        setState(() {
+          _files.removeWhere((f) => f.id == fileId);
+        });
+      }
+
       await _apiService.restoreFile(fileId);
+      // Les stats/quota peuvent être mises en cache côté app.
+      await PerformanceCache.remove('dashboard');
+      if (mounted) {
+        // ignore: unawaited_futures
+        context.read<AuthProvider>().refreshUser();
+      }
+
+      // Récupérer la destination restaurée (dossier d'origine) et rafraîchir ce dossier.
+      try {
+        final res = await _apiService.getFile(fileId);
+        if (res.statusCode == 200 && res.data is Map) {
+          final data = (res.data as Map)['data'];
+          if (data is Map) {
+            final restored = FileItem.fromJson(Map<String, dynamic>.from(data));
+            final destFolderId = restored.folderId;
+
+            // Invalider les caches de listing (sinon listFiles peut rester en cache 5 minutes).
+            await PerformanceCache.removeByPrefix('files_${destFolderId ?? 'root'}_');
+            await PerformanceCache.removeByPrefix('files_root_');
+
+            // Rafraîchir immédiatement seulement si le dossier de destination est celui affiché.
+            if (filesProvider != null && filesProvider.currentFolderId == destFolderId) {
+              // ignore: unawaited_futures
+              filesProvider.loadFiles(folderId: destFolderId, force: true);
+            }
+            if (filesProvider != null && destFolderId == null && filesProvider.currentFolderId == null) {
+              // ignore: unawaited_futures
+              filesProvider.loadFiles(folderId: null, force: true);
+            }
+          }
+        }
+      } catch (_) {
+        // fallback: au minimum rafraîchir la liste courante
+        filesProvider?.loadFiles(folderId: filesProvider.currentFolderId, force: true);
+      }
+
+      // Mettre à jour le cache corbeille pour éviter que l'élément réapparaisse au refresh.
+      try {
+        await OfflineStorageService.setUserMeta(
+          'trashFiles',
+          _files.map((f) => f.toJson()).toList(),
+        );
+      } catch (_) {}
+
+      // Rafraîchir l'explorateur de fichiers (si présent) pour que le restauré apparaisse rapidement.
+      try {
+        // Fire-and-forget pour ne pas bloquer l'UI de la corbeille.
+        filesProvider?.loadFiles(folderId: filesProvider.currentFolderId, force: true);
+      } catch (_) {}
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -136,9 +199,14 @@ class _TrashScreenState extends State<TrashScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        // Recharger en arrière-plan pour resynchroniser (si nécessaire).
         _loadTrash();
       }
     } catch (e) {
+      // En cas d'échec, recharger la corbeille depuis l'API/cache.
+      if (mounted) {
+        _loadTrash();
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -152,7 +220,61 @@ class _TrashScreenState extends State<TrashScreen> {
 
   Future<void> _restoreFolder(String folderId) async {
     try {
+      final FilesProvider? filesProvider = mounted ? context.read<FilesProvider>() : null;
+
+      // Optimistic UI: retirer immédiatement de la liste.
+      if (mounted) {
+        setState(() {
+          _folders.removeWhere((f) => f.id == folderId);
+        });
+      }
+
       await _apiService.restoreFolder(folderId);
+      await PerformanceCache.remove('dashboard');
+      if (mounted) {
+        // ignore: unawaited_futures
+        context.read<AuthProvider>().refreshUser();
+      }
+
+      // Récupérer la destination restaurée (parent d'origine) et rafraîchir ce dossier.
+      try {
+        final res = await _apiService.getFolder(folderId);
+        if (res.statusCode == 200 && res.data is Map) {
+          final data = (res.data as Map)['data'];
+          if (data is Map) {
+            final restored = FolderItem.fromJson(Map<String, dynamic>.from(data));
+            final destParentId = restored.parentId;
+
+            await PerformanceCache.removeByPrefix('files_${destParentId ?? 'root'}_');
+            await PerformanceCache.removeByPrefix('files_root_');
+
+            if (filesProvider != null && filesProvider.currentFolderId == destParentId) {
+              // ignore: unawaited_futures
+              filesProvider.loadFiles(folderId: destParentId, force: true);
+            }
+            if (filesProvider != null && destParentId == null && filesProvider.currentFolderId == null) {
+              // ignore: unawaited_futures
+              filesProvider.loadFiles(folderId: null, force: true);
+            }
+          }
+        }
+      } catch (_) {
+        filesProvider?.loadFiles(folderId: filesProvider.currentFolderId, force: true);
+      }
+
+      // Mettre à jour le cache corbeille.
+      try {
+        await OfflineStorageService.setUserMeta(
+          'trashFolders',
+          _folders.map((f) => f.toJson()).toList(),
+        );
+      } catch (_) {}
+
+      // Rafraîchir l'explorateur.
+      try {
+        filesProvider?.loadFiles(folderId: filesProvider.currentFolderId, force: true);
+      } catch (_) {}
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -163,6 +285,9 @@ class _TrashScreenState extends State<TrashScreen> {
         _loadTrash();
       }
     } catch (e) {
+      if (mounted) {
+        _loadTrash();
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

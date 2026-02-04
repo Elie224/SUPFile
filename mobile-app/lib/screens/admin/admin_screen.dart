@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_back_button.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -252,10 +253,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: const Text('Administration'),
       ),
       body: RefreshIndicator(

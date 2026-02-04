@@ -28,8 +28,10 @@ import '../models/file.dart';
 
 class AppRouter {
   static GoRouter createRouter(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     return GoRouter(
       initialLocation: '/',
+      refreshListenable: authProvider,
       routes: [
         GoRoute(
           path: '/',
@@ -179,7 +181,10 @@ class AppRouter {
         ),
       ],
       redirect: (context, state) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        // Ne pas rediriger tant que l'auth n'est pas initialisée (important sur Web après refresh).
+        if (!authProvider.isInitialized) {
+          return null;
+        }
         final isLoggedIn = authProvider.isAuthenticated;
         final isPublicRoute = state.matchedLocation == '/' ||
             state.matchedLocation == '/offline' ||

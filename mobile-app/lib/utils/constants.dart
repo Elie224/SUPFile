@@ -10,6 +10,21 @@ class AppConstants {
   );
   
   static const String apiUrl = '$apiBaseUrl/api';
+
+  // OAuth (Google)
+  // Flutter Web requires a Web OAuth Client ID.
+  // Provide it at runtime with:
+  // flutter run -d chrome --dart-define=GOOGLE_WEB_CLIENT_ID="..."
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  // Optional: for mobile/desktop flows that need a server client id.
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
   
   // Storage Keys
   static const String storageAccessToken = 'access_token';

@@ -306,8 +306,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty)
+                if (value == null || value.isEmpty) {
                   return 'Mot de passe requis';
+                }
                 if (!InputValidator.isValidPassword(value)) {
                   return '8 caractères min., une majuscule et un chiffre';
                 }

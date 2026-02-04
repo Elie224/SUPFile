@@ -64,6 +64,20 @@ class PerformanceCache {
     await prefs.remove(expiryKey);
   }
 
+  /// Supprimer toutes les clés du cache dont la clé logique commence par [keyPrefix].
+  /// Exemple: removeByPrefix('files_root_')
+  static Future<void> removeByPrefix(String keyPrefix) async {
+    final prefs = await SharedPreferences.getInstance();
+    final fullPrefix = '$_prefix$keyPrefix';
+    final keys = prefs.getKeys();
+
+    for (final key in keys) {
+      if (key.startsWith(fullPrefix)) {
+        await prefs.remove(key);
+      }
+    }
+  }
+
   /// Nettoyer tous les caches expirés
   static Future<void> cleanExpired() async {
     final prefs = await SharedPreferences.getInstance();

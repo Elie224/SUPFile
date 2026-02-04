@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/countries.dart';
 import '../../widgets/supfile_logo.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -14,6 +15,9 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  String? _selectedCountry;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -25,6 +29,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -39,6 +45,9 @@ class _SignupScreenState extends State<SignupScreen> {
     final result = await authProvider.signup(
       _emailController.text.trim(),
       _passwordController.text,
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      country: _selectedCountry,
     );
 
     if (result == AuthProvider.signupResultSuccess) {
@@ -227,6 +236,69 @@ class _SignupScreenState extends State<SignupScreen> {
                   if (_successMessage.isNotEmpty) ...[
                     const SizedBox(height: 8),
                   ] else ...[
+                TextFormField(
+                  controller: _firstNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Prénom',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Prénom requis';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _lastNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Nom requis';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCountry,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Pays',
+                    prefixIcon: Icon(Icons.public),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                  ),
+                  items: kCountries
+                      .map(
+                        (c) => DropdownMenuItem<String>(
+                          value: c,
+                          child: Text(c, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedCountry = v),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Pays requis';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,

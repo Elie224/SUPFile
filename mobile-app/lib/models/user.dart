@@ -1,4 +1,5 @@
 import '../utils/constants.dart';
+import 'dart:math' as math;
 
 class User {
   final String id;
@@ -103,8 +104,13 @@ class User {
     };
   }
   
-  double get quotaPercentage => quotaLimit > 0 ? (quotaUsed / quotaLimit) * 100 : 0;
-  int get quotaAvailable => quotaLimit - quotaUsed;
+  double get quotaPercentage {
+    if (quotaLimit <= 0) return 0;
+    final raw = (quotaUsed / quotaLimit) * 100;
+    return math.max(0, math.min(100, raw));
+  }
+
+  int get quotaAvailable => math.max(0, quotaLimit - quotaUsed);
 }
 
 

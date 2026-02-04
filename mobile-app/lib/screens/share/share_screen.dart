@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_back_button.dart';
 
 class ShareScreen extends StatefulWidget {
   final String? fileId;
@@ -94,7 +95,12 @@ class _ShareScreenState extends State<ShareScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context);
+          final router = GoRouter.of(context);
+          if (router.canPop()) {
+            router.pop();
+          } else {
+            router.go('/shares');
+          }
         }
       }
     } catch (e) {
@@ -202,10 +208,7 @@ class _ShareScreenState extends State<ShareScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/dashboard'),
         title: const Text('Partager'),
         actions: [
           IconButton(

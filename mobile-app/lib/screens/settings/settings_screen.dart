@@ -45,6 +45,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _twoFactorEnabled = user.twoFactorEnabled;
     }
     _load2FAStatus();
+
+    // Quota/stockage: s'assurer d'avoir des valeurs fraîches.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ignore: unawaited_futures
+      context.read<AuthProvider>().refreshUser();
+    });
   }
 
   Future<void> _load2FAStatus() async {
@@ -191,6 +197,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       if (image != null) {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          if (bytes.length > AppConstants.maxImageSize) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('L\'image est trop grande (max 5 MB)'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          if (!screenContext.mounted) return;
+          showDialog(
+            context: screenContext,
+            barrierDismissible: false,
+            builder: (dialogContext) =>
+                const Center(child: CircularProgressIndicator()),
+          );
+
+          try {
+            await _apiService.uploadAvatarBytes(bytes, image.name.isNotEmpty ? image.name : 'avatar.jpg');
+            await authProvider.refreshUser();
+
+            if (!mounted) return;
+            navigator.pop();
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Avatar mis à jour'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            navigator.pop();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('Erreur: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+
+          return;
+        }
+
         final file = File(image.path);
 
         // Vérifier la taille

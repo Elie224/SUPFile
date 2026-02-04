@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 
 class TermsOfUseScreen extends StatelessWidget {
   const TermsOfUseScreen({super.key});
@@ -9,6 +10,7 @@ class TermsOfUseScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackLocation: '/'),
         title: const Text('Conditions d’utilisation'),
       ),
       body: const SafeArea(
@@ -22,7 +24,7 @@ class TermsOfUseScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 6),
-              Text('Dernière mise à jour : ' + updatedAt),
+              Text('Dernière mise à jour : $updatedAt'),
               SizedBox(height: 16),
               Text('1. Objet',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

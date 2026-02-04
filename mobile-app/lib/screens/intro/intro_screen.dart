@@ -8,44 +8,64 @@ import '../../widgets/supfile_logo.dart';
 /// Données des pages d'introduction (alignées sur le web)
 final List<Map<String, dynamic>> _introPages = [
   {
-    'icon': '🚀',
+    'icon': Icons.cloud,
     'title': 'Bienvenue sur SUPFile',
     'subtitle': 'Votre espace de stockage cloud professionnel',
     'description':
         'SUPFile est une plateforme moderne et sécurisée pour stocker, organiser et partager vos fichiers. Accessible depuis le web et le mobile.',
-    'highlights': ['Stockage cloud', 'Sécurité renforcée', 'Accès multi-appareils'],
+    'highlights': [
+      'Stockage cloud',
+      'Sécurité renforcée',
+      'Accès multi-appareils'
+    ],
   },
   {
-    'icon': '📁',
+    'icon': Icons.folder,
     'title': 'Organisation intelligente',
     'subtitle': 'Gérez vos fichiers comme un pro',
     'description':
         'Créez des dossiers et sous-dossiers. Déplacez vos fichiers, utilisez la corbeille pour récupérer ceux supprimés par erreur.',
-    'highlights': ['Dossiers illimités', 'Déplacement facile', 'Corbeille avec restauration'],
+    'highlights': [
+      'Dossiers illimités',
+      'Déplacement facile',
+      'Corbeille avec restauration'
+    ],
   },
   {
-    'icon': '👁️',
+    'icon': Icons.visibility,
     'title': 'Prévisualisation instantanée',
     'subtitle': 'Visualisez sans télécharger',
     'description':
         'Ouvrez vos fichiers directement : PDF, images, vidéos, audio et textes. Plus besoin de télécharger pour voir le contenu.',
-    'highlights': ['PDF, images, vidéos', 'Fichiers audio', 'Prévisualisation rapide'],
+    'highlights': [
+      'PDF, images, vidéos',
+      'Fichiers audio',
+      'Prévisualisation rapide'
+    ],
   },
   {
-    'icon': '🔗',
+    'icon': Icons.link,
     'title': 'Partage sécurisé',
     'subtitle': 'Collaborez en toute confiance',
     'description':
         'Créez des liens de partage avec date d\'expiration ou mot de passe. Partagez aussi en interne avec d\'autres utilisateurs SUPFile.',
-    'highlights': ['Liens temporaires', 'Protection par mot de passe', 'Partage entre utilisateurs'],
+    'highlights': [
+      'Liens temporaires',
+      'Protection par mot de passe',
+      'Partage entre utilisateurs'
+    ],
   },
   {
-    'icon': '📊',
+    'icon': Icons.dashboard,
     'title': 'Tableau de bord complet',
     'subtitle': 'Gardez le contrôle total',
     'description':
         'Visualisez votre utilisation, accédez à vos fichiers récents et personnalisez l\'expérience avec le thème clair ou sombre.',
-    'highlights': ['Statistiques détaillées', 'Gestion des quotas', 'Thèmes personnalisables'],
+    'highlights': [
+      'Statistiques détaillées',
+      'Gestion des quotas',
+      'Thèmes personnalisables'
+    ],
   },
 ];
 
@@ -83,7 +103,6 @@ class _IntroScreenState extends State<IntroScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      setState(() => _currentPage++);
     } else {
       context.go('/signup');
     }
@@ -120,17 +139,21 @@ class _IntroScreenState extends State<IntroScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SupFileLogo(size: 44, showIcon: true, useGradient: true),
+                    const SupFileLogo(
+                        size: 44, showIcon: true, useGradient: true),
                     TextButton(
                       onPressed: _goToLogin,
                       child: Text(
                         'Connexion',
                         style: TextStyle(
-                          color: isDark ? Colors.grey[300] : AppConstants.supinfoPurple,
+                          color: isDark
+                              ? Colors.grey[300]
+                              : AppConstants.supinfoPurple,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -142,12 +165,13 @@ class _IntroScreenState extends State<IntroScreen> {
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: _introPages.length,
-                  onPageChanged: (index) => setState(() => _currentPage = index),
+                  onPageChanged: (index) =>
+                      setState(() => _currentPage = index),
                   itemBuilder: (context, index) {
                     final page = _introPages[index];
                     return _buildPage(
                       context,
-                      page['icon'] as String,
+                      page['icon'] as IconData,
                       page['title'] as String,
                       page['subtitle'] as String,
                       page['description'] as String,
@@ -175,7 +199,9 @@ class _IntroScreenState extends State<IntroScreen> {
                             borderRadius: BorderRadius.circular(4),
                             color: _currentPage == i
                                 ? AppConstants.supinfoPurple
-                                : (isDark ? Colors.grey[600] : Colors.grey[400]),
+                                : (isDark
+                                    ? Colors.grey[600]
+                                    : Colors.grey[400]),
                           ),
                         ),
                       ),
@@ -216,7 +242,7 @@ class _IntroScreenState extends State<IntroScreen> {
 
   Widget _buildPage(
     BuildContext context,
-    String icon,
+    IconData icon,
     String title,
     String subtitle,
     String description,
@@ -229,9 +255,28 @@ class _IntroScreenState extends State<IntroScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 24),
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 64),
+          Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withAlpha((0.08 * 255).round())
+                  : AppConstants.supinfoPurple.withAlpha((0.10 * 255).round()),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withAlpha((0.14 * 255).round())
+                    : AppConstants.supinfoPurple
+                        .withAlpha((0.18 * 255).round()),
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 48,
+              color: isDark
+                  ? AppConstants.supinfoPurpleLight
+                  : AppConstants.supinfoPurple,
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -269,10 +314,13 @@ class _IntroScreenState extends State<IntroScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.check_circle,
-                    size: 20,
-                    color: AppConstants.supinfoPurple,
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: AppConstants.supinfoPurple,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(

@@ -48,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     try {
-      final response = await _apiService.getDashboard();
+      final response = await _apiService.getDashboard(force: true);
       if (response.statusCode == 200 && response.data['data'] != null && mounted) {
         final data = response.data['data'] as Map<String, dynamic>;
         setState(() {
@@ -56,10 +56,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _isLoading = false;
           _fromCache = false;
         });
-        await OfflineStorageService.setUserMeta('dashboardStats', data);
+        try {
+          await OfflineStorageService.init();
+          await OfflineStorageService.setUserMeta('dashboardStats', data);
+        } catch (_) {}
       }
     } catch (e) {
       try {
+        await OfflineStorageService.init();
         final cached = OfflineStorageService.getUserMeta('dashboardStats');
         if (cached is Map<String, dynamic> && mounted) {
           setState(() {
@@ -121,49 +125,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppConstants.supinfoWhite,
-                          width: 3,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha((0.2 * 255).round()),
-                            blurRadius: 10,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppConstants.supinfoWhite,
+                            width: 3,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha((0.2 * 255).round()),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 35,
+                          backgroundImage: authProvider.user?.avatarUrl != null
+                              ? NetworkImage(authProvider.user!.avatarUrl!)
+                              : null,
+                          backgroundColor:
+                              AppConstants.supinfoWhite.withAlpha((0.2 * 255).round()),
+                          child: authProvider.user?.avatarUrl == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 35,
+                                  color: AppConstants.supinfoWhite,
+                                )
+                              : null,
+                        ),
                       ),
-                      child: CircleAvatar(
-                        radius: 35,
-                        backgroundImage: authProvider.user?.avatarUrl != null
-                            ? NetworkImage(authProvider.user!.avatarUrl!)
-                            : null,
-                        backgroundColor: AppConstants.supinfoWhite.withAlpha((0.2 * 255).round()),
-                        child: authProvider.user?.avatarUrl == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 35,
-                                color: AppConstants.supinfoWhite,
-                              )
-                            : null,
+                      const SizedBox(height: 12),
+                      Text(
+                        authProvider.user?.displayName ??
+                            authProvider.user?.email ??
+                            'Utilisateur',
+                        style: const TextStyle(
+                          color: AppConstants.supinfoWhite,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      authProvider.user?.displayName ?? authProvider.user?.email ?? 'Utilisateur',
-                      style: const TextStyle(
-                        color: AppConstants.supinfoWhite,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (authProvider.user?.email != null) ...[
+                      if (authProvider.user?.email != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         authProvider.user!.email,
@@ -176,7 +184,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-            Container(
+              ),
+              Container(
               color: Colors.white.withAlpha((0.05 * 255).round()),
               child: ListTile(
                 leading: const Icon(Icons.dashboard, color: AppConstants.supinfoWhite),

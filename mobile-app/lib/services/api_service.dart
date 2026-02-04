@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../utils/constants.dart';
 import '../utils/secure_storage.dart';
@@ -37,10 +38,9 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Connection': 'keep-alive', // Réutiliser les connexions
       },
       // Validation SSL/TLS
-      validateStatus: (status) => status != null && status < 500,
+      validateStatus: (status) => status != null && status >= 200 && status < 300,
       // Réutiliser les connexions HTTP
       persistentConnection: true,
     ));
@@ -137,11 +137,17 @@ class ApiService {
         );
         
         if (error.response?.statusCode == 401) {
+          final opts = error.requestOptions;
+          final alreadyRetried = opts.extra['__authRetry'] == true;
+          final isAuthRoute = opts.path.startsWith('/auth/') || opts.path.contains('/auth/');
+          if (alreadyRetried || isAuthRoute) {
+            return handler.next(error);
+          }
+
           // Token expiré, essayer de rafraîchir
           final refreshed = await _refreshToken();
           if (refreshed) {
             // Réessayer la requête
-            final opts = error.requestOptions;
             final token = await SecureStorage.getAccessToken();
             if (token != null) {
               opts.headers['Authorization'] = 'Bearer $token';
@@ -215,7 +221,13 @@ class ApiService {
   }
   
   // Auth
-  Future<Response> signup(String email, String password) async {
+  Future<Response> signup(
+    String email,
+    String password, {
+    String? firstName,
+    String? lastName,
+    String? country,
+  }) async {
     // Rate limiting pour l'inscription
     if (!authRateLimiter.canMakeRequest('signup')) {
       final waitTime = authRateLimiter.getTimeUntilNextRequest('signup');
@@ -227,10 +239,19 @@ class ApiService {
     }
     
     try {
-      final response = await _dio.post('/auth/signup', data: {
+      final payload = <String, dynamic>{
         'email': email.trim().toLowerCase(),
         'password': password,
-      });
+      };
+
+      final f = firstName?.trim();
+      final l = lastName?.trim();
+      final c = country?.trim();
+      if (f != null && f.isNotEmpty) payload['first_name'] = f;
+      if (l != null && l.isNotEmpty) payload['last_name'] = l;
+      if (c != null && c.isNotEmpty) payload['country'] = c;
+
+      final response = await _dio.post('/auth/signup', data: payload);
       
       // Vérifier que la réponse est valide
       if (response.statusCode == null || response.data == null) {
@@ -377,14 +398,71 @@ class ApiService {
     String? folderId,
     Function(int sent, int total)? onProgress,
   }) async {
+    final fileName = file.path.split(Platform.pathSeparator).last;
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path, filename: file.path.split(Platform.pathSeparator).last),
+      'file': await MultipartFile.fromFile(file.path, filename: fileName),
       if (folderId != null) 'folder_id': folderId,
     });
     
     return _dio.post(
       '/files/upload',
       data: formData,
+      options: Options(
+        // Gros fichiers (vidéos) => temps d'envoi long.
+        sendTimeout: const Duration(minutes: 15),
+        receiveTimeout: const Duration(minutes: 15),
+      ),
+      onSendProgress: onProgress != null
+          ? (sent, total) => onProgress(sent, total)
+          : null,
+    );
+  }
+
+  /// Upload Web-friendly: utilise des bytes (pas de path)
+  Future<Response> uploadFileBytes(
+    Uint8List bytes,
+    String filename, {
+    String? folderId,
+    Function(int sent, int total)? onProgress,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+      if (folderId != null) 'folder_id': folderId,
+    });
+
+    return _dio.post(
+      '/files/upload',
+      data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 15),
+        receiveTimeout: const Duration(minutes: 15),
+      ),
+      onSendProgress: onProgress != null
+          ? (sent, total) => onProgress(sent, total)
+          : null,
+    );
+  }
+
+  /// Upload Web gros fichiers: streaming (évite de charger tout en RAM).
+  Future<Response> uploadFileStream(
+    Stream<List<int>> Function() stream,
+    int length,
+    String filename, {
+    String? folderId,
+    Function(int sent, int total)? onProgress,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromStream(stream, length, filename: filename),
+      if (folderId != null) 'folder_id': folderId,
+    });
+
+    return _dio.post(
+      '/files/upload',
+      data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 15),
+        receiveTimeout: const Duration(minutes: 15),
+      ),
       onSendProgress: onProgress != null
           ? (sent, total) => onProgress(sent, total)
           : null,
@@ -459,6 +537,7 @@ class ApiService {
       '/files/$fileId/stream',
       options: Options(
         responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(minutes: 5),
         headers: const {'Cache-Control': 'no-cache'},
       ),
     );
@@ -469,7 +548,7 @@ class ApiService {
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 90),
-      validateStatus: (status) => status != null && status < 500,
+      validateStatus: (status) => status != null && status >= 200 && status < 300,
     ));
   }
 
@@ -611,7 +690,7 @@ class ApiService {
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 90),
-      validateStatus: (status) => status != null && status < 500,
+      validateStatus: (status) => status != null && status >= 200 && status < 300,
     ));
     return publicDio.get('/share/$token', queryParameters: queryParams);
   }
@@ -627,10 +706,10 @@ class ApiService {
   }
   
   // Dashboard
-  Future<Response> getDashboard() async {
-    // Cache du dashboard (données qui changent peu)
+  Future<Response> getDashboard({bool force = false}) async {
+    // Cache du dashboard (doit rester court pour que quota/stats se mettent à jour vite)
     const cacheKey = 'dashboard';
-    final cached = await PerformanceCache.get<Map<String, dynamic>>(cacheKey);
+    final cached = force ? null : await PerformanceCache.get<Map<String, dynamic>>(cacheKey);
     if (cached != null) {
       return Response(
         requestOptions: RequestOptions(path: '/dashboard'),
@@ -646,7 +725,7 @@ class ApiService {
       await PerformanceCache.set(
         cacheKey,
         response.data,
-        expiry: const Duration(minutes: 10),
+        expiry: const Duration(seconds: 15),
       );
     }
     
@@ -690,10 +769,25 @@ class ApiService {
   }
   
   Future<Response> uploadAvatar(File file) async {
+    final fileName = file.path.split(Platform.pathSeparator).last;
     final formData = FormData.fromMap({
-      'avatar': await MultipartFile.fromFile(file.path, filename: file.path.split(Platform.pathSeparator).last),
+      'avatar': await MultipartFile.fromFile(file.path, filename: fileName),
     });
     return _dio.post('/users/me/avatar', data: formData);
+  }
+
+  Future<Response> uploadAvatarBytes(Uint8List bytes, String filename) async {
+    final formData = FormData.fromMap({
+      'avatar': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    return _dio.post(
+      '/users/me/avatar',
+      data: formData,
+      options: Options(
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+      ),
+    );
   }
   
   Future<Response> updatePreferences(Map<String, dynamic> preferences) {

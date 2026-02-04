@@ -751,7 +751,7 @@ async function getFile(req, res, next) {
 // Prévisualiser un fichier
 async function previewFile(req, res, next) {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?._id;
     const { id } = req.params;
     const { token, password } = req.query;
 
@@ -800,6 +800,11 @@ async function previewFile(req, res, next) {
         return res.status(400).json({ error: { message: 'Invalid file path' } });
       }
 
+      // Autoriser l'embed (iframe) pour la prévisualisation (Flutter Web).
+      // Helmet ajoute X-Frame-Options=SAMEORIGIN par défaut, ce qui bloque le rendu dans un iframe
+      // depuis un autre domaine (ex: localhost/netlify). On retire ce header uniquement ici.
+      res.removeHeader('X-Frame-Options');
+
       // Pour les contenus texte, ajouter un charset pour éviter les problèmes d'affichage
       const contentType = isTextLike && !mime.includes('charset=')
         ? `${file.mime_type}; charset=utf-8`
@@ -819,7 +824,7 @@ async function previewFile(req, res, next) {
 // Stream audio/vidéo
 async function streamFile(req, res, next) {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?._id;
     const { id } = req.params;
     const { token, password } = req.query;
 

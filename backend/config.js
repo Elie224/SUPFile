@@ -57,6 +57,17 @@ module.exports = {
         }
         return callback(null, true);
       }
+
+      // Autoriser toujours les origines localhost pour le dev (ex: Flutter Web),
+      // même quand le backend tourne en production (Fly/Render/etc.).
+      // Sinon, `cors()` renvoie une erreur (HTTP 500) sur le preflight OPTIONS.
+      if (
+        /^http:\/\/localhost(?::\d+)?$/.test(origin) ||
+        /^http:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin) ||
+        /^http:\/\/\[::1\](?::\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
       
       // Vérifier si l'origine est autorisée
       if (allowedOrigins.indexOf(origin) !== -1) {
@@ -91,7 +102,20 @@ module.exports = {
     // Autoriser toutes les méthodes HTTP nécessaires
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     // Autoriser tous les headers de requête (y compris Authorization, Content-Type, etc.)
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Range'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Range',
+      // Headers navigateur (souvent ajoutés automatiquement sur certaines requêtes)
+      'Cache-Control',
+      'Pragma',
+      // Flutter (Dio) ajoute des headers anti-replay
+      'X-Request-Nonce',
+      'X-Request-Timestamp',
+    ],
     // Exposer les headers de réponse nécessaires pour les téléchargements
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges'],
     // S'assurer que les réponses OPTIONS ont le bon code de statut
@@ -107,15 +131,19 @@ module.exports = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri: process.env.GOOGLE_REDIRECT_URI || (process.env.NODE_ENV === 'production' 
-        ? 'https://supfile-1.onrender.com/api/auth/google/callback'
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || (process.env.NODE_ENV === 'production'
+        ? (process.env.FLY_APP_NAME
+          ? `https://${process.env.FLY_APP_NAME}.fly.dev/api/auth/google/callback`
+          : 'https://supfile.fly.dev/api/auth/google/callback')
         : 'http://localhost:5000/api/auth/google/callback'),
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       redirectUri: process.env.GITHUB_REDIRECT_URI || (process.env.NODE_ENV === 'production'
-        ? 'https://supfile-1.onrender.com/api/auth/github/callback'
+        ? (process.env.FLY_APP_NAME
+          ? `https://${process.env.FLY_APP_NAME}.fly.dev/api/auth/github/callback`
+          : 'https://supfile.fly.dev/api/auth/github/callback')
         : 'http://localhost:5000/api/auth/github/callback'),
     },
   },

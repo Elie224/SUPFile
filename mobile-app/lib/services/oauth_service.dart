@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
@@ -22,11 +23,22 @@ class TimeoutException implements Exception {
 class OAuthService {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
+    clientId: kIsWeb && AppConstants.googleWebClientId.trim().isNotEmpty
+        ? AppConstants.googleWebClientId.trim()
+        : null,
+    serverClientId: !kIsWeb && AppConstants.googleServerClientId.trim().isNotEmpty
+        ? AppConstants.googleServerClientId.trim()
+        : null,
   );
 
   /// Connexion avec Google (natif)
   static Future<Map<String, dynamic>?> signInWithGoogle() async {
     try {
+      if (kIsWeb && AppConstants.googleWebClientId.trim().isEmpty) {
+        throw StateError(
+          'Google OAuth non configuré pour le Web. Lancez l\'app avec --dart-define=GOOGLE_WEB_CLIENT_ID="..."',
+        );
+      }
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {

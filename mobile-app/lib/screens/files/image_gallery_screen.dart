@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/file.dart';
 import '../../services/api_service.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../../utils/storage_paths.dart';
+import '../../utils/web_download.dart';
+import '../../widgets/app_back_button.dart';
 
 /// Galerie d'images pour naviguer entre les images d'un dossier
 /// Conforme à l'exigence : "galerie pour les images"
@@ -70,10 +73,7 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black87,
         iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/files', color: Colors.white),
         title: Text(
           '${_currentIndex + 1} / ${widget.images.length}',
           style: const TextStyle(color: Colors.white),
@@ -283,19 +283,26 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
         throw Exception('Erreur téléchargement (code: ${response.statusCode ?? '??'})');
       }
 
-      // App-specific external dir on Android (no permission required)
-      final directory = await getExternalStorageDirectory();
-      if (directory == null) {
-        throw Exception('Répertoire de stockage indisponible');
-      }
+      if (kIsWeb) {
+        await WebDownload.saveBytesAsFile(
+          bytes: (response.data as List<int>),
+          fileName: image.name,
+          mimeType: image.mimeType ?? 'application/octet-stream',
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Téléchargement démarré'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final directory = await StoragePaths.getWritableDirectory();
+        final filePath = '${directory.path}/${image.name}';
+        final savedFile = File(filePath);
+        await savedFile.writeAsBytes(response.data);
 
-      final filePath = '${directory.path}${Platform.pathSeparator}${image.name}';
-      final savedFile = File(filePath);
-      await savedFile.create(recursive: true);
-      await savedFile.writeAsBytes(response.data);
-
-      if (mounted) {
-        Navigator.pop(context);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Image sauvegardée: $filePath'),

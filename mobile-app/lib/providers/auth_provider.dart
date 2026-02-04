@@ -13,6 +13,7 @@ class AuthProvider with ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
   bool _isLoading = false;
+  bool _isInitialized = false;
   String? _error;
   String? _errorCode;
   
@@ -22,6 +23,7 @@ class AuthProvider with ChangeNotifier {
   String? get accessToken => _accessToken;
   bool get isAuthenticated => _user != null && _accessToken != null;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   String? get error => _error;
   String? get errorCode => _errorCode;
   
@@ -67,6 +69,9 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       SecureLogger.error('Error loading stored auth', error: e);
       await logout();
+    } finally {
+      _isInitialized = true;
+      notifyListeners();
     }
   }
   
@@ -75,7 +80,13 @@ class AuthProvider with ChangeNotifier {
   static const String signupResultRequiresVerification = 'requires_verification';
   static const String signupResultError = 'error';
 
-  Future<String> signup(String email, String password) async {
+  Future<String> signup(
+    String email,
+    String password, {
+    String? firstName,
+    String? lastName,
+    String? country,
+  }) async {
     _isLoading = true;
     _error = null;
     _errorCode = null;
@@ -97,7 +108,13 @@ class AuthProvider with ChangeNotifier {
     }
     
     try {
-      final response = await _apiService.signup(email, password);
+      final response = await _apiService.signup(
+        email,
+        password,
+        firstName: firstName,
+        lastName: lastName,
+        country: country,
+      );
       if (response.statusCode == 201) {
         final data = response.data['data'];
         if (data is Map<String, dynamic> && data['access_token'] != null) {

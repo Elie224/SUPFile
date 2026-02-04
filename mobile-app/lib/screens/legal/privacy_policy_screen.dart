@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_back_button.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -9,6 +10,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackLocation: '/'),
         title: const Text('Politique de confidentialité'),
       ),
       body: const SafeArea(
@@ -22,7 +24,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 6),
-              Text('Dernière mise à jour : ' + updatedAt),
+              Text('Dernière mise à jour : $updatedAt'),
               SizedBox(height: 16),
               Text(
                 'Cette politique de confidentialité décrit comment SUPFile collecte, utilise et protège vos données '

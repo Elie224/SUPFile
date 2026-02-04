@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:video_player/video_player.dart';
 import '../../services/api_service.dart';
@@ -14,7 +14,10 @@ import '../../models/folder.dart';
 import '../files/files_screen.dart';
 import '../../utils/secure_logger.dart';
 import '../../utils/constants.dart';
+import '../../utils/storage_paths.dart';
+import '../../utils/web_download.dart';
 import '../../widgets/responsive_center.dart';
+import '../../widgets/app_back_button.dart';
 
 /// Écran pour accéder aux liens de partage publics sans être connecté
 /// Conforme à l'exigence : "Un utilisateur ne souhaitant pas créer de compte 
@@ -297,28 +300,39 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
         throw Exception('Téléchargement impossible (code: $code)');
       }
 
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-      if (directory == null) throw Exception('Répertoire non disponible');
-      if (!await directory.exists()) await directory.create(recursive: true);
-
       final safeName = _file!.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final filePath = '${directory.path}${Platform.pathSeparator}$safeName';
-      final out = File(filePath);
-      await out.writeAsBytes(response.data!);
+      if (kIsWeb) {
+        await WebDownload.saveBytesAsFile(
+          bytes: response.data!,
+          fileName: safeName,
+          mimeType: _file!.mimeType ?? 'application/octet-stream',
+        );
 
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Fichier sauvegardé: $filePath'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Téléchargement démarré'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final directory = await StoragePaths.getWritableDirectory();
+        if (!await directory.exists()) await directory.create(recursive: true);
+
+        final filePath = '${directory.path}${Platform.pathSeparator}$safeName';
+        final out = File(filePath);
+        await out.writeAsBytes(response.data!);
+
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fichier sauvegardé: $filePath'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       SecureLogger.error('Public download error', error: e);
       if (mounted) {
@@ -338,10 +352,7 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
+          leading: const AppBackButton(fallbackLocation: '/'),
           title: const Text('Chargement...'),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -352,10 +363,7 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
     if (_isPasswordRequired) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
+          leading: const AppBackButton(fallbackLocation: '/'),
           title: const Text('Lien protégé'),
         ),
         body: SingleChildScrollView(
@@ -432,10 +440,7 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
     if (_error != null && _file == null && _folder == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
+          leading: const AppBackButton(fallbackLocation: '/'),
           title: const Text('Erreur'),
         ),
         body: ResponsiveCenter(
@@ -465,10 +470,7 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
     // Affichage du fichier ou dossier partagé
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(fallbackLocation: '/'),
         title: Text(_file != null ? _file!.name : (_folder?.name ?? 'Partage')),
         actions: [
           if (_file != null)

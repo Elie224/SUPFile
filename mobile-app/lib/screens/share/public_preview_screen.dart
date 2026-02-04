@@ -3,10 +3,9 @@ import 'dart:convert';
  
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:video_player/video_player.dart';
 
@@ -14,7 +13,10 @@ import '../../models/file.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/secure_logger.dart';
+import '../../utils/storage_paths.dart';
+import '../../utils/web_download.dart';
 import '../../widgets/responsive_center.dart';
+import '../../widgets/app_back_button.dart';
 
 class PublicPreviewScreen extends StatefulWidget {
   final String shareToken;
@@ -166,24 +168,31 @@ class _PublicPreviewScreenState extends State<PublicPreviewScreen> {
         throw Exception('Téléchargement impossible (code: $code)');
       }
 
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-      if (directory == null) throw Exception('Répertoire non disponible');
-      if (!await directory.exists()) await directory.create(recursive: true);
-
       final safeName = _file!.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final filePath = '${directory.path}${Platform.pathSeparator}$safeName';
-      final out = File(filePath);
-      await out.writeAsBytes(res.data!);
+      if (kIsWeb) {
+        await WebDownload.saveBytesAsFile(
+          bytes: res.data!,
+          fileName: safeName,
+          mimeType: _file!.mimeType ?? 'application/octet-stream',
+        );
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fichier sauvegardé: $filePath'), backgroundColor: Colors.green),
-      );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Téléchargement démarré'), backgroundColor: Colors.green),
+        );
+      } else {
+        final directory = await StoragePaths.getWritableDirectory();
+        if (!await directory.exists()) await directory.create(recursive: true);
+
+        final filePath = '${directory.path}${Platform.pathSeparator}$safeName';
+        final out = File(filePath);
+        await out.writeAsBytes(res.data!);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fichier sauvegardé: $filePath'), backgroundColor: Colors.green),
+        );
+      }
     } catch (e) {
       SecureLogger.error('Public download error', error: e);
       if (!mounted) return;
@@ -222,7 +231,7 @@ class _PublicPreviewScreenState extends State<PublicPreviewScreen> {
     if (_loading) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+          leading: AppBackButton(fallbackLocation: '/share/${widget.shareToken}'),
           title: const Text('Chargement...'),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -232,7 +241,7 @@ class _PublicPreviewScreenState extends State<PublicPreviewScreen> {
     if (_error != null || _file == null) {
       return Scaffold(
         appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+          leading: AppBackButton(fallbackLocation: '/share/${widget.shareToken}'),
           title: const Text('Erreur'),
         ),
         body: ResponsiveCenter(
@@ -250,7 +259,7 @@ class _PublicPreviewScreenState extends State<PublicPreviewScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: AppBackButton(fallbackLocation: '/share/${widget.shareToken}'),
         title: Text(_file!.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           if (canFullscreen)

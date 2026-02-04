@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -11,9 +12,12 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/secure_logger.dart';
 import '../../utils/secure_storage.dart';
+import '../../utils/storage_paths.dart';
+import '../../utils/web_download.dart';
 import '../../models/file.dart';
 import '../../widgets/app_back_button.dart';
 import '../../widgets/responsive_center.dart';
+import '../../widgets/web_iframe.dart';
 
 class PreviewScreen extends StatefulWidget {
   final String fileId;
@@ -41,6 +45,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Uint8List? _imageBytes;
   String? _textContent;
 
+  String? _accessToken;
+  String? _pdfPreviewUrl;
+  String? _pdfObjectUrl;
+
+  String? _videoObjectUrl;
+  String? _audioObjectUrl;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +60,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   @override
   void dispose() {
+    if (kIsWeb) {
+      final p = _pdfObjectUrl;
+      if (p != null && p.isNotEmpty) {
+        WebDownload.revokeObjectUrl(p);
+      }
+      final v = _videoObjectUrl;
+      if (v != null && v.isNotEmpty) {
+        WebDownload.revokeObjectUrl(v);
+      }
+      final a = _audioObjectUrl;
+      if (a != null && a.isNotEmpty) {
+        WebDownload.revokeObjectUrl(a);
+      }
+    }
     _videoController?.dispose();
     _audioPlayer?.dispose();
     super.dispose();
@@ -82,6 +107,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
       // 2) Préparer les headers Authorization pour les widgets réseau (image/video)
       final token = await SecureStorage.getAccessToken();
+      _accessToken = token;
       _authHeaders = token != null ? <String, String>{'Authorization': 'Bearer $token'} : const {};
 
       // 3) Charger les fichiers du même dossier pour navigation précédent/suivant
@@ -120,8 +146,33 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_file == null) return;
 
     try {
+      final token = _accessToken;
+
       // Preview binaire (image/PDF/texte) via /preview
       if (_file!.isImage || _file!.isPdf || _file!.isText) {
+        // Sur Web, l'affichage PDF via SfPdfViewer peut être instable/blank.
+        // On utilise donc l'affichage natif du navigateur (iframe) mais avec un Blob URL (évite CORS/XFO/CSP).
+        if (kIsWeb && _file!.isPdf) {
+          final res = await _apiService.previewFileBytes(_file!.id, size: 'large');
+          final code = res.statusCode ?? 0;
+          if (code == 401) {
+            throw Exception('Session expirée, veuillez vous reconnecter.');
+          }
+          if (code != 200 || res.data == null) {
+            throw Exception('Impossible de charger le PDF (code: $code)');
+          }
+
+          final old = _pdfObjectUrl;
+          if (old != null && old.isNotEmpty) WebDownload.revokeObjectUrl(old);
+          _pdfObjectUrl = WebDownload.createObjectUrlFromBytes(
+            bytes: res.data!,
+            mimeType: 'application/pdf',
+          );
+          _pdfPreviewUrl = _pdfObjectUrl;
+          if (mounted) setState(() {});
+          return;
+        }
+
         final res = await _apiService.previewFileBytes(_file!.id, size: 'large');
         final code = res.statusCode ?? 0;
         if (code != 200 || res.data == null) {
@@ -143,27 +194,50 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
       // Audio/Vidéo: streaming via /stream
       if (_file!.isVideo) {
-        // Construire l'URL de streaming
-        final streamUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream';
-        _videoController = VideoPlayerController.networkUrl(
-          Uri.parse(streamUrl),
-          httpHeaders: _authHeaders,
-        );
+        if (kIsWeb) {
+          if (token == null || token.isEmpty) {
+            throw Exception('Session expirée, veuillez vous reconnecter.');
+          }
+          // Streaming progressif via query token (Range requests OK, pas de headers).
+          final uri = Uri.parse('${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream').replace(
+            queryParameters: <String, String>{'access_token': token},
+          );
+          _videoController = VideoPlayerController.networkUrl(Uri.parse(uri.toString()));
+        } else {
+          final streamUrl = '${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream';
+          _videoController = VideoPlayerController.networkUrl(
+            Uri.parse(streamUrl),
+            httpHeaders: _authHeaders,
+          );
+        }
         await _videoController!.initialize();
         setState(() {});
       } else if (_file!.isAudio) {
         _audioPlayer = AudioPlayer();
-        // Télécharger le flux en local pour éviter les 401 (UrlSource ne supporte pas toujours les headers)
-        final bytesRes = await _apiService.streamFileBytes(_file!.id);
-        final code = bytesRes.statusCode ?? 0;
-        if (code == 200 && bytesRes.data != null) {
-          final dir = await getTemporaryDirectory();
-          final path = '${dir.path}${Platform.pathSeparator}${_file!.name}';
-          final out = File(path);
-          await out.writeAsBytes(bytesRes.data!);
-          await _audioPlayer!.play(DeviceFileSource(out.path));
+        if (kIsWeb) {
+          if (token == null || token.isEmpty) {
+            throw Exception('Session expirée, veuillez vous reconnecter.');
+          }
+          final uri = Uri.parse('${AppConstants.apiBaseUrl}/api/files/${_file!.id}/stream').replace(
+            queryParameters: <String, String>{'access_token': token},
+          );
+          await _audioPlayer!.play(UrlSource(uri.toString()));
         } else {
-          throw Exception('Impossible de charger le flux audio (code: $code)');
+          // Télécharger le flux en local pour éviter les 401 (UrlSource ne supporte pas toujours les headers)
+          final bytesRes = await _apiService.streamFileBytes(_file!.id);
+          final code = bytesRes.statusCode ?? 0;
+          if (code == 401) {
+            throw Exception('Session expirée, veuillez vous reconnecter.');
+          }
+          if (code == 200 && bytesRes.data != null) {
+            final dir = await getTemporaryDirectory();
+            final path = '${dir.path}${Platform.pathSeparator}${_file!.name}';
+            final out = File(path);
+            await out.writeAsBytes(bytesRes.data!);
+            await _audioPlayer!.play(DeviceFileSource(out.path));
+          } else {
+            throw Exception('Impossible de charger le flux audio (code: $code)');
+          }
         }
         setState(() {
           _isPlaying = true;
@@ -229,46 +303,65 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (_file == null) return;
     
     try {
-      // Télécharger le fichier
-      final response = await _apiService.downloadFile(_file!.id);
-      if (response.statusCode == 200 && response.data is List<int>) {
-        // Enregistrer dans un dossier app-specific (pas de permission requise)
-        Directory? directory;
-        if (Platform.isAndroid) {
-          directory = await getExternalStorageDirectory();
-        } else {
-          directory = await getApplicationDocumentsDirectory();
+      if (kIsWeb) {
+        final token = _accessToken ?? await SecureStorage.getAccessToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('Session expirée. Veuillez vous reconnecter.');
         }
-        
-        if (directory == null) {
-          throw Exception('Impossible d\'accéder au répertoire de téléchargement');
-        }
-        
-        // Créer le répertoire s'il n'existe pas
-        if (!await directory.exists()) {
-          await directory.create(recursive: true);
-        }
-        
-        // Sauvegarder le fichier
-        final filePath = '${directory.path}/${_file!.name}';
-        final file = File(filePath);
-        await file.writeAsBytes(response.data);
-        
+
+        final uri = Uri.parse('${AppConstants.apiBaseUrl}/api/files/${_file!.id}/download').replace(
+          queryParameters: <String, String>{'access_token': token},
+        );
+
+        // Téléchargement direct par URL: plus fiable pour les gros fichiers (vidéos).
+        WebDownload.downloadFromUrl(url: uri.toString(), fileName: _file!.name);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Fichier sauvegardé: $filePath'),
+            const SnackBar(
+              content: Text('Téléchargement démarré'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
+              duration: Duration(seconds: 2),
             ),
           );
+        }
+        return;
+      }
+
+      // Mobile/Desktop: Télécharger le fichier puis l'écrire localement.
+      final response = await _apiService.downloadFile(_file!.id);
+      if (response.statusCode == 200 && response.data is List<int>) {
+        {
+          // Enregistrer dans un dossier app-specific (pas de permission requise)
+          final directory = await StoragePaths.getWritableDirectory();
+
+          if (!await directory.exists()) {
+            await directory.create(recursive: true);
+          }
+
+          final filePath = '${directory.path}/${_file!.name}';
+          final file = File(filePath);
+          await file.writeAsBytes(response.data);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Fichier sauvegardé: $filePath'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().contains('401')
+            ? 'Session expirée. Veuillez vous reconnecter.'
+            : 'Erreur lors du téléchargement: $e';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du téléchargement: $e'),
+            content: Text(msg),
             backgroundColor: Colors.red,
           ),
         );
@@ -361,7 +454,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       body: ResponsiveCenter(
         maxWidth: 980,
         padding: const EdgeInsets.symmetric(vertical: 12),
-        child: _buildPreview(),
+        child: SizedBox.expand(child: _buildPreview()),
       ),
     );
   }
@@ -369,7 +462,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool get _canOpenFullscreen {
     if (_file == null) return false;
     if (_file!.isImage) return _imageBytes != null && _imageBytes!.isNotEmpty;
-    if (_file!.isPdf) return _pdfBytes != null && _pdfBytes!.isNotEmpty;
+    if (_file!.isPdf) {
+      if (kIsWeb) return _pdfPreviewUrl != null && _pdfPreviewUrl!.isNotEmpty;
+      return _pdfBytes != null && _pdfBytes!.isNotEmpty;
+    }
     if (_file!.isVideo) return _videoController != null && _videoController!.value.isInitialized;
     return false;
   }
@@ -386,7 +482,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return;
     }
 
-    if (_file!.isPdf && _pdfBytes != null) {
+    if (_file!.isPdf) {
+      if (kIsWeb && _pdfPreviewUrl != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => _FullscreenBase(
+              title: _file!.name,
+              child: WebIFrame.build(url: _pdfPreviewUrl!),
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (_pdfBytes == null) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => FullscreenPdfScreen(bytes: _pdfBytes!, title: _file!.name),
@@ -425,8 +534,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Center(
-      child: InteractiveViewer(
+    return InteractiveViewer(
+      minScale: 0.1,
+      maxScale: 8,
+      child: Center(
         child: Image.memory(
           _imageBytes!,
           fit: BoxFit.contain,
@@ -477,6 +588,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           _videoController!.seekTo(Duration.zero);
                         });
                       },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen),
+                      onPressed: _canOpenFullscreen ? _openFullscreen : null,
+                      tooltip: 'Plein écran',
                     ),
                   ],
                 ),
@@ -539,12 +655,37 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildPdfPreview() {
+    if (kIsWeb) {
+      final url = _pdfPreviewUrl;
+      if (url == null || url.isEmpty) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return Stack(
+        children: [
+          Positioned.fill(child: WebIFrame.build(url: url)),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(999),
+              child: IconButton(
+                icon: const Icon(Icons.fullscreen, color: Colors.white),
+                onPressed: _openFullscreen,
+                tooltip: 'Plein écran',
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (_pdfBytes == null) {
       return const Center(child: CircularProgressIndicator());
     }
     return Stack(
       children: [
-        SfPdfViewer.memory(_pdfBytes!),
+        Positioned.fill(child: SfPdfViewer.memory(_pdfBytes!)),
         // Petit rappel accessible (en plus du bouton AppBar)
         Positioned(
           right: 8,
@@ -661,8 +802,10 @@ class FullscreenImageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return _FullscreenBase(
       title: title,
-      child: Center(
-        child: InteractiveViewer(
+      child: InteractiveViewer(
+        minScale: 0.1,
+        maxScale: 8,
+        child: Center(
           child: Image.memory(
             bytes,
             fit: BoxFit.contain,

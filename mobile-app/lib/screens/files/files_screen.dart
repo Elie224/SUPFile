@@ -1,19 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../providers/files_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/constants.dart';
 import '../../utils/input_validator.dart';
 import '../../services/sync_service.dart';
+import '../../utils/performance_cache.dart';
 import '../../widgets/offline_banner.dart';
 import '../../widgets/sync_indicator.dart';
 import '../../widgets/app_back_button.dart';
+import '../../utils/storage_paths.dart';
+import '../../utils/web_download.dart';
 
 class FilesScreen extends StatefulWidget {
   final String? folderId;
@@ -29,6 +33,11 @@ class _FilesScreenState extends State<FilesScreen> {
   List<FolderItem> _breadcrumbs = [];
   String? _sortBy; // 'name', 'size', 'modified'
   bool _sortAscending = true;
+
+  bool get _dragDropEnabled {
+    if (kIsWeb) return true;
+    return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  }
 
   String _safeZipName(String folderName) {
     final trimmed = folderName.trim().isEmpty ? 'dossier' : folderName.trim();
@@ -131,25 +140,30 @@ class _FilesScreenState extends State<FilesScreen> {
         final response = await _apiService.downloadFile(file.id);
 
         if (response.statusCode == 200) {
-          // App-specific external dir on Android (no permission required)
-          final directory = await getExternalStorageDirectory();
-          if (directory != null) {
-            final filePath = '${directory.path}${Platform.pathSeparator}${file.name}';
+          String? filePath;
+          if (kIsWeb) {
+            final bytes = (response.data as List<int>);
+            await WebDownload.saveBytesAsFile(
+              bytes: bytes,
+              fileName: file.name,
+              mimeType: file.mimeType ?? 'application/octet-stream',
+            );
+          } else {
+            final directory = await StoragePaths.getWritableDirectory();
+            filePath = '${directory.path}${Platform.pathSeparator}${file.name}';
             final savedFile = File(filePath);
             await savedFile.create(recursive: true);
             await savedFile.writeAsBytes(response.data);
+          }
 
-            if (mounted) {
-              Navigator.pop(context); // Fermer le dialogue
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Fichier sauvegardé: $filePath'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } else {
-            throw Exception('Répertoire de stockage indisponible');
+          if (mounted) {
+            Navigator.pop(context); // Fermer le dialogue
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(kIsWeb ? 'Téléchargement démarré' : 'Fichier sauvegardé: ${filePath ?? ''}'),
+                backgroundColor: Colors.green,
+              ),
+            );
           }
         } else {
           throw Exception('Erreur téléchargement (code: ${response.statusCode ?? '??'})');
@@ -189,22 +203,27 @@ class _FilesScreenState extends State<FilesScreen> {
         final response = await _apiService.downloadFolderZip(folder.id);
 
         if (response.statusCode == 200 && response.data != null) {
-          final directory = await getExternalStorageDirectory();
-          if (directory == null) {
-            throw Exception('Répertoire de stockage indisponible');
-          }
-
           final zipName = _safeZipName(folder.name);
-          final filePath = '${directory.path}${Platform.pathSeparator}$zipName';
-          final savedFile = File(filePath);
-          await savedFile.create(recursive: true);
-          await savedFile.writeAsBytes(response.data!);
+          String? filePath;
+          if (kIsWeb) {
+            await WebDownload.saveBytesAsFile(
+              bytes: response.data!,
+              fileName: zipName,
+              mimeType: 'application/zip',
+            );
+          } else {
+            final directory = await StoragePaths.getWritableDirectory();
+            filePath = '${directory.path}${Platform.pathSeparator}$zipName';
+            final savedFile = File(filePath);
+            await savedFile.create(recursive: true);
+            await savedFile.writeAsBytes(response.data!);
+          }
 
           if (!mounted) return;
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('ZIP sauvegardé: $filePath'),
+              content: Text(kIsWeb ? 'Téléchargement ZIP démarré' : 'ZIP sauvegardé: ${filePath ?? ''}'),
               backgroundColor: Colors.green,
             ),
           );
@@ -251,6 +270,11 @@ class _FilesScreenState extends State<FilesScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Corbeille',
+            onPressed: () => context.push('/trash'),
+          ),
           // Bouton de tri
             PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
@@ -344,27 +368,82 @@ class _FilesScreenState extends State<FilesScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        InkWell(
-                          onTap: () => context.go('/files'),
-                          borderRadius: BorderRadius.circular(8),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.home_outlined, size: 18, color: AppConstants.supinfoPurple),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Racine',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppConstants.supinfoPurple,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        (_dragDropEnabled
+                                ? DragTarget<_DragPayload>(
+                                    onWillAcceptWithDetails: (details) => true,
+                                    onAcceptWithDetails: (details) async {
+                                      final data = details.data;
+                                      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+                                      if (data.isFolder) {
+                                        await filesProvider.moveFolder(data.id, null);
+                                      } else {
+                                        await filesProvider.moveFile(data.id, null);
+                                      }
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('"${data.name}" déplacé vers la racine'),
+                                          backgroundColor: Colors.green,
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    builder: (context, candidateData, rejectedData) {
+                                      final isHovering = candidateData.isNotEmpty;
+                                      return DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: isHovering
+                                              ? Border.all(color: AppConstants.supinfoPurple, width: 2)
+                                              : null,
+                                        ),
+                                        child: InkWell(
+                                          onTap: () => context.go('/files'),
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.home_outlined,
+                                                    size: 18, color: AppConstants.supinfoPurple),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  'Racine',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppConstants.supinfoPurple,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : InkWell(
+                                    onTap: () => context.go('/files'),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.home_outlined,
+                                              size: 18, color: AppConstants.supinfoPurple),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'Racine',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: AppConstants.supinfoPurple,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )),
                         ..._breadcrumbs.asMap().entries.map((entry) {
                           final index = entry.key;
                           final folder = entry.value;
@@ -516,11 +595,75 @@ class _FilesScreenState extends State<FilesScreen> {
   }
 
   Widget _buildFolderItem(FolderItem folder) {
-    // Vérifier si c'est le dossier Root (parentId === null)
-    final isRootFolder = folder.parentId == null || folder.parentId == '';
-    
-    // Utiliser RepaintBoundary pour isoler les repaints
-    return RepaintBoundary(
+    final dragPayload = _DragPayload(id: folder.id, name: folder.name, isFolder: true);
+
+    Widget leading = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppConstants.supinfoPurple,
+            AppConstants.supinfoPurpleLight,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.supinfoPurple.withAlpha((0.3 * 255).round()),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.folder,
+        color: AppConstants.supinfoWhite,
+        size: 24,
+      ),
+    );
+
+    if (_dragDropEnabled) {
+      leading = Draggable<_DragPayload>(
+        data: dragPayload,
+        feedback: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.2 * 255).round()),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.folder, color: AppConstants.supinfoPurple),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: Text(
+                    folder.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.45, child: leading),
+        child: leading,
+      );
+    }
+
+    final tile = RepaintBoundary(
       key: ValueKey('folder_${folder.id}'),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -537,30 +680,7 @@ class _FilesScreenState extends State<FilesScreen> {
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  AppConstants.supinfoPurple,
-                  AppConstants.supinfoPurpleLight,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppConstants.supinfoPurple.withAlpha((0.3 * 255).round()),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.folder,
-              color: AppConstants.supinfoWhite,
-              size: 24,
-            ),
-          ),
+          leading: leading,
           title: Row(
             children: [
               Expanded(
@@ -570,6 +690,8 @@ class _FilesScreenState extends State<FilesScreen> {
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (folder.sharedWithMe)
@@ -607,16 +729,11 @@ class _FilesScreenState extends State<FilesScreen> {
               ],
             ),
           ),
-          onTap: () {
-            context.push('/files?folder=${folder.id}');
-          },
-          trailing: PopupMenuButton(
-            icon: const Icon(
-              Icons.more_vert,
-              color: AppConstants.supinfoPurple,
-            ),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
+          onTap: () => context.push('/files?folder=${folder.id}'),
+          trailing: PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppConstants.supinfoPurple),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
                 value: 'share',
                 child: Row(
                   children: [
@@ -626,7 +743,7 @@ class _FilesScreenState extends State<FilesScreen> {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'download_zip',
                 child: Row(
                   children: [
@@ -636,86 +753,92 @@ class _FilesScreenState extends State<FilesScreen> {
                   ],
                 ),
               ),
-              if (!isRootFolder) ...[
-                const PopupMenuItem(
-                  value: 'move',
-                  child: Row(
-                    children: [
-                      Icon(Icons.drive_file_move, size: 20),
-                      SizedBox(width: 8),
-                      Text('Déplacer'),
-                    ],
-                  ),
+              PopupMenuItem(
+                value: 'move',
+                child: Row(
+                  children: [
+                    Icon(Icons.drive_file_move, size: 20),
+                    SizedBox(width: 8),
+                    Text('Déplacer'),
+                  ],
                 ),
-                PopupMenuItem(
-                  value: 'rename',
-                  enabled: !isRootFolder,
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, size: 20, color: isRootFolder ? Colors.grey : null),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Renommer',
-                        style: TextStyle(color: isRootFolder ? Colors.grey : null),
-                      ),
-                    ],
-                  ),
+              ),
+              PopupMenuItem(
+                value: 'rename',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 20),
+                    SizedBox(width: 8),
+                    Text('Renommer'),
+                  ],
                 ),
-                PopupMenuItem(
-                  value: 'delete',
-                  enabled: !isRootFolder,
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, size: 20, color: isRootFolder ? Colors.grey : Colors.red),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Supprimer',
-                        style: TextStyle(color: isRootFolder ? Colors.grey : Colors.red),
-                      ),
-                    ],
-                  ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 20, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Supprimer', style: TextStyle(color: Colors.red)),
+                  ],
                 ),
-              ] else ...[
-                const PopupMenuItem(
-                  enabled: false,
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 20, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Actions limitées pour Root',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ],
             onSelected: (value) async {
               if (value == 'share') {
-                context.go('/share?folder=${folder.id}');
+                if (!mounted) return;
+                context.push('/share?folder=${folder.id}');
               } else if (value == 'download_zip') {
                 await _downloadFolderZip(folder);
-              } else if (value == 'move' && !isRootFolder) {
+              } else if (value == 'move') {
                 _showMoveDialog(context, folder.id, folder.name, true);
-              } else if (value == 'rename' && !isRootFolder) {
+              } else if (value == 'rename') {
                 _showRenameDialog(context, folder.id, folder.name, true);
-              } else if (value == 'delete' && !isRootFolder) {
+              } else if (value == 'delete') {
                 _showDeleteDialog(context, folder.id, folder.name, true);
-              } else if (isRootFolder && (value == 'rename' || value == 'delete')) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Impossible de renommer ou supprimer la racine'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
               }
             },
           ),
         ),
       ),
+    );
+
+    if (!_dragDropEnabled) return tile;
+
+    return DragTarget<_DragPayload>(
+      onWillAcceptWithDetails: (details) {
+        final data = details.data;
+        if (data.id == folder.id) return false;
+        return true;
+      },
+      onAcceptWithDetails: (details) async {
+        final data = details.data;
+        final filesProvider = Provider.of<FilesProvider>(context, listen: false);
+        if (data.isFolder) {
+          await filesProvider.moveFolder(data.id, folder.id);
+        } else {
+          await filesProvider.moveFile(data.id, folder.id);
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"${data.name}" déplacé vers "${folder.name}"'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        if (!isHovering) return tile;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppConstants.supinfoPurple, width: 2),
+          ),
+          child: tile,
+        );
+      },
     );
   }
 
@@ -751,7 +874,71 @@ class _FilesScreenState extends State<FilesScreen> {
       iconColor = Colors.grey;
     }
 
-    return Container(
+    final dragPayload = _DragPayload(id: file.id, name: file.name, isFolder: false);
+
+    Widget leading = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            iconColor,
+            iconColor.withAlpha((0.7 * 255).round()),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withAlpha((0.3 * 255).round()),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: AppConstants.supinfoWhite, size: 24),
+    );
+
+    if (_dragDropEnabled) {
+      leading = Draggable<_DragPayload>(
+        data: dragPayload,
+        feedback: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha((0.2 * 255).round()),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: iconColor),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: Text(
+                    file.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.45, child: leading),
+        child: leading,
+      );
+    }
+
+    final tile = Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -766,26 +953,7 @@ class _FilesScreenState extends State<FilesScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                iconColor,
-                iconColor.withAlpha((0.7 * 255).round()),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: iconColor.withAlpha((0.3 * 255).round()),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: AppConstants.supinfoWhite, size: 24),
-        ),
+        leading: leading,
         title: Text(
           file.name,
           style: const TextStyle(
@@ -891,7 +1059,7 @@ class _FilesScreenState extends State<FilesScreen> {
           if (value == 'gallery') {
             _openImageGallery(file);
           } else if (value == 'share') {
-            context.go('/share?file=${file.id}');
+            context.push('/share?file=${file.id}');
           } else if (value == 'download') {
             await _downloadFile(file);
           } else if (value == 'move') {
@@ -905,6 +1073,8 @@ class _FilesScreenState extends State<FilesScreen> {
         ),
       ),
     );
+
+    return tile;
   }
 
   void _showCreateFolderDialog(BuildContext context) {
@@ -1118,6 +1288,14 @@ class _FilesScreenState extends State<FilesScreen> {
               final success = isFolder
                   ? await filesProvider.deleteFolder(id)
                   : await filesProvider.deleteFile(id);
+
+              if (success) {
+                // Les stats/quota dépendent du dashboard + /users/me.
+                await PerformanceCache.remove('dashboard');
+                if (context.mounted) {
+                  await context.read<AuthProvider>().refreshUser();
+                }
+              }
               
               if (context.mounted) {
                 Navigator.pop(context);
@@ -1152,19 +1330,139 @@ class _FilesScreenState extends State<FilesScreen> {
     String? selectedFolderId;
     List<FolderItem> availableFolders = [];
     bool isLoadingFolders = true;
+
+    List<FolderItem> sortFoldersAsTree(List<FolderItem> folders) {
+      final byParent = <String?, List<FolderItem>>{};
+      for (final f in folders) {
+        byParent.putIfAbsent(f.parentId, () => <FolderItem>[]).add(f);
+      }
+
+      for (final entry in byParent.entries) {
+        entry.value.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      }
+
+      final result = <FolderItem>[];
+      void dfs(String? parentId) {
+        final children = byParent[parentId] ?? const <FolderItem>[];
+        for (final child in children) {
+          result.add(child);
+          dfs(child.id);
+        }
+      }
+
+      dfs(null);
+      return result;
+    }
+
+    Map<String, int> computeDepths(List<FolderItem> folders) {
+      final byId = <String, FolderItem>{for (final f in folders) f.id: f};
+      final cache = <String, int>{};
+
+      int depthOf(String id) {
+        final cached = cache[id];
+        if (cached != null) return cached;
+        final f = byId[id];
+        if (f == null) return 0;
+        final pid = f.parentId;
+        if (pid == null || pid.isEmpty || !byId.containsKey(pid)) {
+          cache[id] = 0;
+          return 0;
+        }
+        final d = 1 + depthOf(pid);
+        cache[id] = d;
+        return d;
+      }
+
+      for (final f in folders) {
+        depthOf(f.id);
+      }
+      return cache;
+    }
+
+    Set<String> descendantsOf(String rootId, List<FolderItem> folders) {
+      final childrenByParent = <String, List<String>>{};
+      for (final f in folders) {
+        final pid = f.parentId;
+        if (pid == null || pid.isEmpty) continue;
+        childrenByParent.putIfAbsent(pid, () => <String>[]).add(f.id);
+      }
+
+      final visited = <String>{rootId};
+      final stack = <String>[rootId];
+      while (stack.isNotEmpty) {
+        final current = stack.removeLast();
+        final kids = childrenByParent[current] ?? const <String>[];
+        for (final k in kids) {
+          if (visited.add(k)) {
+            stack.add(k);
+          }
+        }
+      }
+      return visited;
+    }
     
     // Charger les dossiers disponibles
     Future<void> loadAvailableFolders() async {
       try {
+        List<Map<String, dynamic>> extractFolderMapsFromResponse(dynamic responseData) {
+          if (responseData is! Map) return const <Map<String, dynamic>>[];
+          final data = responseData['data'];
+
+          // Backend endpoints used here return either:
+          // - { data: [ ... ] } (flat list)
+          // - { data: { items: [ ... ] } } (paginated)
+          if (data is List) {
+            return data
+                .whereType<Map>()
+                .map((m) => Map<String, dynamic>.from(m))
+                .toList();
+          }
+
+          if (data is Map) {
+            final items = data['items'];
+            if (items is List) {
+              return items
+                  .whereType<Map>()
+                  .map((m) => Map<String, dynamic>.from(m))
+                  .toList();
+            }
+          }
+
+          return const <Map<String, dynamic>>[];
+        }
+
+        // 1) Essayer l'endpoint optimisé /folders/all.
         final response = await _apiService.getAllFolders();
         if (response.statusCode == 200) {
-          final items = response.data['data']['items'] ?? [];
-          availableFolders = items
-              .where((item) => item['type'] == 'folder' || item['folder_id'] == null)
-              .map((item) => FolderItem.fromJson(item))
-              .toList()
-              .cast<FolderItem>();
+          final items = extractFolderMapsFromResponse(response.data);
+          availableFolders = items.map(FolderItem.fromJson).toList();
         }
+
+        // 2) Fallback: si /folders/all ne renvoie rien, parcourir l'arborescence via /folders?parent_id.
+        if (availableFolders.isEmpty) {
+          final seen = <String>{};
+          final queue = <String?>[null];
+          final collected = <FolderItem>[];
+          int safety = 0;
+          while (queue.isNotEmpty && safety < 2000) {
+            safety++;
+            final parentId = queue.removeAt(0);
+            final res = await _apiService.listFolders(parentId: parentId);
+            if (res.statusCode != 200 || res.data is! Map) continue;
+            final items = extractFolderMapsFromResponse(res.data);
+            for (final it in items) {
+              final folder = FolderItem.fromJson(it);
+              if (seen.add(folder.id)) {
+                collected.add(folder);
+                queue.add(folder.id);
+              }
+            }
+          }
+          availableFolders = collected;
+        }
+
+        // Toujours filtrer les dossiers supprimés et trier.
+        availableFolders = availableFolders.where((f) => f.id.isNotEmpty && f.name.isNotEmpty && !f.isDeleted).toList();
       } catch (e) {
         // En cas d'erreur, utiliser les dossiers déjà chargés
         availableFolders = filesProvider.folders;
@@ -1195,42 +1493,58 @@ class _FilesScreenState extends State<FilesScreen> {
                   if (isLoadingFolders)
                     const Center(child: CircularProgressIndicator())
                   else
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedFolderId,
-                      decoration: const InputDecoration(
-                        labelText: 'Dossier de destination',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Row(
-                            children: [
-                              Icon(Icons.home, size: 20),
-                              SizedBox(width: 8),
-                              Text('Racine'),
-                            ],
-                          ),
+                    Builder(builder: (context) {
+                      final sorted = sortFoldersAsTree(availableFolders);
+                      final depths = computeDepths(availableFolders);
+                      final excluded = isFolder ? descendantsOf(id, availableFolders) : <String>{};
+
+                      final options = sorted.where((folder) => !excluded.contains(folder.id)).toList();
+                      return DropdownButtonFormField<String?>(
+                        initialValue: selectedFolderId,
+                        decoration: const InputDecoration(
+                          labelText: 'Dossier de destination',
+                          border: OutlineInputBorder(),
                         ),
-                        ...availableFolders
-                            .where((folder) => folder.id != id) // Exclure le dossier courant
-                            .map((folder) => DropdownMenuItem(
-                                  value: folder.id,
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.folder, size: 20, color: Colors.blue),
-                                      const SizedBox(width: 8),
-                                      Expanded(child: Text(folder.name)),
-                                    ],
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Row(
+                              children: [
+                                Icon(Icons.home, size: 20),
+                                SizedBox(width: 8),
+                                Text('Racine'),
+                              ],
+                            ),
+                          ),
+                          ...options.map((folder) {
+                            final depth = depths[folder.id] ?? 0;
+                            final indent = List.filled(depth, '   ').join();
+                            return DropdownMenuItem(
+                              value: folder.id,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.folder, size: 20, color: Colors.blue),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    fit: FlexFit.loose,
+                                    child: Text(
+                                      '$indent${folder.name}',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                )),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() {
-                          selectedFolderId = value;
-                        });
-                      },
-                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedFolderId = value;
+                          });
+                        },
+                      );
+                    }),
                 ],
               ),
             ),
@@ -1240,20 +1554,31 @@ class _FilesScreenState extends State<FilesScreen> {
                 child: const Text('Annuler'),
               ),
               ElevatedButton(
-                onPressed: selectedFolderId == null && isLoadingFolders
+                onPressed: isLoadingFolders
                     ? null
                     : () async {
-                        if (isFolder) {
-                          await filesProvider.moveFolder(id, selectedFolderId);
-                        } else {
-                          await filesProvider.moveFile(id, selectedFolderId);
-                        }
-                        if (context.mounted) {
+                        try {
+                          if (isFolder) {
+                            await filesProvider.moveFolder(id, selectedFolderId);
+                          } else {
+                            await filesProvider.moveFile(id, selectedFolderId);
+                          }
+
+                          if (!context.mounted) return;
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Élément déplacé avec succès'),
+                            SnackBar(
+                              content: Text('"$name" déplacé'),
                               backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur déplacement: $e'),
+                              backgroundColor: Colors.red,
                             ),
                           );
                         }
@@ -1275,6 +1600,8 @@ class _FilesScreenState extends State<FilesScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
         type: FileType.any,
+        // Web: prefer stream to avoid loading big videos in memory.
+        withReadStream: kIsWeb,
       );
 
       if (!context.mounted) return;
@@ -1351,40 +1678,73 @@ class _FilesScreenState extends State<FilesScreen> {
         );
 
         // Uploader chaque fichier avec progression
-        for (var pickedFile in result.files) {
-          if (pickedFile.path != null && context.mounted) {
-            final filePath = File(pickedFile.path!);
-            currentFileName = pickedFile.name;
-            currentProgress = 0.0;
+        for (final pickedFile in result.files) {
+          if (!context.mounted) break;
 
-            setDialogStateRef?.call(() {});
+          currentFileName = pickedFile.name;
+          currentProgress = 0.0;
+          setDialogStateRef?.call(() {});
 
-            final success = await filesProvider.uploadFile(
-              filePath.path,
-              folderId: widget.folderId,
-              onProgress: (sent, total) {
-                if (!context.mounted || dialogContext == null) return;
-                currentProgress = total > 0 ? sent / total : 0.0;
-
-                // Throttle UI updates to avoid excessive rebuilds.
-                final now = DateTime.now();
-                if (now.difference(lastUiUpdate) >= const Duration(milliseconds: 120)) {
-                  lastUiUpdate = now;
-                  setDialogStateRef?.call(() {});
-                }
-              },
-            );
-            
-            if (success) {
-              successCount++;
+          bool success = false;
+          if (kIsWeb) {
+            final stream = pickedFile.readStream;
+            if (stream == null) {
+              success = false;
             } else {
-              failCount++;
+              success = await filesProvider.uploadFileStream(
+                () => stream,
+                pickedFile.size,
+                pickedFile.name,
+                folderId: widget.folderId,
+                onProgress: (sent, total) {
+                  if (!context.mounted || dialogContext == null) return;
+                  currentProgress = total > 0 ? sent / total : 0.0;
+
+                  final now = DateTime.now();
+                  if (now.difference(lastUiUpdate) >= const Duration(milliseconds: 120)) {
+                    lastUiUpdate = now;
+                    setDialogStateRef?.call(() {});
+                  }
+                },
+              );
+            }
+          } else {
+            final path = pickedFile.path;
+            if (path != null) {
+              success = await filesProvider.uploadFile(
+                path,
+                folderId: widget.folderId,
+                onProgress: (sent, total) {
+                  if (!context.mounted || dialogContext == null) return;
+                  currentProgress = total > 0 ? sent / total : 0.0;
+
+                  final now = DateTime.now();
+                  if (now.difference(lastUiUpdate) >= const Duration(milliseconds: 120)) {
+                    lastUiUpdate = now;
+                    setDialogStateRef?.call(() {});
+                  }
+                },
+              );
             }
           }
-          
+
+          if (success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+
           currentFileIndex++;
-          currentProgress = 1.0; // Fichier terminé
+          currentProgress = 1.0;
           setDialogStateRef?.call(() {});
+        }
+
+        // Invalider stats/quota une seule fois si au moins un upload a réussi.
+        if (successCount > 0) {
+          await PerformanceCache.remove('dashboard');
+          if (context.mounted) {
+            await context.read<AuthProvider>().refreshUser();
+          }
         }
 
         if (context.mounted) {
@@ -1420,5 +1780,17 @@ class _FilesScreenState extends State<FilesScreen> {
       }
     }
   }
+}
+
+class _DragPayload {
+  final String id;
+  final String name;
+  final bool isFolder;
+
+  const _DragPayload({
+    required this.id,
+    required this.name,
+    required this.isFolder,
+  });
 }
 

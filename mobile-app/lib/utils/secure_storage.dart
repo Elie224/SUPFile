@@ -39,14 +39,24 @@ class SecureStorage {
 
   /// Récupérer le token d'accès
   static Future<String?> getAccessToken() async {
-    // Vérifier l'expiration de la session
+    final token = await _storage.read(key: _keyAccessToken);
+    if (token == null || token.isEmpty) return null;
+
+    // Vérifier l'expiration de la session (si connue). Sur Web, il peut arriver
+    // que session_expiry soit absent après un refresh : on ne force pas un logout.
     final expiry = await _getSessionExpiry();
     if (expiry != null && expiry.isBefore(DateTime.now())) {
-      // Session expirée, supprimer les tokens
       await clearAll();
       return null;
     }
-    return await _storage.read(key: _keyAccessToken);
+
+    // Fallback: si pas d'expiry stockée, en définir une (1h) pour éviter que
+    // hasActiveSession() considère la session comme inactive.
+    if (expiry == null) {
+      await updateSessionExpiry(const Duration(hours: 1));
+    }
+
+    return token;
   }
 
   /// Récupérer le refresh token
@@ -73,8 +83,14 @@ class SecureStorage {
   /// Vérifier si une session est active
   static Future<bool> hasActiveSession() async {
     final token = await getAccessToken();
+    if (token == null || token.isEmpty) return false;
+
     final expiry = await _getSessionExpiry();
-    return token != null && expiry != null && expiry.isAfter(DateTime.now());
+    // Si l'expiry n'est pas disponible (souvent sur Web), on considère la session
+    // active tant que le token existe. Le serveur validera en cas d'expiration.
+    if (expiry == null) return true;
+
+    return expiry.isAfter(DateTime.now());
   }
 
   /// Mettre à jour l'expiration de la session
