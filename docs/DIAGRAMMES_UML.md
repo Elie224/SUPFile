@@ -126,87 +126,76 @@ classDiagram
 
     class User {
         +ObjectId _id
-        +string email
-        +string password_hash
-        +string oauth_provider
-        +string oauth_id
-        +boolean email_verified
-        +number quota_limit
-        +number quota_used
-        +boolean two_factor_enabled
-        +boolean is_admin
-        +date created_at
-        +date updated_at
+        +String email
+        +Boolean email_verified
+        +Boolean is_admin
+        +Number quota_limit
+        +Number quota_used
+        +Boolean two_factor_enabled
     }
 
     class Folder {
         +ObjectId _id
-        +string name
+        +String name
         +ObjectId owner_id
         +ObjectId parent_id
-        +boolean is_deleted
-        +date deleted_at
-        +date created_at
-        +date updated_at
+        +Boolean is_deleted
     }
 
     class File {
         +ObjectId _id
-        +string name
-        +string mime_type
-        +number size
+        +String name
+        +String mime_type
+        +Number size
         +ObjectId folder_id
         +ObjectId owner_id
-        +string file_path
-        +boolean is_deleted
-        +date deleted_at
-        +date created_at
-        +date updated_at
+        +String file_path
+        +Boolean is_deleted
     }
 
     class Share {
         +ObjectId _id
-        +ObjectId file_id
-        +ObjectId folder_id
         +ObjectId created_by_id
-        +string share_type
-        +string public_token
-        +boolean requires_password
-        +string password_hash
-        +date expires_at
-        +ObjectId shared_with_user_id
-        +boolean is_active
-        +number access_count
-        +date created_at
-        +date updated_at
+        +String share_type
+        +String public_token
+        +Date expires_at
+        +Boolean requires_password
+        +Boolean is_active
     }
 
     class Session {
         +ObjectId _id
         +ObjectId user_id
-        +string refresh_token
-        +string user_agent
-        +string ip_address
-        +string device_name
-        +boolean is_revoked
-        +date expires_at
-        +date created_at
-        +date updated_at
+        +String refresh_token
+        +Date expires_at
+        +Boolean is_revoked
     }
 
-    User "1" --> "0..*" Folder : owns
-    User "1" --> "0..*" File : owns
-    User "1" --> "0..*" Share : creates
+    class BlockedEmail {
+        +ObjectId _id
+        +String email
+        +ObjectId blocked_by
+    }
+
+    User "1" o-- "0..*" Folder : owns
+    User "1" o-- "0..*" File : owns
     User "1" --> "0..*" Session : sessions
 
-    Folder "0..1" --> "0..*" Folder : parent_of
-    Folder "1" --> "0..*" File : contains
+    Folder "0..1" --> "0..*" Folder : children
+    Folder "1" o-- "0..*" File : contains
 
-    Share "0..1" --> File : targets
-    Share "0..1" --> Folder : targets
+    User "1" --> "0..*" Share : creates
+    Share "0..1" -- "0..*" File : file_id
+    Share "0..1" -- "0..*" Folder : folder_id
+    Share "0..1" -- "0..*" User : shared_with_user_id
 
-    note for File "Les binaires ne sont pas en BDD :\nles fichiers sont sur le FS (volume uploads)."
+    User "0..1" --> "0..*" BlockedEmail : blocked_by
+
+    note for Share "Contrainte: la Share cible soit un File, soit un Folder."
+    note for File "Binaire stocke sur le systeme de fichiers (uploads/). La BDD garde les metadonnees."
 ```
+
+Champs secondaires (profil, preferences, reset password, timestamps, etc.) volontairement omis pour garder le diagramme lisible.
 
 ---
 
