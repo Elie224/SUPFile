@@ -12,14 +12,14 @@ export default function LegalNotice() {
 
         <h2 className="h5 mt-4">Éditeur du site</h2>
         <p>
-          SUPFile
-          <br />
-          (À personnaliser : raison sociale / nom, adresse, e-mail.)
+          <strong>SUPFile</strong> – plateforme de stockage et de partage de fichiers.
         </p>
 
         <h2 className="h5 mt-4">Hébergement</h2>
         <p>
-          (À personnaliser : fournisseur d’hébergement, adresse.)
+          <strong>Backend / API</strong> : Fly.io
+          <br />
+          <strong>Frontend (application web)</strong> : Netlify
           <br />
           Le service peut s’appuyer sur des prestataires tiers pour l’hébergement et l’envoi d’e-mails.
         </p>
@@ -32,13 +32,11 @@ export default function LegalNotice() {
 
         <h2 className="h5 mt-4">Données personnelles</h2>
         <p>
-          Pour plus d’informations sur le traitement des données, consultez la page « Politique de
-          confidentialité ».
-        </p>
-
-        <h2 className="h5 mt-4">Contact</h2>
-        <p>
-          (À personnaliser : e-mail de contact/support.)
+          Le traitement des données personnelles est réalisé conformément au RGPD et à la loi « Informatique et Libertés ».
+          Pour plus d’informations, consultez la page « Politique de confidentialité ».
+          Vous pouvez également déposer une réclamation auprès de la CNIL :
+          {' '}
+          <a href="https://www.cnil.fr" target="_blank" rel="noreferrer">https://www.cnil.fr</a>.
         </p>
       </main>
       <Footer />

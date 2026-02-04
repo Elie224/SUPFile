@@ -20,7 +20,7 @@ export default function TermsOfUse() {
         <ul>
           <li>Vous êtes responsable de la confidentialité de vos identifiants.</li>
           <li>Vous devez fournir des informations exactes et à jour.</li>
-          <li>En cas de suspicion d’accès non autorisé, modifiez votre mot de passe et contactez l’administrateur.</li>
+          <li>En cas de suspicion d’accès non autorisé, modifiez votre mot de passe et sécurisez votre compte (ex : activer la 2FA si disponible).</li>
         </ul>
 
         <h2 className="h5 mt-4">3. Usage acceptable</h2>
@@ -51,12 +51,6 @@ export default function TermsOfUse() {
         <h2 className="h5 mt-4">7. Modifications</h2>
         <p>
           Ces conditions peuvent évoluer. La date de mise à jour est indiquée en haut de page.
-        </p>
-
-        <h2 className="h5 mt-4">8. Contact</h2>
-        <p>
-          Pour toute question, contactez l’administrateur du service.
-          (À personnaliser : ajoutez une adresse e-mail de contact.)
         </p>
       </main>
       <Footer />

@@ -12,7 +12,12 @@ export default function PrivacyPolicy() {
 
         <p>
           Cette politique de confidentialité décrit comment SUPFile collecte, utilise et protège vos données
-          lorsque vous utilisez l’application web et l’API.
+          lorsque vous utilisez l’application web, l’application mobile et l’API.
+        </p>
+
+        <p>
+          Conformément au RGPD (Règlement (UE) 2016/679) et à la loi « Informatique et Libertés », SUPFile
+          s’engage à traiter vos données personnelles de manière licite, loyale et transparente.
         </p>
 
         <h2 className="h5 mt-4">1. Données collectées</h2>
@@ -43,6 +48,10 @@ export default function PrivacyPolicy() {
           au fonctionnement (hébergement, stockage, e-mails), dans la limite de ce qui est requis.
         </p>
 
+        <p>
+          Les prestataires d’hébergement incluent notamment Fly.io (backend/API) et Netlify (frontend web).
+        </p>
+
         <h2 className="h5 mt-4">5. Conservation</h2>
         <ul>
           <li>Données de compte : tant que le compte est actif, puis selon les obligations légales.</li>
@@ -63,10 +72,11 @@ export default function PrivacyPolicy() {
           limitation, portabilité). Vous pouvez gérer une partie de ces informations depuis la page Paramètres.
         </p>
 
-        <h2 className="h5 mt-4">8. Contact</h2>
         <p>
-          Pour toute question relative à la confidentialité, vous pouvez contacter l’administrateur du service.
-          (À personnaliser : ajoutez une adresse e-mail de contact ou un formulaire.)
+          Si vous estimez, après nous avoir sollicités via les moyens disponibles dans l’application, que vos droits
+          ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL :
+          {' '}
+          <a href="https://www.cnil.fr" target="_blank" rel="noreferrer">https://www.cnil.fr</a>.
         </p>
       </main>
       <Footer />
