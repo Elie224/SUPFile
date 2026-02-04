@@ -127,6 +127,8 @@ Créer un compte avec email/mot de passe.
 
 **Note** : l'API ne renvoie pas de tokens à l'inscription (vérification e-mail obligatoire avant connexion).
 
+**Vérification e-mail** : le lien envoyé par email expire au bout de **15 minutes**.
+
 **Erreurs possibles** :
 - 409 : Email déjà existant
 - 400 : Validation échouée
@@ -192,6 +194,122 @@ Connexion avec email/mot de passe.
 - 403 : E-mail non vérifié (`code: EMAIL_NOT_VERIFIED`)
 - 403 : Email bloqué
 - 503 : Base de données indisponible
+
+---
+
+#### GET `/auth/verify-email`
+
+Valider l’email via un token reçu par email.
+
+**Authentification** : Non requise
+
+**Query** :
+- `token` (hex 64)
+
+**Réponse** (200) :
+```json
+{
+  "data": { "email": "user@example.com" },
+  "message": "Email vérifié. Vous pouvez maintenant vous connecter."
+}
+```
+
+**Erreurs possibles** :
+- 400 : token manquant / invalide / expiré (15 minutes)
+
+---
+
+#### POST `/auth/verify-email`
+
+Même action que le GET, mais avec token dans le body.
+
+**Authentification** : Non requise
+
+**Body** :
+```json
+{ "token": "<token>" }
+```
+
+---
+
+#### POST `/auth/resend-verification`
+
+Renvoyer un email de vérification.
+
+**Authentification** : Non requise
+
+**Body** :
+```json
+{ "email": "user@example.com" }
+```
+
+**Réponse** (200) :
+```json
+{ "message": "Si ce compte existe, un nouvel email de vérification a été envoyé." }
+```
+
+---
+
+#### POST `/auth/forgot-password`
+
+Démarrer le flux « mot de passe oublié ».
+
+**Authentification** : Non requise
+
+**Body** :
+```json
+{ "email": "user@example.com" }
+```
+
+**Réponse** (200) :
+```json
+{ "message": "Si cette adresse email est associée à un compte, vous recevrez un lien de réinitialisation." }
+```
+
+**Note** : réponse identique même si l’email n’existe pas (anti-enumération).
+
+---
+
+#### GET `/auth/verify-reset-token/:token`
+
+Vérifier si un token de réinitialisation est valide.
+
+**Authentification** : Non requise
+
+**Réponse** (200) :
+```json
+{
+  "data": { "valid": true, "email": "user@example.com" },
+  "message": "Token valide"
+}
+```
+
+**Erreurs possibles** :
+- 400 : token manquant / invalide / expiré (15 minutes)
+
+---
+
+#### POST `/auth/reset-password`
+
+Finaliser la réinitialisation du mot de passe.
+
+**Authentification** : Non requise
+
+**Body** :
+```json
+{
+  "token": "<token>",
+  "password": "Passw0rd!"
+}
+```
+
+**Réponse** (200) :
+```json
+{ "message": "Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter." }
+```
+
+**Erreurs possibles** :
+- 400 : token invalide/expiré (15 minutes), mot de passe invalide
 
 ---
 

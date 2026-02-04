@@ -9,6 +9,7 @@ Une plateforme de stockage cloud distribuée, moderne et sécurisée, concurrent
 - [Déploiement avec Docker](#déploiement-avec-docker)
 - [Architecture générale](#architecture-générale)
 - [Pages légales](#pages-légales)
+- [Documentation](#documentation)
 - [Documentation API](#documentation-api)
 - [Contribuer](#contribuer)
 
@@ -189,17 +190,21 @@ Voir **`docs/RENDU.md`** pour le détail des exigences de rendu et la checklist 
 
 ## 📄 Pages légales
 
-- Le client web expose des pages statiques :
    - `/politique-confidentialite`
    - `/conditions-utilisation`
    - `/mentions-legales`
-- Le mode hors ligne (PWA/service worker/cache) n’est pas supporté : l’application nécessite une connexion Internet.
 
 ## 📡 Documentation API
 
 ### Endpoints principaux
 
 **Note** : Tous les endpoints (sauf login/signup) nécessitent un JWT valide dans le header `Authorization: Bearer <token>`
+
+## 📚 Documentation
+
+- Configuration SMTP (Gmail/Google) : voir `docs/CONFIGURATION_SMTP.md`
+- Manuel utilisateur (inclut validation email + mot de passe oublié) : voir `docs/MANUEL_UTILISATEUR.md`
+- API (endpoints auth : verify-email / forgot-password / reset-password) : voir `docs/API.md`
 
 #### Authentification
 
@@ -239,7 +244,7 @@ Voir **`docs/RENDU.md`** pour le détail des exigences de rendu et la checklist 
 | GET | `/api/dashboard` | Quota, fichiers récents |
 | GET | `/api/search` | Recherche par nom/type/date |
 
-Voir la documentation complète dans `docs/API.md` (à créer).
+Voir la documentation complète dans `docs/API.md`.
 
 ---
 

@@ -24,6 +24,11 @@ SUPFile est une plateforme de stockage cloud : vous pouvez y stocker des fichier
 5. Ouvrez l’e-mail et cliquez sur le lien **Vérifier mon e-mail**.
 6. Revenez sur SUPFile et connectez-vous : vous serez alors redirigé vers le **tableau de bord**.
 
+Notes :
+- Le lien de vérification **expire au bout de 15 minutes**.
+- Si le lien est expiré ou si vous n’avez rien reçu, utilisez **Renvoyer l’e-mail de vérification** depuis l’écran de connexion.
+- Pensez à vérifier vos **spams / courriers indésirables**.
+
 Si vous n’avez pas reçu l’e-mail, utilisez l’option **Renvoyer l’e-mail de vérification** depuis l’écran de connexion.
 
 Vous pouvez aussi vous connecter avec **Google** ou **GitHub** si l’administrateur a activé ces options.
@@ -33,6 +38,21 @@ Vous pouvez aussi vous connecter avec **Google** ou **GitHub** si l’administra
 1. Cliquez sur **« Se connecter »** (ou **Login**).
 2. Entrez votre **e-mail** et votre **mot de passe**.
 3. Si la double authentification (2FA) est activée sur votre compte, saisissez le code à 6 chiffres de votre application d’authentification.
+
+### 2.3 Mot de passe oublié (réinitialisation)
+
+Si vous ne pouvez plus vous connecter :
+
+1. Sur l’écran de connexion, cliquez sur **« Mot de passe oublié ? »**.
+2. Entrez votre **adresse e-mail**.
+3. Vous recevez un email contenant un lien **Réinitialiser mon mot de passe**.
+4. Ouvrez le lien, choisissez un nouveau mot de passe, validez.
+
+Notes :
+- Le lien de réinitialisation **expire au bout de 15 minutes**.
+- Pour des raisons de sécurité, l’application peut afficher un message de succès même si l’email n’existe pas.
+- Vérifiez vos **spams / courriers indésirables**.
+- Si votre compte a été créé uniquement via **Google/GitHub (OAuth)**, la réinitialisation par mot de passe peut ne pas s’appliquer.
 
 ---
 
