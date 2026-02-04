@@ -259,39 +259,23 @@ sequenceDiagram
 
 Le projet utilise **MongoDB** ; la structure logique est décrite sous forme de **schéma relationnel** (entités et relations) équivalent aux collections MongoDB.
 
-### 2.1 Diagramme entité-association (logique)
+### 4.1 Diagramme entité-association (logique)
 
 ```mermaid
 erDiagram
-    users ||--o{ folders : "possède"
-    users ||--o{ files : "possède"
-    users ||--o{ shares : "crée"
-    users ||--o{ sessions : "a"
-
-    folders ||--o{ folders : "parent-enfant"
+    users ||--o{ folders : "possede"
+    folders ||--o{ folders : "parent_enfant"
     folders ||--o{ files : "contient"
-
-    files ||--o{ shares : "partagé via"
-    folders ||--o{ shares : "partagé via"
+    users ||--o{ shares : "cree"
+    users ||--o{ sessions : "a"
 
     users {
         ObjectId _id PK
         string email UK
-        string password_hash
-        string oauth_provider
-        string oauth_id
-        string display_name
-        string avatar_url
+        boolean is_admin
+        boolean email_verified
         number quota_limit
         number quota_used
-        object preferences
-        boolean is_active
-        boolean is_admin
-        boolean two_factor_enabled
-        string two_factor_secret
-        array two_factor_backup_codes
-        date created_at
-        date updated_at
     }
 
     folders {
@@ -300,9 +284,6 @@ erDiagram
         ObjectId owner_id FK
         ObjectId parent_id FK
         boolean is_deleted
-        date deleted_at
-        date created_at
-        date updated_at
     }
 
     files {
@@ -310,30 +291,22 @@ erDiagram
         string name
         string mime_type
         number size
-        ObjectId folder_id FK
         ObjectId owner_id FK
+        ObjectId folder_id FK
         string file_path UK
         boolean is_deleted
-        date deleted_at
-        date created_at
-        date updated_at
     }
 
     shares {
         ObjectId _id PK
+        ObjectId created_by_id FK
         ObjectId file_id FK
         ObjectId folder_id FK
-        ObjectId created_by_id FK
+        ObjectId shared_with_user_id FK
         string share_type "public|internal"
         string public_token UK
-        boolean requires_password
-        string password_hash
         date expires_at
-        ObjectId shared_with_user_id FK
         boolean is_active
-        number access_count
-        date created_at
-        date updated_at
     }
 
     sessions {
@@ -342,24 +315,22 @@ erDiagram
         string refresh_token UK
         boolean is_revoked
         date expires_at
-        date created_at
     }
 ```
 
-### 2.2 Relations et cardinalités
+Note : `shares` reference soit `file_id`, soit `folder_id` (cible unique), et peut reference `shared_with_user_id` pour les partages internes.
+
+### 4.2 Relations et cardinalités
 
 | Entité source | Relation | Entité cible | Cardinalité | Description |
 |---------------|----------|--------------|-------------|-------------|
 | users | possède | folders | 1:N | Un utilisateur a plusieurs dossiers |
-| users | possède | files | 1:N | Un utilisateur a plusieurs fichiers |
 | users | crée | shares | 1:N | Un utilisateur crée plusieurs partages |
 | users | a | sessions | 1:N | Un utilisateur peut avoir plusieurs sessions (refresh tokens) |
 | folders | parent-enfant | folders | 1:N | Un dossier peut avoir des sous-dossiers |
 | folders | contient | files | 1:N | Un dossier contient plusieurs fichiers |
-| files | partagé via | shares | 1:N | Un fichier peut avoir plusieurs partages |
-| folders | partagé via | shares | 1:N | Un dossier peut avoir plusieurs partages |
 
-### 2.3 Correspondance MongoDB
+### 4.3 Correspondance MongoDB
 
 - **users** → collection `users`
 - **folders** → collection `folders` (références `owner_id`, `parent_id` en ObjectId)
