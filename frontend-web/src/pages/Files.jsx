@@ -37,6 +37,8 @@ export default function Files() {
   const [shareType, setShareType] = useState('public'); // 'public' ou 'internal'
   const [shareUserSearch, setShareUserSearch] = useState('');
   const [shareUsers, setShareUsers] = useState([]);
+  const [shareUsersLoading, setShareUsersLoading] = useState(false);
+  const [shareUsersError, setShareUsersError] = useState(null);
   const [selectedShareUser, setSelectedShareUser] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemToMove, setItemToMove] = useState(null);
@@ -664,14 +666,23 @@ export default function Files() {
   const searchUsers = async (searchTerm) => {
     if (!searchTerm || searchTerm.trim().length < 2) {
       setShareUsers([]);
+      setShareUsersLoading(false);
+      setShareUsersError(null);
       return;
     }
     try {
+      setShareUsersLoading(true);
+      setShareUsersError(null);
       const response = await userService.listUsers(searchTerm);
       setShareUsers(response.data.data || []);
     } catch (err) {
       console.error('Failed to search users:', err);
       setShareUsers([]);
+      const msg = err.response?.data?.error?.message || err.message || 'Erreur lors de la recherche des utilisateurs';
+      setShareUsersError(msg);
+      toast.error(msg);
+    } finally {
+      setShareUsersLoading(false);
     }
   };
 
@@ -683,6 +694,8 @@ export default function Files() {
       return () => clearTimeout(timeoutId);
     } else {
       setShareUsers([]);
+      setShareUsersLoading(false);
+      setShareUsersError(null);
     }
   }, [shareUserSearch, shareType]);
 
@@ -1264,6 +1277,22 @@ export default function Files() {
                       style={{ padding: 8, width: '100%' }}
                       placeholder={t('language') === 'en' ? 'Type an email or name...' : 'Tapez un email ou un nom...'}
                     />
+                    {shareUserSearch && shareUserSearch.trim().length > 0 && shareUserSearch.trim().length < 2 && (
+                      <div style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 12 }}>
+                        Tapez au moins 2 caractères pour lancer la recherche.
+                      </div>
+                    )}
+                    {shareUsersLoading && (
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Recherche en cours…
+                      </div>
+                    )}
+                    {!shareUsersLoading && shareUsersError && (
+                      <div style={{ marginTop: 8, color: '#b00020', fontSize: 12 }}>
+                        {shareUsersError}
+                      </div>
+                    )}
                     {shareUsers.length > 0 && (
                       <div style={{ marginTop: 8, border: '1px solid #ddd', borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
                         {shareUsers.map(user => (
@@ -1282,6 +1311,11 @@ export default function Files() {
                             {user.display_name && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{user.email}</div>}
                           </div>
                         ))}
+                      </div>
+                    )}
+                    {!shareUsersLoading && !shareUsersError && shareUserSearch.trim().length >= 2 && shareUsers.length === 0 && (
+                      <div style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 12 }}>
+                        Aucun utilisateur trouvé. Assurez-vous que l’autre compte existe et que vous cherchez avec son email.
                       </div>
                     )}
                     {selectedShareUser && (
