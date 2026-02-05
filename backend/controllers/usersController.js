@@ -313,13 +313,26 @@ async function listUsers(req, res, next) {
     const mongoose = require('mongoose');
     const User = mongoose.models.User;
     
-    const query = { is_active: true };
-    const safeSearch = sanitizeSearchInput(search);
-    if (safeSearch) {
-      query.$or = [
-        { email: { $regex: safeSearch, $options: 'i' } },
-        { display_name: { $regex: safeSearch, $options: 'i' } },
-      ];
+    // Some older records may miss is_active; treat them as active unless explicitly false.
+    const query = { is_active: { $ne: false } };
+
+    // Support multi-word search like "john doe" by requiring all tokens to match
+    // across any of the allowed fields.
+    const rawSearch = (typeof search === 'string') ? search.trim() : '';
+    const tokens = rawSearch.split(/\s+/).filter(Boolean).slice(0, 5);
+    const safeTokens = tokens.map(t => sanitizeSearchInput(t)).filter(Boolean);
+
+    const tokenOr = (t) => ([
+      { email: { $regex: t, $options: 'i' } },
+      { display_name: { $regex: t, $options: 'i' } },
+      { first_name: { $regex: t, $options: 'i' } },
+      { last_name: { $regex: t, $options: 'i' } },
+    ]);
+
+    if (safeTokens.length === 1) {
+      query.$or = tokenOr(safeTokens[0]);
+    } else if (safeTokens.length > 1) {
+      query.$and = safeTokens.map(t => ({ $or: tokenOr(t) }));
     }
 
     const users = await User.find(query)
