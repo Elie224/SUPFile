@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +23,7 @@ class _ShareScreenState extends State<ShareScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _userSearchController = TextEditingController();
+  Timer? _searchDebounce;
   DateTime? _expirationDate;
   bool _isLoading = false;
   String? _shareToken;
@@ -28,39 +32,106 @@ class _ShareScreenState extends State<ShareScreen> {
   bool _passwordProtected = false;
   List<Map<String, dynamic>> _foundUsers = [];
   bool _isSearchingUsers = false;
+  String? _userSearchError;
   String? _selectedUserId;
 
   @override
   void dispose() {
     _passwordController.dispose();
     _userSearchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
-  
-  Future<void> _searchUsers(String query) async {
-    if (query.trim().isEmpty) {
+
+  void _onUserSearchChanged(String value) {
+    _searchDebounce?.cancel();
+
+    final q = value.trim();
+    if (q.isEmpty) {
       setState(() {
         _foundUsers = [];
+        _selectedUserId = null;
+        _isSearchingUsers = false;
+        _userSearchError = null;
+      });
+      return;
+    }
+
+    if (q.length < 2) {
+      setState(() {
+        _foundUsers = [];
+        _selectedUserId = null;
+        _isSearchingUsers = false;
+        _userSearchError = 'Tapez au moins 2 caractères…';
       });
       return;
     }
 
     setState(() {
       _isSearchingUsers = true;
+      _userSearchError = null;
     });
 
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      _searchUsers(q);
+    });
+  }
+  
+  Future<void> _searchUsers(String query) async {
+    final q = query.trim();
+    if (q.isEmpty || q.length < 2) {
+      if (!mounted) return;
+      setState(() {
+        _foundUsers = [];
+        _isSearchingUsers = false;
+      });
+      return;
+    }
+
     try {
-      final response = await _apiService.listUsers(query);
+      final response = await _apiService.listUsers(q);
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
-          _foundUsers = (response.data['data'] ?? []).cast<Map<String, dynamic>>();
-          _isSearchingUsers = false;
+          _foundUsers = (response.data is Map && response.data['data'] is List)
+              ? (response.data['data'] as List).cast<Map<String, dynamic>>()
+              : <Map<String, dynamic>>[];
+        });
+      } else {
+        setState(() {
+          _foundUsers = [];
+          _userSearchError = 'Recherche impossible (code: ${response.statusCode})';
         });
       }
     } catch (e) {
+      if (!mounted) return;
+      String msg = 'Erreur lors de la recherche des utilisateurs';
+      if (e is DioException) {
+        final code = e.response?.statusCode;
+        final data = e.response?.data;
+        if (code == 401) {
+          msg = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (data is Map) {
+          final errMsg = (data['error'] is Map) ? data['error']['message'] : null;
+          msg = (errMsg ?? data['message'] ?? msg).toString();
+        } else if (code != null) {
+          msg = 'Recherche impossible (code: $code)';
+        }
+      }
       setState(() {
-        _isSearchingUsers = false;
+        _foundUsers = [];
+        _userSearchError = msg;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearchingUsers = false;
+        });
+      }
     }
   }
   
@@ -106,8 +177,13 @@ class _ShareScreenState extends State<ShareScreen> {
     } catch (e) {
       setState(() {
         _error = e.toString();
-        _isLoading = false;
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -403,9 +479,16 @@ class _ShareScreenState extends State<ShareScreen> {
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (value) {
-                        _searchUsers(value);
+                        _onUserSearchChanged(value);
                       },
                     ),
+                    if (_userSearchError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _userSearchError!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
                     if (_isSearchingUsers)
                       const Padding(
                         padding: EdgeInsets.all(16.0),
@@ -457,6 +540,15 @@ class _ShareScreenState extends State<ShareScreen> {
                           },
                         ),
                       ),
+                    ],
+                    if (!_isSearchingUsers && _userSearchError == null) ...[
+                      if (_userSearchController.text.trim().length >= 2 && _foundUsers.isEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Aucun utilisateur trouvé. Vérifiez l’email/nom, ou créez un second compte pour tester le partage interne.',
+                          style: TextStyle(color: Colors.grey[700]),
+                        ),
+                      ]
                     ],
                     if (_selectedUserId != null) ...[
                       const SizedBox(height: 16),
