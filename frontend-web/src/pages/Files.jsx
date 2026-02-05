@@ -664,7 +664,11 @@ export default function Files() {
 
   // Rechercher des utilisateurs pour le partage interne
   const searchUsers = async (searchTerm) => {
-    if (!searchTerm || searchTerm.trim().length < 2) {
+    const trimmed = (typeof searchTerm === 'string') ? searchTerm.trim() : '';
+
+    // UX: quand on ouvre le partage interne, afficher des suggestions (liste) même si le champ est vide.
+    // On garde néanmoins un minimum de 2 caractères pour éviter des requêtes trop larges lors d'une recherche.
+    if (trimmed.length === 1) {
       setShareUsers([]);
       setShareUsersLoading(false);
       setShareUsersError(null);
@@ -673,7 +677,7 @@ export default function Files() {
     try {
       setShareUsersLoading(true);
       setShareUsersError(null);
-      const response = await userService.listUsers(searchTerm);
+      const response = await userService.listUsers(trimmed);
       setShareUsers(response.data.data || []);
     } catch (err) {
       console.error('Failed to search users:', err);
@@ -687,16 +691,25 @@ export default function Files() {
   };
 
   useEffect(() => {
-    if (shareType === 'internal' && shareUserSearch) {
-      const timeoutId = setTimeout(() => {
-        searchUsers(shareUserSearch);
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    } else {
+    if (shareType !== 'internal') {
       setShareUsers([]);
       setShareUsersLoading(false);
       setShareUsersError(null);
+      return;
     }
+
+    const trimmed = shareUserSearch.trim();
+
+    // Champ vide => charger une liste de suggestions (ex: tous les utilisateurs actifs, sauf soi-même)
+    if (trimmed.length === 0) {
+      searchUsers('');
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      searchUsers(trimmed);
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [shareUserSearch, shareType]);
 
   const shareItem = async () => {
