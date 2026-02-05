@@ -7,6 +7,7 @@ import { downloadBlob } from '../utils/downloadBlob';
 import { formatBytes } from '../utils/storageUtils';
 
 const DOWNLOAD_TIMEOUT_MS = 120000; // 2 min pour gros fichiers
+const DOWNLOAD_FOLDER_TIMEOUT_MS = 10 * 60 * 1000; // 10 min pour ZIP de dossiers
 
 function sanitizeDownloadFilename(name, fallback = 'download') {
   if (name == null || typeof name !== 'string') return fallback;
@@ -158,6 +159,45 @@ export default function Share() {
       console.error('Download error:', err);
       const msg = err?.name === 'AbortError'
         ? 'Le téléchargement a pris trop de temps.'
+        : (err.message || 'Erreur lors du téléchargement');
+      toast.error(msg);
+    }
+  };
+
+  const handleDownloadFolder = async () => {
+    if (!share || !share.resource || share.resource.type !== 'folder') return;
+    const resource = share.resource;
+    const params = new URLSearchParams();
+    if (password && password.trim() !== '') {
+      params.append('password', password);
+    }
+    const downloadUrl = `${API_URL}/api/share/${encodeURIComponent(String(token))}/download${params.toString() ? `?${params.toString()}` : ''}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_FOLDER_TIMEOUT_MS);
+    try {
+      const response = await fetch(downloadUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const ct = response.headers.get('Content-Type') || '';
+        let msg = 'Erreur lors du téléchargement';
+        if (ct.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            msg = errorData.error?.message || msg;
+          } catch (_) {}
+        }
+        throw new Error(msg);
+      }
+      const blob = await response.blob();
+      const base = sanitizeDownloadFilename(resource.name, 'dossier');
+      const fileName = base.toLowerCase().endsWith('.zip') ? base : `${base}.zip`;
+      downloadBlob(blob, fileName);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error('Folder download error:', err);
+      const msg = err?.name === 'AbortError'
+        ? 'Le téléchargement du dossier a pris trop de temps.'
         : (err.message || 'Erreur lors du téléchargement');
       toast.error(msg);
     }
@@ -315,7 +355,17 @@ export default function Share() {
           </button>
         )}
         {resource.type === 'folder' && (
-          <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Partage de dossier — téléchargement non disponible.</p>
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              onClick={handleDownloadFolder}
+              style={{ padding: '12px 24px', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 16 }}
+            >
+              Télécharger le dossier (ZIP)
+            </button>
+            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 13 }}>
+              Le dossier est téléchargé sous forme d’archive ZIP.
+            </p>
+          </div>
         )}
       </div>
     </div>

@@ -14,6 +14,9 @@ router.post('/internal', authMiddleware, validateObjectId, shareController.creat
 // Accéder à un partage public (pas d'authentification requise)
 router.get('/:token', optionalAuthMiddleware, shareController.getPublicShare);
 
+// Télécharger un partage public (zip pour dossier, fichier pour file)
+router.get('/:token/download', optionalAuthMiddleware, shareController.downloadPublicShare);
+
 // Lister les partages de l'utilisateur (authentifié)
 router.get('/', authMiddleware, shareController.listShares);
 

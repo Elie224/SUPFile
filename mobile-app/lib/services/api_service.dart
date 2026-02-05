@@ -548,7 +548,8 @@ class ApiService {
       baseUrl: AppConstants.apiUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 90),
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
+      // Permet de gérer les réponses 401/403/404/410 côté UI (mot de passe requis, lien expiré, etc.)
+      validateStatus: (status) => status != null && status >= 200 && status < 500,
     ));
   }
 
@@ -685,14 +686,27 @@ class ApiService {
   
   Future<Response> getPublicShare(String token, {String? password}) {
     final queryParams = password != null ? <String, dynamic>{'password': password} : <String, dynamic>{};
-    // Créer une instance Dio sans intercepteur d'authentification pour les partages publics
-    final publicDio = Dio(BaseOptions(
-      baseUrl: AppConstants.apiUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 90),
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
-    ));
+    final publicDio = _createPublicDio();
     return publicDio.get('/share/$token', queryParameters: queryParams);
+  }
+
+  /// Téléchargement d'un partage public via /share/:token/download (ZIP pour dossier, fichier pour file)
+  Future<Response<List<int>>> downloadPublicShareBytes(
+    String shareToken, {
+    String? password,
+  }) {
+    final publicDio = _createPublicDio();
+    return publicDio.get<List<int>>(
+      '/share/$shareToken/download',
+      queryParameters: {
+        if (password != null && password.isNotEmpty) 'password': password,
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(minutes: 10),
+        headers: const {'Cache-Control': 'no-cache'},
+      ),
+    );
   }
 
   Future<Response> listShares({String? type}) {

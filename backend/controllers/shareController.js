@@ -4,6 +4,7 @@ const FileModel = require('../models/fileModel');
 const FolderModel = require('../models/folderModel');
 const { normalizePublicShareToken, normalizeSharePasswordForCompare } = require('../utils/shareSecurity');
 const { getFrontendBaseUrl } = require('../utils/frontendUrl');
+const foldersController = require('./foldersController');
 
 function normalizeOptionalId(value) {
   if (value === null || value === undefined) return null;
@@ -250,6 +251,74 @@ async function getPublicShare(req, res, next) {
   }
 }
 
+// Télécharger un partage public
+// - fichier : redirection vers /api/files/:id/download?token=... (+ password)
+// - dossier : ZIP streaming via foldersController.downloadFolderZip (en se faisant passer pour le propriétaire)
+async function downloadPublicShare(req, res, next) {
+  try {
+    const token = normalizePublicShareToken(req.params.token);
+    if (!token) {
+      return res.status(404).json({ error: { message: 'Share not found or expired' } });
+    }
+
+    let password = req.query.password;
+    if (password !== undefined && password !== null) {
+      const normalized = normalizeSharePasswordForCompare(password);
+      if (!normalized) {
+        return res.status(400).json({ error: { message: 'Invalid password format' } });
+      }
+      password = normalized;
+    }
+
+    const mongoose = require('mongoose');
+    const Share = mongoose.models.Share;
+    const shareDoc = await Share.findOne({ public_token: token }).lean();
+    if (!shareDoc) {
+      return res.status(404).json({ error: { message: 'Share not found or expired' } });
+    }
+
+    if (shareDoc.expires_at && new Date(shareDoc.expires_at) < new Date()) {
+      return res.status(410).json({ error: { message: 'Share expired' } });
+    }
+
+    if (shareDoc.is_active === false) {
+      return res.status(403).json({ error: { message: 'Share deactivated' } });
+    }
+
+    if (shareDoc.password_hash) {
+      if (!password) {
+        return res.status(401).json({
+          error: { message: 'Password required' },
+          requires_password: true,
+        });
+      }
+      const isValid = await bcrypt.compare(password, shareDoc.password_hash);
+      if (!isValid) {
+        return res.status(401).json({ error: { message: 'Invalid password' }, requires_password: true });
+      }
+    }
+
+    await ShareModel.incrementAccessCount(token);
+
+    if (shareDoc.file_id) {
+      const qs = new URLSearchParams({ token });
+      if (password) qs.set('password', String(password));
+      return res.redirect(302, `/api/files/${encodeURIComponent(String(shareDoc.file_id))}/download?${qs.toString()}`);
+    }
+
+    if (shareDoc.folder_id) {
+      // createPublicShare valide que le créateur est propriétaire => created_by_id est autorisé par downloadFolderZip.
+      req.user = { id: shareDoc.created_by_id?.toString ? shareDoc.created_by_id.toString() : String(shareDoc.created_by_id) };
+      req.params.id = shareDoc.folder_id?.toString ? shareDoc.folder_id.toString() : String(shareDoc.folder_id);
+      return foldersController.downloadFolderZip(req, res, next);
+    }
+
+    return res.status(404).json({ error: { message: 'Share not found or expired' } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Lister les partages de l'utilisateur
 async function listShares(req, res, next) {
   try {
@@ -297,6 +366,7 @@ module.exports = {
   createPublicShare,
   createInternalShare,
   getPublicShare,
+  downloadPublicShare,
   listShares,
   deactivateShare,
 };

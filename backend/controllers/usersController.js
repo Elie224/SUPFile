@@ -323,7 +323,7 @@ async function listUsers(req, res, next) {
     }
 
     const users = await User.find(query)
-      .select('email display_name avatar_url')
+      .select('email display_name first_name last_name avatar_url')
       .limit(50)
       .lean();
 
@@ -333,7 +333,9 @@ async function listUsers(req, res, next) {
       .map(u => ({
         id: u._id.toString(),
         email: u.email,
-        display_name: u.display_name,
+        display_name: (typeof u.display_name === 'string' && u.display_name.trim() !== '')
+          ? u.display_name.trim()
+          : [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email,
         avatar_url: u.avatar_url,
       }));
 

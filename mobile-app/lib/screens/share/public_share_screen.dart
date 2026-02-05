@@ -11,7 +11,6 @@ import 'package:video_player/video_player.dart';
 import '../../services/api_service.dart';
 import '../../models/file.dart';
 import '../../models/folder.dart';
-import '../files/files_screen.dart';
 import '../../utils/secure_logger.dart';
 import '../../utils/constants.dart';
 import '../../utils/storage_paths.dart';
@@ -78,67 +77,156 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
         password: password,
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data['data'];
-        // Vérifier si le partage nécessite un mot de passe
-        if (data['requires_password'] == true && password == null) {
-          setState(() {
-            _isPasswordRequired = true;
-            _isLoading = false;
-          });
-          return;
-        }
-
-        // Vérifier si le partage a expiré
-        if (data['expired'] == true) {
-          setState(() {
-            _error = 'Ce lien de partage a expiré';
-            _isLoading = false;
-          });
-          return;
-        }
-
-        FileItem? loadedFile;
-        FolderItem? loadedFolder;
-
-        if (data['file'] != null) {
-          loadedFile = FileItem.fromJson(data['file']);
-        } else if (data['folder'] != null) {
-          loadedFolder = FolderItem.fromJson(data['folder']);
-        }
-
-        setState(() {
-          _file = loadedFile;
-          _folder = loadedFolder;
-
-          // Mémoriser le mot de passe validé (pour preview/download publics)
-          _activePassword = password;
-          
-          _isPasswordRequired = false;
-          _isLoading = false;
-        });
-
-        // Init preview if a file was loaded
-        if (loadedFile != null) {
-          await _initPreview(loadedFile);
-        }
-      } else if (response.statusCode == 401) {
+      final code = response.statusCode ?? 0;
+      if (code == 401 && response.data is Map && (response.data['requires_password'] == true)) {
         setState(() {
           _isPasswordRequired = true;
           _isLoading = false;
-          _error = 'Mot de passe requis';
+          _error = null;
         });
-      } else {
+        return;
+      }
+
+      if (code == 410) {
         setState(() {
-          _error = response.data['error']?['message'] ?? 'Erreur lors du chargement du partage';
+          _error = 'Ce lien de partage a expiré';
           _isLoading = false;
         });
+        return;
+      }
+
+      if (code == 403) {
+        setState(() {
+          _error = 'Ce partage a été désactivé';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (code != 200) {
+        setState(() {
+          _error = (response.data is Map)
+              ? (response.data['error']?['message']?.toString() ?? 'Erreur lors du chargement du partage')
+              : 'Erreur lors du chargement du partage';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final data = (response.data is Map) ? response.data['data'] : null;
+      if (data == null || data is! Map) {
+        setState(() {
+          _error = 'Réponse invalide du serveur';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      FileItem? loadedFile;
+      FolderItem? loadedFolder;
+
+      // Nouveau format (backend): { share, resource }
+      if (data['resource'] != null && data['resource'] is Map) {
+        final resMap = Map<String, dynamic>.from(data['resource']);
+        final type = resMap['type']?.toString();
+        if (type == 'file') {
+          loadedFile = FileItem.fromJson(resMap);
+        } else if (type == 'folder') {
+          loadedFolder = FolderItem.fromJson(resMap);
+        }
+      }
+
+      // Ancien format (fallback): { file } ou { folder }
+      if (loadedFile == null && loadedFolder == null) {
+        if (data['file'] != null && data['file'] is Map) {
+          loadedFile = FileItem.fromJson(Map<String, dynamic>.from(data['file']));
+        } else if (data['folder'] != null && data['folder'] is Map) {
+          loadedFolder = FolderItem.fromJson(Map<String, dynamic>.from(data['folder']));
+        }
+      }
+
+      setState(() {
+        _file = loadedFile;
+        _folder = loadedFolder;
+        _activePassword = password;
+        _isPasswordRequired = false;
+        _isLoading = false;
+      });
+
+      if (loadedFile != null) {
+        await _initPreview(loadedFile);
       }
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _downloadPublicFolderZip() async {
+    if (_folder == null) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final response = await _apiService.downloadPublicShareBytes(
+        widget.token,
+        password: _activePassword,
+      );
+
+      final code = response.statusCode ?? 0;
+      if (code != 200 || response.data == null) {
+        throw Exception('Téléchargement impossible (code: $code)');
+      }
+
+      final safeBase = _folder!.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final fileName = safeBase.toLowerCase().endsWith('.zip') ? safeBase : '$safeBase.zip';
+
+      if (kIsWeb) {
+        await WebDownload.saveBytesAsFile(
+          bytes: response.data!,
+          fileName: fileName,
+          mimeType: 'application/zip',
+        );
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Téléchargement démarré'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final directory = await StoragePaths.getWritableDirectory();
+        if (!await directory.exists()) await directory.create(recursive: true);
+        final filePath = '${directory.path}${Platform.pathSeparator}$fileName';
+        final out = File(filePath);
+        await out.writeAsBytes(response.data!);
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Archive sauvegardée: $filePath'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      SecureLogger.error('Public folder download error', error: e);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -478,6 +566,12 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
               icon: const Icon(Icons.download),
               onPressed: _downloadPublicFile,
               tooltip: 'Télécharger',
+            ),
+          if (_folder != null)
+            IconButton(
+              icon: const Icon(Icons.download),
+              onPressed: _downloadPublicFolderZip,
+              tooltip: 'Télécharger le dossier (ZIP)',
             ),
           if (_file != null && (_file!.isPdf || _file!.isVideo))
             IconButton(
@@ -890,70 +984,78 @@ class _PublicShareScreenState extends State<PublicShareScreen> {
   Widget _buildFolderView() {
     if (_folder == null) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        // Informations du dossier
-        Card(
-          margin: const EdgeInsets.all(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(Icons.folder, size: 48, color: Colors.blue),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _folder!.name,
-                        style: Theme.of(context).textTheme.titleLarge,
+    return SingleChildScrollView(
+      child: ResponsiveCenter(
+        maxWidth: 820,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.folder, size: 48, color: Colors.blue),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _folder!.name,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Dossier partagé',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Dossier partagé',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Navigation vers le contenu du dossier
-        Expanded(
-          child: FilesScreen(folderId: _folder!.id),
-        ),
-        // Message informatif
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue[50],
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.blue),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Vous visualisez un dossier partagé. Créez un compte pour accéder à toutes les fonctionnalités.',
-                  style: TextStyle(color: Colors.blue[900]),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: OutlinedButton.icon(
-            onPressed: () => context.go('/signup'),
-            icon: const Icon(Icons.person_add),
-            label: const Text('Créer un compte gratuit'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-          ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _downloadPublicFolderZip,
+              icon: const Icon(Icons.download),
+              label: const Text('Télécharger le dossier (ZIP)'),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: Colors.blue[50],
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pour parcourir le contenu du dossier dans l’app, connectez-vous. Sans compte, vous pouvez télécharger le dossier en ZIP.',
+                        style: TextStyle(color: Colors.blue[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => context.go('/signup'),
+              icon: const Icon(Icons.person_add),
+              label: const Text('Créer un compte gratuit'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

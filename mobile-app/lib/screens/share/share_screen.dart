@@ -426,6 +426,8 @@ class _ShareScreenState extends State<ShareScreen> {
                             final user = _foundUsers[index];
                             final userId = user['id']?.toString() ?? user['_id']?.toString();
                             final isSelected = _selectedUserId == userId;
+                            final displayName = user['display_name']?.toString().trim() ?? '';
+                            final email = user['email']?.toString().trim() ?? '';
                             
                             return ListTile(
                               leading: CircleAvatar(
@@ -440,8 +442,8 @@ class _ShareScreenState extends State<ShareScreen> {
                                     ? const Icon(Icons.person)
                                     : null,
                               ),
-                              title: Text(user['email'] ?? ''),
-                              subtitle: Text(user['display_name'] ?? ''),
+                              title: Text(displayName.isNotEmpty ? displayName : email),
+                              subtitle: displayName.isNotEmpty ? Text(email) : null,
                               selected: isSelected,
                               onTap: () {
                                 setState(() {
