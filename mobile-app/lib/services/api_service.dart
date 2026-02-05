@@ -14,7 +14,7 @@ class ApiService {
 
   /// Marker used to confirm which build is running on-device.
   /// Update this when diagnosing production issues.
-  static const String buildMarker = '2026-02-03-zip-timeout-debug';
+  static const String buildMarker = '2026-02-05-internal-share-suggestions';
 
   Map<String, dynamic> debugNetworkConfig() {
     final opts = _dio.options;

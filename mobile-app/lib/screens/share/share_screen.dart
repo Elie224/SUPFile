@@ -43,16 +43,26 @@ class _ShareScreenState extends State<ShareScreen> {
     super.dispose();
   }
 
+  Future<void> _loadUserSuggestions() async {
+    if (!mounted) return;
+    setState(() {
+      _isSearchingUsers = true;
+      _userSearchError = null;
+    });
+    await _searchUsers('');
+  }
+
   void _onUserSearchChanged(String value) {
     _searchDebounce?.cancel();
 
     final q = value.trim();
     if (q.isEmpty) {
-      setState(() {
-        _foundUsers = [];
-        _selectedUserId = null;
-        _isSearchingUsers = false;
-        _userSearchError = null;
+      // UX: quand le champ est vide, afficher des suggestions au lieu d'une zone vide.
+      // Cela aligne le comportement avec le web (liste visible dès l'ouverture).
+      _selectedUserId = null;
+      _searchDebounce = Timer(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        _loadUserSuggestions();
       });
       return;
     }
@@ -80,11 +90,13 @@ class _ShareScreenState extends State<ShareScreen> {
   
   Future<void> _searchUsers(String query) async {
     final q = query.trim();
-    if (q.isEmpty || q.length < 2) {
+    // Champ vide => suggestions (liste). 1 caractère => pas de recherche (éviter requêtes trop larges).
+    if (q.length == 1) {
       if (!mounted) return;
       setState(() {
         _foundUsers = [];
         _isSearchingUsers = false;
+        _userSearchError = 'Tapez au moins 2 caractères…';
       });
       return;
     }
@@ -97,6 +109,9 @@ class _ShareScreenState extends State<ShareScreen> {
           _foundUsers = (response.data is Map && response.data['data'] is List)
               ? (response.data['data'] as List).cast<Map<String, dynamic>>()
               : <Map<String, dynamic>>[];
+          if (q.isEmpty) {
+            _userSearchError = null;
+          }
         });
       } else {
         setState(() {
@@ -469,10 +484,7 @@ class _ShareScreenState extends State<ShareScreen> {
                                 icon: const Icon(Icons.clear),
                                 onPressed: () {
                                   _userSearchController.clear();
-                                  setState(() {
-                                    _foundUsers = [];
-                                    _selectedUserId = null;
-                                  });
+                                  _onUserSearchChanged('');
                                 },
                               )
                             : null,
@@ -482,6 +494,13 @@ class _ShareScreenState extends State<ShareScreen> {
                         _onUserSearchChanged(value);
                       },
                     ),
+                    if (_userSearchController.text.trim().isEmpty && !_isSearchingUsers && _userSearchError == null && _foundUsers.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Suggestions (tapez 2 caractères pour filtrer)',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                    ],
                     if (_userSearchError != null) ...[
                       const SizedBox(height: 8),
                       Text(
