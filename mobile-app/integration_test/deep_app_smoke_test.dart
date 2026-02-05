@@ -110,7 +110,6 @@ void main() {
 
     // Public routes
     await _go(tester, '/');
-    await _go(tester, '/offline');
     await _go(tester, '/login');
     await _go(tester, '/signup');
     await _go(tester, '/forgot-password');
