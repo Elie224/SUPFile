@@ -314,7 +314,9 @@ async function listUsers(req, res, next) {
     const User = mongoose.models.User;
     
     // Some older records may miss is_active; treat them as active unless explicitly false.
-    const query = { is_active: { $ne: false } };
+    // NOTE: Avoid query operators on boolean here because some Mongoose setups may CastError
+    // when casting operator objects for Boolean paths.
+    const query = {};
 
     // Support multi-word search like "john doe" by requiring all tokens to match
     // across any of the allowed fields.
@@ -336,12 +338,13 @@ async function listUsers(req, res, next) {
     }
 
     const users = await User.find(query)
-      .select('email display_name first_name last_name avatar_url')
+      .select('email display_name first_name last_name avatar_url is_active')
       .limit(50)
       .lean();
 
     // Exclure l'utilisateur actuel et formater les résultats
     const safeUsers = users
+      .filter(u => u.is_active !== false)
       .filter(u => u._id.toString() !== currentUserId)
       .map(u => ({
         id: u._id.toString(),
