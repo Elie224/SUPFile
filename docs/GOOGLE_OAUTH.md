@@ -1,77 +1,119 @@
-# Google OAuth (SUPFile) — Fix `401: deleted_client`
+# Google OAuth (SUPFile) — Configuration & dépannage
 
-## Pourquoi l’erreur arrive
+Ce guide couvre :
 
-Si tu vois **"Accès bloqué : erreur d'autorisation"** avec :
+- Le **backend** (Node/Express) qui réalise le flow OAuth (Google/GitHub)
+- Le **Flutter Web** (si Google Sign-In est utilisé côté Flutter Web)
+- Le **Flutter Mobile** (Google Sign-In → `idToken` vérifié côté backend)
 
-- `The OAuth client was deleted.`
-- `Erreur 401: deleted_client`
+## Règle d’or (sécurité)
 
-alors le **Client ID OAuth** utilisé par l’app **n’existe plus** (supprimé côté Google Cloud). Ce n’est pas un bug Flutter/React : il faut **créer un nouveau client OAuth** et **mettre à jour les variables d’environnement/secrets**.
+- Ne jamais mettre `GOOGLE_CLIENT_SECRET` dans un frontend (React/Flutter Web).
+- Les secrets OAuth doivent être configurés côté backend (Fly.io) via `flyctl secrets`.
 
 ---
 
-## 1) Créer un nouveau Client OAuth (Google Cloud)
+## 1) Créer les identifiants OAuth (Google Cloud)
 
-1. Va sur : https://console.cloud.google.com/apis/credentials
-2. Sélectionne ton projet (ou crée-en un)
-3. (Si demandé) Configure l’**écran de consentement OAuth**
-4. Clique **Create credentials** → **OAuth client ID**
-5. Type : **Web application**
+Console : https://console.cloud.google.com/apis/credentials
 
-### Redirect URIs (important)
-Ajoute au minimum :
+Créer un **OAuth client ID** (type **Web application**).
+
+### Redirect URI (backend)
+
+Ajouter dans “Authorized redirect URIs” :
+
 - `https://supfile.fly.dev/api/auth/google/callback`
 
-Pour le dev local (optionnel) :
+(Option dev local) :
+
 - `http://localhost:5000/api/auth/google/callback`
 
-Récupère ensuite :
-- **Client ID** (se termine par `.apps.googleusercontent.com`)
-- **Client Secret** (commence souvent par `GOCSPX-...`)
+Récupérer :
+
+- **Client ID** : `...apps.googleusercontent.com`
+- **Client Secret** : `GOCSPX-...`
 
 ---
 
-## 2) Mettre à jour le backend sur Fly.io (obligatoire pour le Web)
+## 2) Backend (Fly.io) — variables à définir
 
-Le frontend web (React) redirige vers le backend : `GET /api/auth/google`.
-Donc le backend doit avoir des secrets Google valides.
+Depuis le dossier `backend` :
 
-### Option A — Script (recommandé)
-Dans PowerShell :
+```bash
+fly secrets set GOOGLE_CLIENT_ID="<CLIENT_ID_WEB>"
+fly secrets set GOOGLE_CLIENT_SECRET="<CLIENT_SECRET>"
+fly secrets set GOOGLE_REDIRECT_URI="https://supfile.fly.dev/api/auth/google/callback"
+```
 
-- Lance : `backend/mettre-a-jour-google-oauth.ps1`
-- Colle ton **Client ID** et **Client Secret** quand demandé
+Pour la vérification des tokens Google envoyés par mobile (recommandé) :
 
-Le script met à jour :
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REDIRECT_URI` (sur `https://supfile.fly.dev/api/auth/google/callback`)
+```bash
+fly secrets set GOOGLE_ALLOWED_CLIENT_IDS="<CLIENT_ID_WEB>,<CLIENT_ID_ANDROID>,<CLIENT_ID_IOS>"
+```
 
-### Option B — Manuel
+Déployer :
 
-- `flyctl secrets set GOOGLE_CLIENT_ID="<TON_CLIENT_ID>" --app supfile`
-- `flyctl secrets set GOOGLE_CLIENT_SECRET="<TON_CLIENT_SECRET>" --app supfile`
-- `flyctl secrets set GOOGLE_REDIRECT_URI="https://supfile.fly.dev/api/auth/google/callback" --app supfile`
-- `flyctl deploy --app supfile --dns-checks=false`
-
----
-
-## 3) Flutter Web (si tu utilises GoogleSignIn côté Flutter)
-
-Si tu utilises le bouton Google dans Flutter Web via `google_sign_in_web`, il faut un client web valide.
-
-Lance Flutter Web avec :
-
-- `flutter run -d chrome --web-port=64137 --dart-define=API_URL=https://supfile.fly.dev --dart-define=GOOGLE_WEB_CLIENT_ID="<TON_CLIENT_ID_WEB>"`
-
-Notes :
-- Le Client ID **peut** être le même que celui utilisé côté backend (Web application) tant qu’il est valide.
-- Si tu déploies Flutter Web sur un domaine (Netlify, etc.), ajoute ce domaine dans la configuration OAuth si nécessaire.
+```bash
+flyctl deploy --app supfile --dns-checks=false
+```
 
 ---
 
-## 4) Check rapide
+## 3) Flutter Web — config au runtime (si Google Sign-In est utilisé côté Flutter Web)
 
-- Si l’erreur `deleted_client` disparaît mais tu obtiens `redirect_uri_mismatch`, alors le **redirect URI** n’est pas exactement celui configuré dans Google Cloud.
-- Si tu as `invalid_client`, c’est souvent le **Client Secret** incorrect (ou pas celui associé au Client ID).
+Flutter Web a besoin d’un **Client ID Web** (pas de secret), injecté au runtime :
+
+```bash
+cd mobile-app
+flutter run -d chrome --web-port=64137 \
+	--dart-define=API_URL=https://supfile.fly.dev \
+	--dart-define=GOOGLE_WEB_CLIENT_ID="<CLIENT_ID_WEB>"
+```
+
+---
+
+## 4) Flutter Mobile — API URL
+
+L’app mobile utilise `API_URL` via `--dart-define` (valeur par défaut : `https://supfile.fly.dev`).
+
+Exemples :
+
+```bash
+cd mobile-app
+
+# Dev local (appareil/émulateur)
+flutter run --dart-define=API_URL=http://192.168.1.X:5000
+
+# Prod
+flutter run --dart-define=API_URL=https://supfile.fly.dev
+```
+
+---
+
+## 5) Dépannage rapide (erreurs fréquentes)
+
+### `401: deleted_client`
+
+Le client OAuth a été supprimé dans Google Cloud.
+
+- Créer un nouveau client OAuth
+- Mettre à jour `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` côté Fly
+
+### `401: invalid_client`
+
+Le couple `client_id`/`client_secret` ne correspond pas, ou vous utilisez le mauvais type de client.
+
+- Vérifier que `GOOGLE_CLIENT_SECRET` correspond exactement au `GOOGLE_CLIENT_ID`
+- Vérifier que le client est bien de type **Web application** pour le backend
+
+### `redirect_uri_mismatch`
+
+L’URI de callback n’est pas strictement identique à celui configuré.
+
+- Vérifier `GOOGLE_REDIRECT_URI`
+- Vérifier la liste “Authorized redirect URIs” dans Google Cloud
+
+### Popup fermée (Flutter Web)
+
+Si l’utilisateur ferme la popup Google, c’est un “cancel” normal (pas une panne). Réessayez.

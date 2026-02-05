@@ -164,10 +164,18 @@ npm run dev       # Démarre sur le port 3000
 ```bash
 cd mobile-app
 flutter pub get
-flutter run        # Ou ouvrir avec Android Studio / Xcode
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 ```
 
-Configurer l’URL de l’API dans `mobile-app/lib/utils/constants.dart` (ou via variables d’environnement) pour pointer vers le backend (ex. `http://10.0.2.2:5000` pour l’émulateur Android).
+Pour pointer vers un backend local, utilisez `--dart-define=API_URL=...` :
+
+```bash
+# Émulateur Android
+flutter run --dart-define=API_URL=http://10.0.2.2:5000
+
+# Appareil physique (remplacer par l’IP de votre machine)
+flutter run --dart-define=API_URL=http://192.168.1.X:5000
+```
 
 ---
 

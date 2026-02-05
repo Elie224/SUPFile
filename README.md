@@ -130,6 +130,30 @@ docker compose down -v
 
 ---
 
+## ▶️ Lancer Flutter (mobile + web)
+
+L’app Flutter lit l’URL de l’API via `--dart-define=API_URL=...` (valeur par défaut : `https://supfile.fly.dev`).
+
+### Mobile
+
+```bash
+cd mobile-app
+flutter pub get
+flutter run --dart-define=API_URL=https://supfile.fly.dev
+```
+
+### Web (Chrome + port fixe)
+
+```bash
+cd mobile-app
+flutter pub get
+flutter run -d chrome --web-port=64137 --dart-define=API_URL=https://supfile.fly.dev
+```
+
+Pour Google Sign-In côté Flutter Web : voir `docs/GOOGLE_OAUTH.md`.
+
+---
+
 ## 🏗️ Architecture générale
 
 ### Vue d'ensemble
@@ -303,7 +327,7 @@ npm run dev
 # Mobile (nouveau terminal)
 cd mobile-app
 flutter pub get
-flutter run
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 ### Logs et débogage

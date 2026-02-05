@@ -32,6 +32,9 @@ fly secrets set GOOGLE_CLIENT_ID="..."
 fly secrets set GOOGLE_CLIENT_SECRET="[REDACTED]"
 fly secrets set GOOGLE_REDIRECT_URI="https://supfile.fly.dev/api/auth/google/callback"
 
+# Recommandé : autoriser plusieurs client IDs (Web + Android + iOS) pour la vérification des tokens mobiles
+fly secrets set GOOGLE_ALLOWED_CLIENT_IDS="<CLIENT_ID_WEB>,<CLIENT_ID_ANDROID>,<CLIENT_ID_IOS>"
+
 fly secrets set GITHUB_CLIENT_ID="..."
 fly secrets set GITHUB_CLIENT_SECRET="[REDACTED]"
 fly secrets set GITHUB_REDIRECT_URI="https://supfile.fly.dev/api/auth/github/callback"

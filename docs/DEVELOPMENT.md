@@ -43,13 +43,13 @@ Configurer `VITE_API_URL` si nécessaire.
 ```bash
 cd mobile-app
 flutter pub get
-flutter run
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 ### Flutter Web
 
 ```bash
-flutter run -d chrome --dart-define=API_URL=https://supfile.fly.dev
+flutter run -d chrome --web-port=64137 --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 Si Google Sign-In est utilisé côté Flutter Web, ajouter :
@@ -75,7 +75,7 @@ Le backend est déployé sur Fly.io (voir `backend/fly.toml`).
 
 ```bash
 cd mobile-app
-flutter build apk --release
+flutter build apk --release --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 Si la signature release n'est pas configurée, générer un APK debug :

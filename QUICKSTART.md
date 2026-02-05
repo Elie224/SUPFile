@@ -58,7 +58,7 @@ npm run dev
 ```bash
 cd mobile-app
 flutter pub get
-flutter run
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 Ou (Windows PowerShell) :
@@ -166,9 +166,24 @@ npm run build                    # Build prod
 npm run preview                  # Aperçu build
 
 # Mobile (local dev)
-flutter run                      # Lancer l'app
+flutter run --dart-define=API_URL=https://supfile.fly.dev  # Lancer l'app
 flutter analyze                  # Analyse statique
 flutter test                     # Tests
+```
+
+### Flutter Web (Chrome + port fixe)
+
+```bash
+cd mobile-app
+flutter run -d chrome --web-port=64137 --dart-define=API_URL=https://supfile.fly.dev
+```
+
+Si Google Sign-In est activé côté Flutter Web :
+
+```bash
+flutter run -d chrome --web-port=64137 \
+  --dart-define=API_URL=https://supfile.fly.dev \
+  --dart-define=GOOGLE_WEB_CLIENT_ID="<CLIENT_ID_WEB>"
 ```
 
 ---

@@ -26,15 +26,19 @@ flutter pub get
 
 ### 3. Configuration
 
-Créer un fichier `.env` à la racine de `mobile-app/` :
+L’app lit l’URL de l’API via `--dart-define=API_URL=...` (voir `lib/utils/constants.dart`).
 
-```env
-API_URL=http://localhost:5000
-```
+Exemples :
 
-**Note** : Pour tester sur un appareil physique, remplacer `localhost` par l'IP de votre machine :
-```env
-API_URL=http://192.168.1.X:5000
+```bash
+# Backend local sur la machine (appareil physique)
+flutter run --dart-define=API_URL=http://192.168.1.X:5000
+
+# Backend local depuis l’émulateur Android
+flutter run --dart-define=API_URL=http://10.0.2.2:5000
+
+# Backend prod
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 ```
 
 ## 🚀 Commandes disponibles
@@ -47,7 +51,7 @@ flutter doctor
 flutter pub get
 
 # Démarrer en développement
-flutter run
+flutter run --dart-define=API_URL=https://supfile.fly.dev
 
 # Démarrer sur un appareil spécifique
 flutter run -d <device-id>
@@ -56,7 +60,7 @@ flutter run -d <device-id>
 flutter devices
 
 # Build pour Android
-flutter build apk
+flutter build apk --release --dart-define=API_URL=https://supfile.fly.dev
 
 # Build pour iOS (macOS uniquement)
 flutter build ios
