@@ -848,15 +848,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(),
 
-          ListTile(
-            leading: const Icon(Icons.cloud_off),
-            title: const Text('À propos du mode hors ligne'),
-            subtitle: const Text('Utilisation et synchronisation'),
-            onTap: () => context.go('/offline'),
-          ),
-
-          const Divider(),
-
           // Changer le mot de passe
           ListTile(
             leading: const Icon(Icons.lock),

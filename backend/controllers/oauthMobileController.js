@@ -31,6 +31,12 @@ async function handleGoogleMobileCallback(req, res, next) {
       });
     }
 
+    const extraAllowedAudiences = (process.env.GOOGLE_ALLOWED_CLIENT_IDS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const allowedAudiences = new Set([googleClientId, ...extraAllowedAudiences]);
+
     // Vérifier le token Google
     let payload;
 
@@ -45,11 +51,17 @@ async function handleGoogleMobileCallback(req, res, next) {
         });
         const tokenInfo = response.data;
         
-        // Vérifier que le token est pour notre client ID
-        if (!tokenInfo || tokenInfo.aud !== googleClientId) {
-          return res.status(401).json({
-            error: { message: 'Token Google invalide (client ID mismatch)' }
-          });
+        // Vérifier que le token est pour un client ID autorisé.
+        // Si mismatch mais access_token présent, on peut fallback sur userinfo.
+        if (!tokenInfo || !tokenInfo.aud || !allowedAudiences.has(tokenInfo.aud)) {
+          if (access_token) {
+            // Fallback: use access_token verification path.
+            payload = null;
+          } else {
+            return res.status(401).json({
+              error: { message: 'Token Google invalide (client ID mismatch)' }
+            });
+          }
         }
 
         // Vérifier l'issuer si présent
@@ -59,16 +71,35 @@ async function handleGoogleMobileCallback(req, res, next) {
           });
         }
 
-        const normalizedEmail = normalizeEmailForLookup(tokenInfo.email) || email;
-        
-        payload = {
-          sub: tokenInfo.sub,
-          email: normalizedEmail,
-          name: capString(tokenInfo.name, 120) || display_name,
-          picture: capString(tokenInfo.picture, 2048) || photo_url,
-        };
+        if (tokenInfo && tokenInfo.sub && tokenInfo.email && tokenInfo.aud && allowedAudiences.has(tokenInfo.aud)) {
+          const normalizedEmail = normalizeEmailForLookup(tokenInfo.email) || email;
+          payload = {
+            sub: tokenInfo.sub,
+            email: normalizedEmail,
+            name: capString(tokenInfo.name, 120) || display_name,
+            picture: capString(tokenInfo.picture, 2048) || photo_url,
+          };
+        }
       } else if (access_token) {
         // Utiliser l'access_token pour obtenir les infos utilisateur
+        const response = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo`, {
+          headers: { 'Authorization': `Bearer ${access_token}` },
+          timeout: 5000,
+          maxContentLength: 64 * 1024,
+          maxBodyLength: 64 * 1024,
+        });
+        const userInfo = response.data;
+        const normalizedEmail = normalizeEmailForLookup(userInfo?.email) || email;
+        payload = {
+          sub: userInfo.id,
+          email: normalizedEmail,
+          name: capString(userInfo?.name, 120) || display_name,
+          picture: capString(userInfo?.picture, 2048) || photo_url,
+        };
+      }
+
+      // If we tried id_token but did not build payload (aud mismatch), fallback to access_token if present.
+      if ((!payload || !payload.sub || !payload.email) && access_token) {
         const response = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo`, {
           headers: { 'Authorization': `Bearer ${access_token}` },
           timeout: 5000,

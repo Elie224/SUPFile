@@ -5,9 +5,41 @@ const Session = require('../models/sessionModel');
 const config = require('../config');
 const { getFrontendBaseUrl } = require('../utils/frontendUrl');
 
+const allowedMobileSchemeByProvider = {
+  google: /^supfile:\/\/oauth\/google\/callback(\?.*)?$/i,
+  github: /^supfile:\/\/oauth\/github\/callback(\?.*)?$/i,
+};
+
 // Middleware pour initialiser l'authentification OAuth
 const initiateOAuth = (provider) => {
   return (req, res, next) => {
+    // Capture the frontend base URL early (Origin/Referer available here) so the callback
+    // can reliably redirect back to the correct web app even when Origin is missing.
+    try {
+      const frontendUrl = getFrontendBaseUrl(req);
+      if (req.session && frontendUrl) {
+        req.session.oauthFrontendBaseUrl = frontendUrl;
+      }
+    } catch {
+      // best-effort only
+    }
+
+    // Mobile deep-link support: allow the app to request a redirect_uri like
+    // supfile://oauth/github/callback. We store it in session because the provider
+    // callback (GET /api/auth/:provider/callback) usually won't include it.
+    try {
+      const requestedRedirectUri = req.query.redirect_uri;
+      const re = allowedMobileSchemeByProvider[provider];
+      if (req.session && typeof requestedRedirectUri === 'string' && re) {
+        const trimmed = requestedRedirectUri.trim();
+        if (trimmed && re.test(trimmed)) {
+          req.session.oauthMobileRedirectUri = trimmed;
+        }
+      }
+    } catch {
+      // best-effort only
+    }
+
     // Vérifier si le provider est configuré
     const providerConfig = config.oauth[provider];
     
@@ -25,7 +57,7 @@ const initiateOAuth = (provider) => {
       console.error(`  Provider config exists: ${!!providerConfig}`);
       console.error(`  Client ID present: ${!!providerConfig?.clientId}`);
       console.error(`  Client Secret present: ${!!providerConfig?.clientSecret}`);
-      const frontendUrl = getFrontendBaseUrl(req);
+      const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} is not configured. Please contact the administrator.`)}`);
     }
     
@@ -34,7 +66,7 @@ const initiateOAuth = (provider) => {
       if (process.env.NODE_ENV !== 'production') {
         console.error(`OAuth ${provider} strategy not found in Passport`);
       }
-      const frontendUrl = getFrontendBaseUrl(req);
+      const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured&message=${encodeURIComponent(`OAuth ${provider} strategy is not registered. Please check server configuration.`)}`);
     }
 
@@ -54,7 +86,7 @@ const initiateOAuth = (provider) => {
       })(req, res, next);
     } catch (error) {
       console.error(`Error initiating OAuth ${provider}:`, error);
-      const frontendUrl = getFrontendBaseUrl(req);
+      const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
       res.redirect(`${frontendUrl}/login?error=oauth_init_failed&message=${encodeURIComponent(error.message || 'Failed to initiate OAuth')}`);
     }
   };
@@ -68,14 +100,14 @@ const handleOAuthCallback = (provider) => {
         if (process.env.NODE_ENV !== 'production') {
           console.error(`OAuth ${provider} error:`, err);
         }
-        const frontendUrl = getFrontendBaseUrl(req);
+        const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
         const errorMessage = err.message || 'Erreur lors de l\'authentification OAuth';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
 
       if (!user) {
         console.error(`OAuth ${provider}: No user returned from authentication`);
-        const frontendUrl = getFrontendBaseUrl(req);
+        const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
         const errorMessage = info?.message || 'Échec de l\'authentification. Veuillez réessayer.';
         return res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }
@@ -114,7 +146,11 @@ const handleOAuthCallback = (provider) => {
         }
 
         // Vérifier si c'est un callback mobile (deep link) - valider le schéma strict
-        const requestedRedirectUri = req.query.redirect_uri || req.body?.redirect_uri;
+        const requestedRedirectUri =
+          req.session?.oauthMobileRedirectUri ||
+          req.query.redirect_uri ||
+          req.body?.redirect_uri;
+
         const allowedMobileScheme = /^supfile:\/\/oauth\/(google|github)\/callback(\?.*)?$/i;
 
         if (requestedRedirectUri && typeof requestedRedirectUri === 'string') {
@@ -127,13 +163,17 @@ const handleOAuthCallback = (provider) => {
               deepLinkUrl.searchParams.set('token', access_token);
               deepLinkUrl.searchParams.set('refresh_token', refresh_token);
               console.log(`OAuth ${provider} success (mobile): User ${user.email} authenticated`);
+              if (req.session) {
+                delete req.session.oauthMobileRedirectUri;
+                delete req.session.oauthRedirect;
+              }
               return res.redirect(deepLinkUrl.toString());
             }
           }
         }
         
         // Sinon, rediriger vers le frontend web avec les tokens dans l'URL
-        const frontendUrl = getFrontendBaseUrl(req);
+        const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
         const redirectUrl = req.session?.oauthRedirect || '/dashboard';
         
         // Encoder les tokens pour les passer dans l'URL
@@ -146,7 +186,7 @@ const handleOAuthCallback = (provider) => {
         if (process.env.NODE_ENV !== 'production') {
           console.error(`OAuth ${provider} callback error:`, error);
         }
-        const frontendUrl = getFrontendBaseUrl(req);
+        const frontendUrl = req.session?.oauthFrontendBaseUrl || getFrontendBaseUrl(req);
         const errorMessage = error.message || 'Erreur lors du traitement de l\'authentification OAuth';
         res.redirect(`${frontendUrl}/login?error=oauth_failed&message=${encodeURIComponent(errorMessage)}`);
       }

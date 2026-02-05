@@ -30,7 +30,7 @@ android {
         versionName = flutter.versionName
         
         // AppAuth redirect scheme configuration
-        manifestPlaceholders["appAuthRedirectScheme"] = "com.example.supfile_mobile"
+        manifestPlaceholders["appAuthRedirectScheme"] = "supfile"
     }
 
     buildTypes {

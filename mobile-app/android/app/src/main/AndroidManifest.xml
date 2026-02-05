@@ -36,7 +36,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="com.example.supfile_mobile"
+                    android:scheme="supfile"
                     android:host="oauth" />
             </intent-filter>
             <!-- AppAuth redirect scheme intent-filter -->

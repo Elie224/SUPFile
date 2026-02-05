@@ -31,14 +31,34 @@ class OAuthService {
         : null,
   );
 
+  static final RegExp _googleClientIdPattern =
+      RegExp(r'^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$', caseSensitive: false);
+
+  static bool _looksLikeGoogleClientId(String value) {
+    final v = value.trim();
+    if (v.isEmpty) return false;
+    if (v.contains('__DUMMY__')) return false;
+    return _googleClientIdPattern.hasMatch(v);
+  }
+
   /// Connexion avec Google (natif)
   static Future<Map<String, dynamic>?> signInWithGoogle() async {
     try {
-      if (kIsWeb && AppConstants.googleWebClientId.trim().isEmpty) {
-        throw StateError(
-          'Google OAuth non configuré pour le Web. Lancez l\'app avec --dart-define=GOOGLE_WEB_CLIENT_ID="..."',
-        );
+      if (kIsWeb) {
+        final configuredId = AppConstants.googleWebClientId.trim();
+        if (configuredId.isEmpty) {
+          throw StateError(
+            'Google OAuth non configuré pour le Web (GOOGLE_WEB_CLIENT_ID manquant).',
+          );
+        }
+        if (!_looksLikeGoogleClientId(configuredId)) {
+          throw StateError(
+            'Google OAuth Web mal configuré : GOOGLE_WEB_CLIENT_ID invalide. '
+            'Utilisez le "Client ID" d\'un client OAuth de type "Application Web" (se termine par .apps.googleusercontent.com).',
+          );
+        }
       }
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
@@ -58,6 +78,11 @@ class OAuthService {
         'photo_url': googleUser.photoUrl,
       };
     } catch (e) {
+      final message = e.toString();
+      // On web, closing the popup is a user cancel, not an app error.
+      if (kIsWeb && (message.contains('popup_closed') || message.contains('user_closed_popup'))) {
+        return null;
+      }
       SecureLogger.error('Error signing in with Google', error: e);
       rethrow;
     }
@@ -68,7 +93,9 @@ class OAuthService {
     try {
       // URL de callback pour capturer le token
       const callbackUrl = 'supfile://oauth/github/callback';
-      const oauthUrl = '${AppConstants.apiBaseUrl}/api/auth/github?redirect_uri=$callbackUrl';
+      final oauthUri = Uri.parse('${AppConstants.apiBaseUrl}/api/auth/github').replace(
+        queryParameters: {'redirect_uri': callbackUrl},
+      );
       
       // Écouter les deep links
       final completer = Completer<Map<String, dynamic>?>();
@@ -116,10 +143,9 @@ class OAuthService {
       });
 
       // Ouvrir le navigateur pour l'authentification
-      final uri = Uri.parse(oauthUrl);
-      if (await canLaunchUrl(uri)) {
+      if (await canLaunchUrl(oauthUri)) {
         await launchUrl(
-          uri,
+          oauthUri,
           mode: LaunchMode.externalApplication,
         );
         
@@ -145,12 +171,13 @@ class OAuthService {
   static Future<void> signInWithProvider(String provider) async {
     try {
       final callbackUrl = 'supfile://oauth/$provider/callback';
-      final oauthUrl = '${AppConstants.apiBaseUrl}/api/auth/$provider?redirect_uri=$callbackUrl';
-      
-      final uri = Uri.parse(oauthUrl);
-      if (await canLaunchUrl(uri)) {
+      final oauthUri = Uri.parse('${AppConstants.apiBaseUrl}/api/auth/$provider').replace(
+        queryParameters: {'redirect_uri': callbackUrl},
+      );
+
+      if (await canLaunchUrl(oauthUri)) {
         await launchUrl(
-          uri,
+          oauthUri,
           mode: LaunchMode.externalApplication,
         );
       } else {

@@ -68,9 +68,11 @@ try {
                 "",
                 "# OAuth (Optionnel)",
                 "GOOGLE_CLIENT_ID=",
-                "GOOGLE_CLIENT_SECRET="[REDACTED]"GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback",
+                "GOOGLE_CLIENT_SECRET=",
+                "GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback",
                 "GITHUB_CLIENT_ID=",
-                "GITHUB_CLIENT_SECRET="[REDACTED]"GITHUB_REDIRECT_URI=http://localhost:5000/api/auth/github/callback"
+                "GITHUB_CLIENT_SECRET=",
+                "GITHUB_REDIRECT_URI=http://localhost:5000/api/auth/github/callback"
             )
             $envLines | Set-Content -Path .env -Encoding UTF8
             Write-Host "OK Fichier .env cree avec configuration optimale" -ForegroundColor Green

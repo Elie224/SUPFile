@@ -61,9 +61,23 @@ class _LoginScreenState extends State<LoginScreen> {
         // L'utilisateur a annulé
         return;
       }
-      
-      // Authentifier avec le backend
-      final success = await authProvider.oauthLogin(provider, oauthData);
+
+      bool success;
+
+      // GitHub mobile: the backend redirects to a deep link containing JWT tokens.
+      // We already have the tokens, so don't call the OAuth callback endpoint again.
+      if (provider == 'github' &&
+          oauthData['access_token'] is String &&
+          oauthData['refresh_token'] is String &&
+          oauthData['id_token'] == null) {
+        success = await authProvider.loginWithExistingTokens(
+          accessToken: oauthData['access_token'] as String,
+          refreshToken: oauthData['refresh_token'] as String,
+        );
+      } else {
+        // Google mobile: send Google tokens to backend for verification.
+        success = await authProvider.oauthLogin(provider, oauthData);
+      }
       
       if (success && mounted) {
         context.go('/dashboard');

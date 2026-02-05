@@ -6,8 +6,6 @@ import 'providers/auth_provider.dart';
 import 'providers/files_provider.dart';
 import 'providers/theme_provider.dart';
 import 'routes/app_router.dart';
-import 'services/offline_storage_service.dart';
-import 'services/sync_service.dart';
 import 'utils/constants.dart';
 import 'utils/http_cache.dart';
 import 'utils/performance_optimizer.dart';
@@ -17,7 +15,6 @@ void main() async {
 
   HttpCache.initialize();
   PerformanceOptimizer.cleanExpiredCache();
-  await OfflineStorageService.init();
 
   runApp(const SUPFileApp());
 }
@@ -32,7 +29,6 @@ class SUPFileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => FilesProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => SyncService()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

@@ -415,6 +415,67 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     return false;
   }
+
+  Future<bool> loginWithExistingTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    _errorCode = null;
+    notifyListeners();
+
+    try {
+      if (accessToken.trim().isEmpty || refreshToken.trim().isEmpty) {
+        _error = "Données d'authentification incomplètes";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      await SecureStorage.saveAccessToken(accessToken);
+      await SecureStorage.saveRefreshToken(refreshToken);
+      _accessToken = SecurityUtils.obfuscate(accessToken);
+      _refreshToken = SecurityUtils.obfuscate(refreshToken);
+
+      final response = await _apiService.getMe();
+      final body = response.data;
+
+      Map<String, dynamic>? userMap;
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+        if (data is Map<String, dynamic>) {
+          userMap = data;
+        } else if (body['user'] is Map<String, dynamic>) {
+          userMap = body['user'] as Map<String, dynamic>;
+        }
+      }
+
+      if (userMap == null) {
+        _error = "Réponse invalide du serveur";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      _user = User.fromJson(userMap);
+      await _saveUser(_user!);
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (e is DioException) {
+        _error = (e.response?.data['error']?['message'] as String?) ??
+            (e.error?.toString() ?? "Erreur lors de la connexion");
+      } else {
+        _error = "Erreur lors de la connexion";
+      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
   
   Future<void> logout() async {
     if (_refreshToken != null) {

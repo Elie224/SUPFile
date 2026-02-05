@@ -11,13 +11,11 @@ import '../../models/file.dart';
 import '../../models/folder.dart';
 import '../../utils/constants.dart';
 import '../../utils/input_validator.dart';
-import '../../services/sync_service.dart';
 import '../../utils/performance_cache.dart';
-import '../../widgets/offline_banner.dart';
-import '../../widgets/sync_indicator.dart';
 import '../../widgets/app_back_button.dart';
 import '../../utils/storage_paths.dart';
 import '../../utils/web_download.dart';
+import '../../utils/secure_storage.dart';
 
 class FilesScreen extends StatefulWidget {
   final String? folderId;
@@ -130,11 +128,31 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Future<void> _downloadFile(FileItem file) async {
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+      // Web: lancer un téléchargement direct (non-bloquant) pour permettre la navigation
+      // pendant le téléchargement. Chrome affichera la progression dans l'UI du navigateur.
+      if (kIsWeb) {
+        final token = await SecureStorage.getAccessToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('Session expirée. Veuillez vous reconnecter.');
+        }
+
+        final uri = Uri.parse('${AppConstants.apiBaseUrl}/api/files/${file.id}/download').replace(
+          queryParameters: <String, String>{'access_token': token},
+        );
+
+        WebDownload.downloadFromUrl(url: uri.toString(), fileName: file.name);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Téléchargement démarré (voir la progression dans Chrome)'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
 
       try {
         final response = await _apiService.downloadFile(file.id);
@@ -157,7 +175,6 @@ class _FilesScreenState extends State<FilesScreen> {
           }
 
           if (mounted) {
-            Navigator.pop(context); // Fermer le dialogue
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(kIsWeb ? 'Téléchargement démarré' : 'Fichier sauvegardé: ${filePath ?? ''}'),
@@ -170,7 +187,6 @@ class _FilesScreenState extends State<FilesScreen> {
         }
       } catch (e) {
         if (mounted) {
-          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Erreur: $e'),
@@ -193,11 +209,31 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Future<void> _downloadFolderZip(FolderItem folder) async {
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
-      );
+      // Web: téléchargement direct non-bloquant (Chrome gère la progression).
+      if (kIsWeb) {
+        final token = await SecureStorage.getAccessToken();
+        if (token == null || token.isEmpty) {
+          throw Exception('Session expirée. Veuillez vous reconnecter.');
+        }
+
+        final uri = Uri.parse('${AppConstants.apiBaseUrl}/api/folders/${folder.id}/download').replace(
+          queryParameters: <String, String>{'access_token': token},
+        );
+
+        final zipName = _safeZipName(folder.name);
+        WebDownload.downloadFromUrl(url: uri.toString(), fileName: zipName);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Téléchargement ZIP démarré (voir la progression dans Chrome)'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
 
       try {
         final response = await _apiService.downloadFolderZip(folder.id);
@@ -220,7 +256,6 @@ class _FilesScreenState extends State<FilesScreen> {
           }
 
           if (!mounted) return;
-          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(kIsWeb ? 'Téléchargement ZIP démarré' : 'ZIP sauvegardé: ${filePath ?? ''}'),
@@ -232,7 +267,6 @@ class _FilesScreenState extends State<FilesScreen> {
         }
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur ZIP: $e'),
@@ -347,187 +381,191 @@ class _FilesScreenState extends State<FilesScreen> {
           ),
         ],
       ),
-      body: Consumer<SyncService>(
-        builder: (context, sync, _) {
-          return Column(
-            children: [
-              sync.isOnline ? const SizedBox.shrink() : const OfflineBanner(),
-              if (_breadcrumbs.isNotEmpty || widget.folderId != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.grey.shade300,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        (_dragDropEnabled
-                                ? DragTarget<_DragPayload>(
-                                    onWillAcceptWithDetails: (details) => true,
-                                    onAcceptWithDetails: (details) async {
-                                      final data = details.data;
-                                      final filesProvider = Provider.of<FilesProvider>(context, listen: false);
-                                      if (data.isFolder) {
-                                        await filesProvider.moveFolder(data.id, null);
-                                      } else {
-                                        await filesProvider.moveFile(data.id, null);
-                                      }
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('"${data.name}" déplacé vers la racine'),
-                                          backgroundColor: Colors.green,
-                                          duration: const Duration(seconds: 2),
-                                        ),
-                                      );
-                                    },
-                                    builder: (context, candidateData, rejectedData) {
-                                      final isHovering = candidateData.isNotEmpty;
-                                      return DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: isHovering
-                                              ? Border.all(color: AppConstants.supinfoPurple, width: 2)
-                                              : null,
-                                        ),
-                                        child: InkWell(
-                                          onTap: () => context.go('/files'),
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: const Padding(
-                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(Icons.home_outlined,
-                                                    size: 18, color: AppConstants.supinfoPurple),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  'Racine',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    color: AppConstants.supinfoPurple,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : InkWell(
-                                    onTap: () => context.go('/files'),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.home_outlined,
-                                              size: 18, color: AppConstants.supinfoPurple),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            'Racine',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: AppConstants.supinfoPurple,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )),
-                        ..._breadcrumbs.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final folder = entry.value;
-                          final isLast = index == _breadcrumbs.length - 1;
-
-                          return Row(
-                            children: [
-                              Icon(
-                                Icons.chevron_right,
-                                size: 18,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              InkWell(
-                                onTap: () => context.push('/files?folder=${folder.id}'),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (isLast)
-                                        Icon(Icons.folder, size: 18, color: Colors.amber.shade700)
-                                      else
-                                        Icon(Icons.folder_outlined, size: 18, color: Colors.grey.shade600),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        folder.name,
-                                        style: TextStyle(
-                                          fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
-                                          color: isLast ? Colors.black87 : Colors.grey.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
+      body: Column(
+        children: [
+          if (_breadcrumbs.isNotEmpty || widget.folderId != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
                   ),
                 ),
-              Expanded(
-                child: filesProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : filesProvider.allItems.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.folder_open, size: 64, color: Colors.grey),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Dossier vide',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Ce dossier est vide pour le moment',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 14,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: () => filesProvider.loadFiles(folderId: widget.folderId),
-                            child: _buildSortedList(filesProvider),
-                          ),
               ),
-              sync.pendingCount > 0
-                  ? const Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: SyncIndicator(),
-                    )
-                  : const SizedBox.shrink(),
-            ],
-          );
-        },
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    (_dragDropEnabled
+                        ? DragTarget<_DragPayload>(
+                            onWillAcceptWithDetails: (details) => true,
+                            onAcceptWithDetails: (details) async {
+                              final data = details.data;
+                              final filesProvider =
+                                  Provider.of<FilesProvider>(context, listen: false);
+                              if (data.isFolder) {
+                                await filesProvider.moveFolder(data.id, null);
+                              } else {
+                                await filesProvider.moveFile(data.id, null);
+                              }
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('"${data.name}" déplacé vers la racine'),
+                                  backgroundColor: Colors.green,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              final isHovering = candidateData.isNotEmpty;
+                              return DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: isHovering
+                                      ? Border.all(
+                                          color: AppConstants.supinfoPurple, width: 2)
+                                      : null,
+                                ),
+                                child: InkWell(
+                                  onTap: () => context.go('/files'),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.home_outlined,
+                                          size: 18,
+                                          color: AppConstants.supinfoPurple,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Racine',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppConstants.supinfoPurple,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : InkWell(
+                            onTap: () => context.go('/files'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.home_outlined,
+                                    size: 18,
+                                    color: AppConstants.supinfoPurple,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Racine',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppConstants.supinfoPurple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
+                    ..._breadcrumbs.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final folder = entry.value;
+                      final isLast = index == _breadcrumbs.length - 1;
+
+                      return Row(
+                        children: [
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          InkWell(
+                            onTap: () => context.push('/files?folder=${folder.id}'),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isLast)
+                                    Icon(Icons.folder,
+                                        size: 18, color: Colors.amber.shade700)
+                                  else
+                                    Icon(Icons.folder_outlined,
+                                        size: 18, color: Colors.grey.shade600),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    folder.name,
+                                    style: TextStyle(
+                                      fontWeight:
+                                          isLast ? FontWeight.w600 : FontWeight.normal,
+                                      color: isLast
+                                          ? Colors.black87
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: filesProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filesProvider.allItems.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Dossier vide',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Ce dossier est vide pour le moment',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () => filesProvider.loadFiles(folderId: widget.folderId),
+                        child: _buildSortedList(filesProvider),
+                      ),
+          ),
+        ],
       ),
     );
   }

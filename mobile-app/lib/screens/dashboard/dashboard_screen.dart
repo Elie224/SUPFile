@@ -3,11 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
-import '../../services/sync_service.dart';
-import '../../services/offline_storage_service.dart';
 import '../../utils/constants.dart';
-import '../../widgets/offline_banner.dart';
-import '../../widgets/sync_indicator.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,7 +16,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   Map<String, dynamic>? _stats;
   bool _isLoading = true;
-  bool _fromCache = false;
 
   @override
   void initState() {
@@ -29,24 +24,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadDashboard() async {
-    final syncService = SyncService();
-    if (!syncService.isOnline) {
-      try {
-        await OfflineStorageService.init();
-        final cached = OfflineStorageService.getUserMeta('dashboardStats');
-        if (cached is Map<String, dynamic> && mounted) {
-          setState(() {
-            _stats = cached;
-            _isLoading = false;
-            _fromCache = true;
-          });
-          return;
-        }
-      } catch (_) {}
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-
     try {
       final response = await _apiService.getDashboard(force: true);
       if (response.statusCode == 200 && response.data['data'] != null && mounted) {
@@ -54,24 +31,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _stats = data;
           _isLoading = false;
-          _fromCache = false;
         });
-        try {
-          await OfflineStorageService.init();
-          await OfflineStorageService.setUserMeta('dashboardStats', data);
-        } catch (_) {}
       }
     } catch (e) {
-      try {
-        await OfflineStorageService.init();
-        final cached = OfflineStorageService.getUserMeta('dashboardStats');
-        if (cached is Map<String, dynamic> && mounted) {
-          setState(() {
-            _stats = cached;
-            _fromCache = true;
-          });
-        }
-      } catch (_) {}
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -92,13 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tableau de bord'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Paramètres',
-            onPressed: () => context.go('/settings'),
-          ),
-        ],
       ),
       drawer: Drawer(
         child: Container(
@@ -276,10 +231,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Column(
         children: [
-          Consumer<SyncService>(
-            builder: (_, sync, __) =>
-                sync.isOnline ? const SizedBox.shrink() : const OfflineBanner(),
-          ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -290,28 +241,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_fromCache)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: AppConstants.warningColor.withAlpha((0.15 * 255).round()),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppConstants.warningColor.withAlpha((0.5 * 255).round())),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.cloud_download, color: AppConstants.warningColor, size: 24),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Données en cache (mode hors ligne). Les chiffres peuvent ne pas être à jour.',
-                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       // Quota - Carte moderne avec gradient
                       Container(
                         decoration: BoxDecoration(
@@ -560,10 +489,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-          ),
-          Consumer<SyncService>(
-            builder: (_, sync, __) =>
-                sync.pendingCount > 0 ? const SyncIndicator() : const SizedBox.shrink(),
           ),
         ],
       ),

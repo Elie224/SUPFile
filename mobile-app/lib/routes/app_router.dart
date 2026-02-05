@@ -19,7 +19,6 @@ import '../screens/share/manage_shares_screen.dart';
 import '../screens/trash/trash_screen.dart';
 import '../screens/admin/admin_screen.dart';
 import '../screens/intro/intro_screen.dart';
-import '../screens/offline/offline_screen.dart';
 import '../screens/legal/privacy_policy_screen.dart';
 import '../screens/legal/terms_of_use_screen.dart';
 import '../screens/legal/legal_notice_screen.dart';
@@ -36,10 +35,6 @@ class AppRouter {
         GoRoute(
           path: '/',
           builder: (context, state) => const IntroScreen(),
-        ),
-        GoRoute(
-          path: '/offline',
-          builder: (context, state) => const OfflineScreen(),
         ),
         GoRoute(
           path: '/login',
@@ -187,7 +182,6 @@ class AppRouter {
         }
         final isLoggedIn = authProvider.isAuthenticated;
         final isPublicRoute = state.matchedLocation == '/' ||
-            state.matchedLocation == '/offline' ||
             state.matchedLocation == '/login' ||
             state.matchedLocation == '/signup' ||
             state.matchedLocation == '/forgot-password' ||

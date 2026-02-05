@@ -7,10 +7,19 @@ __pycache__/
 .pytest_cache/
 venv/
 
+# Python virtualenv (workspace)
+.venv/
+
 # Environment variables (SECRETS)
 .env
 .env.local
 .env.*.local
+
+# Temporary secrets import files (never commit)
+fly-secrets.env
+fly-secrets.env.*
+**/fly-secrets.env
+**/fly-secrets.env.*
 
 # Backend env files
 backend/.env
@@ -25,8 +34,22 @@ dist/
 build/
 *.log
 
+# Common build/cache outputs
+coverage/
+.eslintcache
+.cache/
+
+# Flutter/Dart generated
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+
 # Vite PWA dev output (generated)
 frontend-web/dev-dist/
+frontend-web/.vite/
 
 # IDE
 .vscode/
