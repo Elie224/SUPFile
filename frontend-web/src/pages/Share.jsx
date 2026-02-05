@@ -3,11 +3,7 @@ import { useParams } from 'react-router-dom';
 import { shareService } from '../services/api';
 import { useToast } from '../components/Toast';
 import { API_URL } from '../config';
-import { downloadBlob } from '../utils/downloadBlob';
 import { formatBytes } from '../utils/storageUtils';
-
-const DOWNLOAD_TIMEOUT_MS = 120000; // 2 min pour gros fichiers
-const DOWNLOAD_FOLDER_TIMEOUT_MS = 10 * 60 * 1000; // 10 min pour ZIP de dossiers
 
 function sanitizeDownloadFilename(name, fallback = 'download') {
   if (name == null || typeof name !== 'string') return fallback;
@@ -136,31 +132,21 @@ export default function Share() {
       params.append('password', password);
     }
     const downloadUrl = `${API_URL}/api/files/${resource.id}/download?${params.toString()}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
     try {
-      const response = await fetch(downloadUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const ct = response.headers.get('Content-Type') || '';
-        let msg = 'Erreur lors du téléchargement';
-        if (ct.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            msg = errorData.error?.message || msg;
-          } catch (_) {}
-        }
-        throw new Error(msg);
+      // IMPORTANT:
+      // Ne pas charger le fichier en mémoire via fetch()+blob() :
+      // - casse sur fichiers/ZIP volumineux
+      // - peut être tué par des timeouts/proxy
+      // On délègue au navigateur (streaming vers disque).
+      const w = window.open(downloadUrl, '_blank', 'noopener');
+      if (!w) {
+        // Popup bloquée: fallback sur navigation directe.
+        window.location.href = downloadUrl;
       }
-      const blob = await response.blob();
-      downloadBlob(blob, sanitizeDownloadFilename(resource.name, 'download'));
+      toast.info('Téléchargement démarré…');
     } catch (err) {
-      clearTimeout(timeoutId);
       console.error('Download error:', err);
-      const msg = err?.name === 'AbortError'
-        ? 'Le téléchargement a pris trop de temps.'
-        : (err.message || 'Erreur lors du téléchargement');
-      toast.error(msg);
+      toast.error(err?.message || 'Erreur lors du téléchargement');
     }
   };
 
@@ -172,34 +158,18 @@ export default function Share() {
       params.append('password', password);
     }
     const downloadUrl = `${API_URL}/api/share/${encodeURIComponent(String(token))}/download${params.toString() ? `?${params.toString()}` : ''}`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_FOLDER_TIMEOUT_MS);
     try {
-      const response = await fetch(downloadUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        const ct = response.headers.get('Content-Type') || '';
-        let msg = 'Erreur lors du téléchargement';
-        if (ct.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            msg = errorData.error?.message || msg;
-          } catch (_) {}
-        }
-        throw new Error(msg);
+      // Même principe que pour les fichiers: ouvrir le lien pour streamer le ZIP.
+      // (Le ZIP peut être volumineux, `blob()` fait exploser la RAM.)
+      const w = window.open(downloadUrl, '_blank', 'noopener');
+      if (!w) {
+        window.location.href = downloadUrl;
       }
-      const blob = await response.blob();
-      const base = sanitizeDownloadFilename(resource.name, 'dossier');
-      const fileName = base.toLowerCase().endsWith('.zip') ? base : `${base}.zip`;
-      downloadBlob(blob, fileName);
+      const folderName = sanitizeDownloadFilename(resource.name, 'dossier');
+      toast.info(`Génération du ZIP… (${folderName})`);
     } catch (err) {
-      clearTimeout(timeoutId);
       console.error('Folder download error:', err);
-      const msg = err?.name === 'AbortError'
-        ? 'Le téléchargement du dossier a pris trop de temps.'
-        : (err.message || 'Erreur lors du téléchargement');
-      toast.error(msg);
+      toast.error(err?.message || 'Erreur lors du téléchargement du dossier');
     }
   };
 
