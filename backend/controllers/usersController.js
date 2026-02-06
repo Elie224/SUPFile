@@ -324,12 +324,18 @@ async function listUsers(req, res, next) {
     const tokens = rawSearch.split(/\s+/).filter(Boolean).slice(0, 5);
     const safeTokens = tokens.map(t => sanitizeSearchInput(t)).filter(Boolean);
 
-    const tokenOr = (t) => ([
-      { email: { $regex: t, $options: 'i' } },
-      { display_name: { $regex: t, $options: 'i' } },
-      { first_name: { $regex: t, $options: 'i' } },
-      { last_name: { $regex: t, $options: 'i' } },
-    ]);
+    // IMPORTANT: mongoose.set('sanitizeFilter', true) strips keys starting with '$' inside filters.
+    // Using {$regex, $options} would be sanitized into {} and cause CastErrors (e.g., "Cast to string failed").
+    // Use RegExp values instead.
+    const tokenOr = (t) => {
+      const rx = new RegExp(t, 'i');
+      return [
+        { email: rx },
+        { display_name: rx },
+        { first_name: rx },
+        { last_name: rx },
+      ];
+    };
 
     if (safeTokens.length === 1) {
       query.$or = tokenOr(safeTokens[0]);
