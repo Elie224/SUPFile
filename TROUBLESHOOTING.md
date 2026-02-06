@@ -99,6 +99,25 @@ docker compose up -d
 
 ### Erreurs courantes
 
+#### Fly.io : "DNS verification failed" / timeout vers 8.8.8.8
+
+**Symptôme :** lors d'un `flyctl deploy`, message du type :
+
+- `Checking DNS configuration for ...`
+- `DNS verification failed: read udp ... ->8.8.8.8:53: i/o timeout`
+
+**Cause fréquente :** blocage réseau local (proxy / pare-feu / DNS de l'entreprise) empêchant `flyctl` de contacter 8.8.8.8.
+
+**Important :** ce warning **n'indique pas** forcément un déploiement raté.
+
+**Vérification fiable :**
+
+```powershell
+curl https://supfile.fly.dev/health
+```
+
+Si la réponse est `{"status":"ok"}`, le backend est bien en ligne.
+
 #### "MongoDB connection string not found"
 - Vérifier que le fichier `.env` existe à la racine
 - Vérifier que `MONGO_URI` ou les variables MongoDB sont définies

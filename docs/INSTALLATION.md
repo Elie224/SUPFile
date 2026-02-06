@@ -47,23 +47,19 @@ cd SUPFile
 
 ### 2️⃣ Configurer les variables d’environnement
 
+Par défaut, le projet est **plug-and-play** : `docker compose up -d` fonctionne sans fichier `.env`.
+
+Si vous souhaitez définir des variables (OAuth, CORS, secrets en prod, etc.), utilisez le template :
+
 ```bash
 cp .env.example .env
 ```
 
-Éditer **`.env`** et remplacer les valeurs par défaut (aucun secret ne doit rester en clair) :
+⚠️ **IMPORTANT** : ne jamais commiter `.env` (aucun secret ne doit être présent dans le dépôt).
 
-```env
-# Base de données MongoDB (Docker)
-MONGO_INITDB_ROOT_USERNAME=supfile_root
-MONGO_INITDB_ROOT_PASSWORD=votre_mot_de_passe_mongo_secure
-MONGO_INITDB_DATABASE=supfile
-MONGO_URI=[REDACTED]
-
-# JWT (générer des secrets forts, au moins 32 caractères)
-JWT_SECRET=[REDACTED]
-JWT_REFRESH_SECRET=[REDACTED]
-```
+Notes :
+- En Docker local, MongoDB tourne **sans authentification** (simplifie la correction).
+- En `NODE_ENV=development`, si `JWT_SECRET` / `JWT_REFRESH_SECRET` sont absents, le backend les **génère automatiquement au runtime**.
 
 **Générer des secrets forts** :
 
@@ -101,6 +97,8 @@ Tous les services doivent être **Up**.
 | **Frontend Web**  | http://localhost:3000       | Application web    |
 | **MongoDB**       | localhost:27017             | Base de données (interne) |
 
+Note : en Docker Compose, le frontend reverse-proxy l'API via `http://localhost:3000/api/...` (same-origin).
+
 ### Vérifier la santé de l’API
 
 ```bash
@@ -117,7 +115,6 @@ Objectif : permettre une vérification rapide et reproductible.
 1) Démarrage (3 services) :
 
 ```bash
-cp .env.example .env
 docker compose up -d
 docker compose ps
 ```
@@ -132,6 +129,20 @@ curl http://localhost:5000/health
 3) Notes importantes :
 - Le service mobile Flutter est optionnel (profil Docker) : `docker compose --profile mobile up -d`
 - OAuth Google/GitHub dépend des credentials fournis via variables d’environnement.
+
+---
+
+## Mode développement (hot reload) via Docker
+
+Une stack dédiée est fournie pour développer avec hot-reload (Vite + nodemon) :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+URLs :
+- Frontend dev : http://localhost:3000
+- Backend dev : http://localhost:5000/health
 
 ---
 
@@ -196,7 +207,7 @@ docker compose up -d
 
 ```bash
 # Connexion au conteneur
-docker exec -it supfile-db mongosh -u supfile_root -p --authenticationDatabase admin
+docker exec -it supfile-db mongosh
 
 # Dans mongosh : utiliser la base supfile
 use supfile
@@ -255,7 +266,7 @@ npm test
 ```bash
 cd frontend-web
 npm install
-npm test
+npm run lint
 ```
 
 ---

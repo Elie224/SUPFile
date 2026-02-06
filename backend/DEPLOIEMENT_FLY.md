@@ -47,6 +47,8 @@ cd backend
 flyctl deploy --app supfile --dns-checks=false
 ```
 
+Note : si vous voyez un warning de type `DNS verification failed ... 8.8.8.8:53 i/o timeout`, c'est généralement un souci de réseau local (proxy/pare-feu). Le déploiement peut être OK malgré tout.
+
 ## 5. Vérifier
 
 - Health : https://supfile.fly.dev/health → doit retourner `{"status":"ok"}`
