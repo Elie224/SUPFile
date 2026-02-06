@@ -74,6 +74,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
 const LegalNotice = lazy(() => import('./pages/LegalNotice'));
+const SharedWithMePage = lazy(() => import('./pages/SharedWithMePage'));
 // Import direct pour éviter page blanche au clic sur le lien de vérification email (chunk 404 après déploiement)
 import VerifyEmail from './pages/VerifyEmail';
 
@@ -157,6 +158,16 @@ function App() {
             <Layout>
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            </Layout>
+          }
+        />
+        <Route
+          path="/shared-with-me"
+          element={
+            <Layout>
+              <ProtectedRoute>
+                <SharedWithMePage />
               </ProtectedRoute>
             </Layout>
           }

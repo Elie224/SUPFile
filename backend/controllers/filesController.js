@@ -671,7 +671,7 @@ async function downloadFile(req, res, next) {
       return res.status(404).json({ error: { message: 'File not found' } });
     }
 
-    // Vérifier la propriété ou le partage public
+    // Vérifier la propriété, le partage public ou interne
     let hasAccess = false;
     const fileOwnerId = String(file.owner_id || '');
 
@@ -682,14 +682,27 @@ async function downloadFile(req, res, next) {
         hasAccess = true;
       }
     }
-    
+
     // Si pas propriétaire, vérifier le partage public
     if (!hasAccess && token) {
       const shareAccess = await assertPublicShareAccessOrReturn(res, { fileId: id, token, password });
       if (shareAccess.responded) return shareAccess.response;
       if (shareAccess.ok) hasAccess = true;
     }
-    
+
+    // Si pas propriétaire ni partage public, vérifier le partage interne
+    if (!hasAccess && userId) {
+      const internalShare = await ShareModel.findOne({
+        file_id: file._id,
+        shared_with_user_id: userId,
+        share_type: 'internal',
+        is_active: true,
+      });
+      if (internalShare) {
+        hasAccess = true;
+      }
+    }
+
     if (!hasAccess) {
       return res.status(403).json({ error: { message: 'Access denied' } });
     }
