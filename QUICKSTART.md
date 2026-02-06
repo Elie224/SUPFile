@@ -23,6 +23,26 @@ Notes :
 - Le frontend (nginx) reverse-proxy l'API via `http://localhost:3000/api/...`.
 - En local/dev, le backend génère automatiquement `JWT_SECRET`/`JWT_REFRESH_SECRET` si absents (aucun secret n'est commité).
 
+---
+
+## 🔥 Mode dev (hot-reload) via Docker
+
+Le dépôt fournit une stack Compose dédiée au développement : `docker-compose.dev.yml`.
+
+```bash
+# Mode dev : Vite (HMR) + backend nodemon + Mongo
+docker compose -f docker-compose.dev.yml up -d --build
+
+# Frontend dev : http://localhost:3000
+# Backend dev  : http://localhost:5000/health
+```
+
+Pour revenir au mode “rendu/prod-like” :
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
 Note : le service **mobile (Flutter)** est optionnel et n'est pas lancé par défaut. Pour le démarrer via Docker :
 
 ```bash

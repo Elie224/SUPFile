@@ -1,0 +1,68 @@
+services:
+  db:
+    image: mongo:6.0
+    container_name: supfile-db-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - db_data:/data/db
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supfile-backend-dev
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      SERVER_HOST: 0.0.0.0
+      MONGO_URI: mongodb://db:27017/supfile
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      UPLOAD_DIR: /usr/src/app/uploads
+      CORS_ORIGIN: http://localhost:3000
+    command: npm run dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+      - backend_data:/usr/src/app/uploads
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+  frontend:
+    image: node:18-alpine
+    container_name: supfile-frontend-dev
+    working_dir: /app
+    environment:
+      VITE_API_URL: http://localhost:5000
+      CHOKIDAR_USEPOLLING: "true"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - supfile-network
+    restart: unless-stopped
+
+volumes:
+  db_data:
+    driver: local
+  backend_data:
+    driver: local
+
+networks:
+  supfile-network:
+    driver: bridge

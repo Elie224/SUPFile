@@ -119,6 +119,14 @@ Notes :
 - En Docker Compose, le frontend reverse-proxy l'API via `http://localhost:3000/api/...` (same-origin).
 - Le stockage fichiers persiste via un volume Docker monté sur le backend (`/usr/src/app/uploads`).
 
+### Mode développement (hot reload)
+
+Une stack Compose dédiée est fournie pour travailler avec hot-reload (Vite + nodemon) sans modifier la stack “rendu/prod-like” :
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
 ### Arrêter l'application
 
 ```bash
