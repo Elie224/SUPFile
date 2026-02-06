@@ -1,12 +1,37 @@
 // Configuration centralisée du serveur
 require('dotenv').config();
 
+const crypto = require('crypto');
+
+const nodeEnv = process.env.NODE_ENV || 'development';
+
+function ensureDevSecret(envName) {
+  const current = process.env[envName];
+  if (current && String(current).trim().length > 0) return;
+
+  if (nodeEnv === 'production') return;
+
+  // Générer un secret aléatoire (dev/local uniquement)
+  process.env[envName] = crypto.randomBytes(48).toString('hex');
+  // eslint-disable-next-line no-console
+  console.warn(`[DEV] ${envName} absent: génération automatique (non recommandé en production).`);
+}
+
+// En dev/local, on veut que l'app soit utilisable sans commiter de secrets.
+ensureDevSecret('JWT_SECRET');
+ensureDevSecret('JWT_REFRESH_SECRET');
+if (!process.env.SESSION_SECRET || String(process.env.SESSION_SECRET).trim().length === 0) {
+  if (nodeEnv !== 'production') {
+    process.env.SESSION_SECRET = process.env.JWT_SECRET;
+  }
+}
+
 module.exports = {
   server: {
     // Render utilise PORT, sinon SERVER_PORT, sinon 5000 par défaut
     port: process.env.PORT || process.env.SERVER_PORT || 5000,
     host: process.env.SERVER_HOST || '0.0.0.0',
-    nodeEnv: process.env.NODE_ENV || 'development',
+    nodeEnv,
   },
   database: {
     // MongoDB connection string (mongodb://[REDACTED]

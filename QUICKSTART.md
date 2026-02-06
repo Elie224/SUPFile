@@ -7,10 +7,7 @@ Bienvenue dans le projet SUPFile !
 ### Option 1 : Avec Docker (RECOMMANDÉ)
 
 ```bash
-# 1. Copier la configuration d'environnement
-cp .env.example .env
-
-# 2. Lancer tous les services
+# 1. Lancer tous les services
 docker compose up -d
 
 # 3. Attendre que tout démarre (~30 secondes)
@@ -22,13 +19,23 @@ docker compose logs -f
 # MongoDB       : mongodb://localhost:27017 (si besoin)
 ```
 
+Notes :
+- Le frontend (nginx) reverse-proxy l'API via `http://localhost:3000/api/...`.
+- En local/dev, le backend génère automatiquement `JWT_SECRET`/`JWT_REFRESH_SECRET` si absents (aucun secret n'est commité).
+
 Note : le service **mobile (Flutter)** est optionnel et n'est pas lancé par défaut. Pour le démarrer via Docker :
 
 ```bash
 docker compose --profile mobile up -d
 ```
 
-Sur Windows (PowerShell), l'équivalent de la copie :
+Si vous voulez fournir vos propres secrets/variables :
+
+```bash
+cp .env.example .env
+```
+
+Sur Windows (PowerShell) :
 
 ```powershell
 Copy-Item .env.example .env

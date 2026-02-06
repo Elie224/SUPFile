@@ -72,14 +72,13 @@ SUPFile/
    cd SUPFile
    ```
 
-2. **Configurer les variables d'environnement**
-   ```bash
-   cp .env.example .env
-   ```
-   ⚠️ **IMPORTANT** : Éditer le fichier `.env` et remplacer les valeurs par défaut (aucun secret ne doit rester en clair) :
-   - `MONGO_INITDB_ROOT_PASSWORD` (et `MONGO_URI` si besoin)
-   - `JWT_SECRET`
-   - `JWT_REFRESH_SECRET`
+2. **(Optionnel) Configurer les variables d'environnement**
+   - Pour un démarrage rapide en local, **aucun `.env` n'est requis** : le `docker-compose.yml` lance MongoDB (sans auth) + backend + frontend, et le backend **génère des secrets JWT** automatiquement en mode development.
+   - Pour une configuration plus réaliste (ou production), copiez le template et renseignez vos secrets via variables d'environnement :
+     ```bash
+     cp .env.example .env
+     ```
+     ⚠️ **IMPORTANT** : ne jamais commiter `.env`.
 
 3. **Vérifier que Docker est en cours d'exécution**
    ```bash
@@ -115,6 +114,10 @@ docker compose ps
 | API Backend | http://localhost:5000/health | [Vérifier](http://localhost:5000/health) |
 | Web Frontend | http://localhost:3000 | [Ouvrir](http://localhost:3000) |
 | MongoDB | localhost:27017 | (interne) |
+
+Notes :
+- En Docker Compose, le frontend reverse-proxy l'API via `http://localhost:3000/api/...` (same-origin).
+- Le stockage fichiers persiste via un volume Docker monté sur le backend (`/usr/src/app/uploads`).
 
 ### Arrêter l'application
 

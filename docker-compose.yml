@@ -1,18 +1,17 @@
 services:
-  # Base de données MongoDB
+  # Base de données MongoDB (métadonnées)
+  # - Par défaut (local/dev) : pas d'auth pour que `docker compose up` fonctionne sans .env
+  # - En prod : utilisez un Mongo managé ou activez l'auth + secrets via variables d'env
   db:
     image: mongo:6.0
     container_name: supfile-db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     ports:
       - "27017:27017"
     volumes:
       - db_data:/data/db
     networks:
       - supfile-network
+    restart: unless-stopped
 
   # Serveur API Node.js/Express
   backend:
@@ -24,53 +23,50 @@ services:
       - db
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      SERVER_PORT: 5000
+      PORT: 5000
       SERVER_HOST: 0.0.0.0
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@db:27017/${MONGO_INITDB_DATABASE}?authSource=admin
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
+      MONGO_URI: mongodb://db:27017/supfile
+      # Secrets : en dev/local, ils peuvent être absents (générés au runtime par le backend).
+      # En production, définissez-les (Fly/Render/.env).
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-32212254720}
       UPLOAD_DIR: /usr/src/app/uploads
-      CORS_ORIGIN: ${CORS_ORIGIN}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/auth/callback/google}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/api/auth/google/callback}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:3000/auth/callback/github}
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:3000/api/auth/github/callback}
     ports:
       - "5000:5000"
     volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
-      # IMPORTANT: keep uploads persisted even when mounting source code
+      # Persist files on a Docker volume (not in DB)
       - backend_data:/usr/src/app/uploads
     networks:
       - supfile-network
     restart: unless-stopped
 
-  # Client Web React
+  # Client Web (React build) + reverse proxy vers l'API
+  # - Le frontend appelle l'API via /api (même origine) -> pas de CORS en local.
   frontend:
     build:
       context: ./frontend-web
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
     container_name: supfile-frontend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      VITE_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend-web/src:/app/src
-      - /app/node_modules
+      - "3000:80"
     networks:
       - supfile-network
     restart: unless-stopped
     depends_on:
       - backend
 
-  # Client Mobile (Flutter)
+  # Client Mobile (Flutter) - optionnel
   mobile:
     profiles: ["mobile"]
     build:
@@ -78,11 +74,9 @@ services:
       dockerfile: Dockerfile
     container_name: supfile-mobile
     environment:
-      API_URL: ${VITE_API_URL:-http://localhost:5000}
+      API_URL: ${API_URL:-http://localhost:5000}
     ports:
       - "8080:8080"
-    volumes:
-      - ./mobile-app/lib:/app/lib
     networks:
       - supfile-network
     restart: unless-stopped
