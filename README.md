@@ -394,10 +394,10 @@ Pour toute question :
 
 ## 📄 Licence
 
-Ce projet est développé pour SUPFile.
+Ce projet est un projet de fin d'année .
 
-**Date de création** : Décembre 2025
-**Dernière mise à jour** : Décembre 2025
+**Date de création** : Novembre  2025
+**Dernière mise à jour** : Fevrier 2025
 
 ---
 
